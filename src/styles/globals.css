@@ -128,6 +128,12 @@
     -webkit-font-smoothing: antialiased;
   }
 
+  /* Thin, theme-aware scrollbars instead of the light Windows default. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--muted-foreground) 35%, transparent) transparent;
+  }
+
   ::selection {
     background: color-mix(in srgb, var(--primary) 30%, transparent);
   }

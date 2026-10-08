@@ -1,13 +1,15 @@
 import { Outlet } from "@tanstack/react-router";
 import { useEffect } from "react";
+import { useJobEvents } from "@/features/tasks/api";
+import { TaskDrawer } from "@/features/tasks/task-drawer";
 import { useUi } from "@/stores/ui";
 import { CommandPalette } from "./command-palette";
 import { Sidebar } from "./sidebar";
-import { TaskDrawer } from "./task-drawer";
 import { Topbar } from "./topbar";
 
 export function AppShell() {
   useGlobalShortcuts();
+  useJobEvents();
 
   return (
     <div className="grid h-full grid-cols-[13.5rem_minmax(0,1fr)]">

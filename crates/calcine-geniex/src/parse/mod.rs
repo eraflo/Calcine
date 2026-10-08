@@ -7,6 +7,7 @@
 pub mod config_list;
 pub mod hub_table;
 pub mod list_json;
+pub mod progress;
 pub mod version;
 
 use calcine_core::model::{ModelType, Runtime};

@@ -7,11 +7,12 @@ command or flag becomes available in the app. Reference: GenieX v0.8.0.
 |---|---|---|---|---|
 | `list --format json` | ✅ `parse::list_json` | ✅ `ModelStore::list` | ✅ Library | Stable JSON schema |
 | `version` | ✅ `parse::version` | ✅ `RuntimeManager::info` | ✅ Hardware, sidebar | |
-| `config list` / `get` | ✅ `parse::config_list` | — | — | Chipset (M1) |
-| `config set chipset` | — | — | — | M1 |
-| `model list [--all]` | ✅ `parse::hub_table` | — | — | AI Hub catalog (M1); `--all` uses chipset slugs |
-| `pull` | — | — | — | M1, progress parser to build from a real capture |
-| `remove` / `rm` | — | — | — | M1 |
+| `config get chipset` | — (trimmed stdout) | ✅ `RuntimeManager::chipset` | ✅ Hardware, Welcome | |
+| `config list` | ✅ `parse::config_list` | — | — | |
+| `config set chipset` | — | — | — | M3: needs the chipset names list, only shown by the interactive picker today |
+| `model list [--all]` | ✅ `parse::hub_table` | ✅ `ModelCatalog::aihub` | ✅ Discover, Welcome | `--all` lists chipset slugs (`x-elite`), not names |
+| `pull <name>[:prec] [--model-hub] [--model-type]` | ✅ `parse::progress` (real capture) | ✅ `ModelStore::pull`, cancellable job | ✅ Discover, Welcome, task drawer | Without a TTY GenieX picks the recommended precision. `--local-path` in M3 |
+| `remove --yes <keys…>` | — | ✅ `ModelStore::remove` | ✅ Library (model or one precision) | |
 | `clean` | — | — | — | M3 |
 | `model set-type` | — | — | — | M3 |
 | `serve` | — | — | — | M2, behind the Calcine gateway |

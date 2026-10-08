@@ -2,9 +2,9 @@
 
 use specta_typescript::Typescript;
 use tauri::Wry;
-use tauri_specta::{Builder, collect_commands};
+use tauri_specta::{Builder, collect_commands, collect_events};
 
-use crate::commands;
+use crate::{commands, events};
 
 /// Generated file consumed by the frontend. CI fails if it is out of date.
 const BINDINGS_PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../src/lib/bindings.ts");
@@ -15,9 +15,19 @@ pub fn builder() -> Builder<Wry> {
         .commands(collect_commands![
             commands::app::app_info,
             commands::models::list_models,
+            commands::models::remove_models,
+            commands::models::parse_model_reference,
+            commands::models::pull_model,
+            commands::models::aihub_catalog,
             commands::runtime::runtime_info,
+            commands::runtime::chipset,
+            commands::runtime::hardware_info,
+            commands::jobs::list_jobs,
+            commands::jobs::cancel_job,
+            commands::jobs::dismiss_job,
         ])
-        // Byte sizes are u64 but always far below 2^53.
+        .events(collect_events![events::JobUpdated])
+        // Byte sizes and timestamps are u64 but always far below 2^53.
         .dangerously_cast_bigints_to_number()
 }
 

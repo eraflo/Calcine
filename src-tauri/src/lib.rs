@@ -7,11 +7,17 @@
 mod bindings;
 mod commands;
 mod error;
+mod events;
+mod tray;
 
-use calcine_core::Services;
-use calcine_geniex::{Geniex, GeniexConfig};
-use calcine_mock::MockBackend;
 use std::sync::Arc;
+
+use calcine_core::jobs::JobManager;
+use calcine_core::{BackendKind, Services};
+use calcine_geniex::{Geniex, GeniexConfig};
+use calcine_hw::SystemProbe;
+use calcine_mock::MockBackend;
+use tauri::{Manager, WindowEvent};
 use tracing_subscriber::EnvFilter;
 
 /// Environment variable selecting the backend: `mock` or `geniex` (default).
@@ -36,11 +42,24 @@ pub fn run() {
     }
 
     tauri::Builder::default()
+        // Must come first: a second launch focuses the running instance.
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            tray::show_main_window(app);
+        }))
         .manage(services)
         .invoke_handler(specta.invoke_handler())
         .setup(move |app| {
             specta.mount_events(app);
+            events::forward_jobs(app.handle().clone(), &app.state::<Services>().jobs);
+            tray::install(app)?;
             Ok(())
+        })
+        .on_window_event(|window, event| {
+            // Closing the window keeps Calcine in the tray; quit from the tray menu.
+            if let WindowEvent::CloseRequested { api, .. } = event {
+                api.prevent_close();
+                let _ = window.hide();
+            }
         })
         .run(tauri::generate_context!())
         .expect("error while running Calcine");
@@ -67,11 +86,14 @@ fn services_from_env() -> Services {
 }
 
 fn geniex_services() -> Services {
-    let backend = Arc::new(Geniex::new(GeniexConfig::default()));
+    let geniex = Arc::new(Geniex::new(GeniexConfig::default()));
     Services {
-        backend: calcine_core::BackendKind::Geniex,
-        models: backend.clone(),
-        runtime: backend,
+        backend: BackendKind::Geniex,
+        models: geniex.clone(),
+        catalog: geniex.clone(),
+        runtime: geniex,
+        hardware: Arc::new(SystemProbe),
+        jobs: JobManager::new(),
     }
 }
 

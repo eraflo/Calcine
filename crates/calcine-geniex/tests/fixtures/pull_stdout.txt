@@ -1,0 +1,7 @@
+🌍fetching available precisions from: qualcomm/Qwen3-0.6B
+   Press Ctrl+C to cancel — progress is saved, not discarded.
+   Detected model type: llm
+✔  Download success
+   Size:      725 MiB
+   Location:  C:\Users\maillard_f\.cache\geniex\models\qualcomm\Qwen3-0.6B
+   Precision: W4A16

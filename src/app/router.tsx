@@ -12,6 +12,8 @@ import { HardwarePage } from "@/features/hardware/hardware-page";
 import { LibraryPage } from "@/features/library/library-page";
 import { ServerPage } from "@/features/server/server-page";
 import { SettingsPage } from "@/features/settings/settings-page";
+import { WelcomePage } from "@/features/welcome/welcome-page";
+import { isOnboarded } from "@/stores/onboarding";
 import { AppShell } from "./shell/app-shell";
 
 const rootRoute = createRootRoute({ component: AppShell });
@@ -24,7 +26,7 @@ const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/",
   beforeLoad: () => {
-    throw redirect({ to: "/library" });
+    throw redirect({ to: isOnboarded() ? "/library" : "/welcome" });
   },
 });
 
@@ -36,6 +38,7 @@ const routeTree = rootRoute.addChildren([
   page("/server", ServerPage),
   page("/hardware", HardwarePage),
   page("/settings", SettingsPage),
+  page("/welcome", WelcomePage),
 ]);
 
 export const router = createRouter({

@@ -4,7 +4,9 @@ use std::sync::Arc;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
-use crate::traits::{ModelStore, RuntimeManager};
+use crate::jobs::{JobId, JobKind, JobManager, JobState};
+use crate::reference::PullRequest;
+use crate::traits::{HardwareProbe, ModelCatalog, ModelStore, RuntimeManager};
 
 /// Which implementation backs the services.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]
@@ -21,7 +23,32 @@ pub enum BackendKind {
 pub struct Services {
     pub backend: BackendKind,
     pub models: Arc<dyn ModelStore>,
+    pub catalog: Arc<dyn ModelCatalog>,
     pub runtime: Arc<dyn RuntimeManager>,
+    pub hardware: Arc<dyn HardwareProbe>,
+    pub jobs: JobManager,
+}
+
+impl Services {
+    /// Start downloading a model, or return the job already downloading it.
+    pub fn start_pull(&self, request: PullRequest) -> JobId {
+        let kind = JobKind::Pull {
+            model: request.reference.cli_arg(),
+        };
+        if let Some(job) = self
+            .jobs
+            .list()
+            .into_iter()
+            .find(|job| job.kind == kind && job.state == JobState::Running)
+        {
+            return job.id;
+        }
+        let store = self.models.clone();
+        self.jobs.spawn(
+            kind,
+            move |ctx| async move { store.pull(request, ctx).await },
+        )
+    }
 }
 
 impl fmt::Debug for Services {

@@ -1,0 +1,50 @@
+import { describe, expect, it } from "vitest";
+import type { Job } from "@/lib/api";
+import { formatDuration, percent, progressLabel, secondsLeft, upsertJob } from "./format";
+
+const job = (overrides: Partial<Job> = {}): Job => ({
+  id: 1,
+  kind: { type: "pull", model: "qualcomm/Qwen3-0.6B" },
+  state: { state: "running" },
+  progress: { doneBytes: 190_000_000, totalBytes: 760_000_000, bytesPerSecond: 19_000_000 },
+  startedAtMs: 0,
+  finishedAtMs: null,
+  ...overrides,
+});
+
+describe("job progress", () => {
+  it("computes percent and time left", () => {
+    expect(percent(job())).toBe(25);
+    expect(secondsLeft(job())).toBe(30);
+  });
+
+  it("handles unknown totals", () => {
+    const unknown = job({ progress: { doneBytes: 10, totalBytes: null, bytesPerSecond: null } });
+    expect(percent(unknown)).toBeNull();
+    expect(secondsLeft(unknown)).toBeNull();
+    expect(progressLabel(unknown)).toBe("10 B");
+  });
+
+  it("describes progress like a download manager", () => {
+    expect(progressLabel(job())).toBe("181 MiB of 725 MiB · 18 MiB/s · 30s left");
+    expect(progressLabel(job({ progress: null }))).toBe("Starting…");
+  });
+});
+
+describe("formatDuration", () => {
+  it("scales units", () => {
+    expect(formatDuration(45)).toBe("45s");
+    expect(formatDuration(185)).toBe("3m 05s");
+    expect(formatDuration(4320)).toBe("1h 12m");
+  });
+});
+
+describe("upsertJob", () => {
+  it("adds new jobs first and replaces known ones", () => {
+    const first = job({ id: 1 });
+    const second = job({ id: 2 });
+    expect(upsertJob([first], second).map((j) => j.id)).toEqual([2, 1]);
+    const done = job({ id: 1, state: { state: "succeeded" } });
+    expect(upsertJob([second, first], done)[1]?.state).toEqual({ state: "succeeded" });
+  });
+});

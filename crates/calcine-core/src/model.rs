@@ -81,6 +81,15 @@ pub struct HubModel {
     pub chipsets: Vec<String>,
 }
 
+/// The Qualcomm AI Hub catalog, optionally filtered for one chipset.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct HubCatalog {
+    /// Chipset the list was filtered for (`None` for the full catalog).
+    pub chipset: Option<String>,
+    pub models: Vec<HubModel>,
+}
+
 /// A model reference, optionally pinned to one precision (`name:precision`).
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, Type)]
 pub struct ModelKey {

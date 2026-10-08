@@ -18,6 +18,13 @@ pub enum Error {
     #[error("couldn't read GenieX output: {0}")]
     Parse(String),
 
+    /// The user's input can't be used as is. The message is shown verbatim.
+    #[error("{0}")]
+    InvalidInput(String),
+
+    #[error("cancelled")]
+    Cancelled,
+
     #[error("{0} isn't available yet")]
     NotImplemented(&'static str),
 
@@ -33,6 +40,8 @@ pub enum ErrorKind {
     Command,
     Timeout,
     Parse,
+    InvalidInput,
+    Cancelled,
     NotImplemented,
     Io,
 }
@@ -44,6 +53,8 @@ impl Error {
             Self::Command { .. } => ErrorKind::Command,
             Self::Timeout { .. } => ErrorKind::Timeout,
             Self::Parse(_) => ErrorKind::Parse,
+            Self::InvalidInput(_) => ErrorKind::InvalidInput,
+            Self::Cancelled => ErrorKind::Cancelled,
             Self::NotImplemented(_) => ErrorKind::NotImplemented,
             Self::Io(_) => ErrorKind::Io,
         }

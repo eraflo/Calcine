@@ -12,17 +12,10 @@
 //!
 //! `--all` adds a `CHIPSETS` column with comma-separated chipset slugs.
 
-use calcine_core::model::HubModel;
+use calcine_core::model::{HubCatalog, HubModel};
 use calcine_core::{Error, Result};
 
 const CELL_SEPARATOR: char = '│';
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct HubCatalog {
-    /// Chipset the list was filtered for, when not `--all`.
-    pub chipset: Option<String>,
-    pub models: Vec<HubModel>,
-}
 
 pub fn parse(output: &str) -> Result<HubCatalog> {
     let chipset = output.lines().find_map(|line| {

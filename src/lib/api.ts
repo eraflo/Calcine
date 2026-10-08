@@ -2,7 +2,7 @@ import { isTauri } from "@tauri-apps/api/core";
 import type { ApiError, ErrorKind } from "./bindings";
 
 export type * from "./bindings";
-export { commands } from "./bindings";
+export { commands, events } from "./bindings";
 
 /** The local API base URL other apps connect to. */
 export const API_BASE_URL = "http://127.0.0.1:18181/v1";

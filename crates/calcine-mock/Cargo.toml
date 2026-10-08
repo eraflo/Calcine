@@ -12,6 +12,7 @@ publish = false
 [dependencies]
 async-trait.workspace = true
 calcine-core.workspace = true
+tokio = { workspace = true, features = ["time", "macros"] }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["macros", "rt"] }

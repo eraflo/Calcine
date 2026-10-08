@@ -1,14 +1,19 @@
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { ListChecks, Search } from "lucide-react";
 import { StatusDot } from "@/components/calcine/status-dot";
 import { Button } from "@/components/ui/button";
 import { Kbd } from "@/components/ui/kbd";
 import { Tooltip } from "@/components/ui/tooltip";
+import { jobsQuery } from "@/features/tasks/api";
+import { isRunning } from "@/features/tasks/format";
 import { useUi } from "@/stores/ui";
 
 export function Topbar() {
   const setPaletteOpen = useUi((state) => state.setPaletteOpen);
   const setTasksOpen = useUi((state) => state.setTasksOpen);
+  const { data: jobs = [] } = useQuery(jobsQuery);
+  const running = jobs.filter(isRunning).length;
 
   return (
     <header className="flex h-12 shrink-0 items-center gap-3 border-b px-4">
@@ -33,14 +38,20 @@ export function Topbar() {
             <span className="font-mono">:18181</span>
           </Link>
         </Tooltip>
-        <Tooltip content="Tasks">
+        <Tooltip content={running ? `${running} running` : "Tasks"}>
           <Button
             variant="ghost"
             size="icon"
+            className="relative"
             onClick={() => setTasksOpen(true)}
-            aria-label="Open tasks"
+            aria-label={running ? `Open tasks, ${running} running` : "Open tasks"}
           >
             <ListChecks />
+            {running > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground">
+                {running}
+              </span>
+            )}
           </Button>
         </Tooltip>
       </div>

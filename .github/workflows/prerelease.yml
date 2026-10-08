@@ -1,0 +1,68 @@
+name: Prerelease
+
+# Every push to `dev` publishes an installable beta: Windows ARM64 NSIS
+# installer with GenieX bundled, as a GitHub pre-release.
+
+on:
+  push:
+    branches: [dev]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: prerelease
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  # Keep in sync with rust-toolchain.toml.
+  RUST_TOOLCHAIN: "1.99.0"
+
+jobs:
+  beta:
+    name: Beta (Windows ARM64)
+    runs-on: windows-11-arm
+    permissions:
+      contents: write
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
+      - uses: dtolnay/rust-toolchain@7e38f4b43b4db5c8dd498af069a4f6196df1d067 # master
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - run: bun install --frozen-lockfile
+
+      - name: Stamp beta version
+        id: version
+        run: echo "version=$(bun scripts/version.ts beta ${{ github.run_number }})" >> "$GITHUB_OUTPUT"
+
+      - name: Build installer (GenieX bundled)
+        run: bun run build:release
+
+      - name: Collect artifacts
+        run: |
+          mkdir -p dist-release
+          cp target/release/bundle/nsis/*.exe dist-release/
+          cd dist-release && sha256sum -- * > SHA256SUMS
+
+      - name: Publish pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          geniex="$(bun -e 'console.log((await Bun.file("runtime/geniex.json").json()).version)')"
+          gh release create "v$VERSION" dist-release/* \
+            --prerelease \
+            --target "$GITHUB_SHA" \
+            --title "Calcine $VERSION" \
+            --notes "Automated beta from \`dev\` (${GITHUB_SHA::7}), bundling GenieX $geniex.
+
+          This build isn't code-signed yet, so Windows SmartScreen will warn before installing."
