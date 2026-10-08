@@ -78,8 +78,8 @@ every web page you visit.
 3. Chat with it, or create an API key in **Server › API keys** and connect an app.
 
 > [!NOTE]
-> Calcine is in beta and its installers aren't code-signed yet, so Windows SmartScreen asks
-> for confirmation before installing (**More info › Run anyway**). Releases list SHA-256
+> Calcine's installers aren't code-signed yet, so Windows SmartScreen asks for
+> confirmation before installing (**More info › Run anyway**). Releases list SHA-256
 > checksums, and stable releases also carry an SBOM and a build provenance attestation
 > (`gh attestation verify <file> -R eraflo/Calcine`).
 
