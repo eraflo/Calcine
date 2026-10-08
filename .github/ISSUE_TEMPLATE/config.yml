@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://docs.github.com/en/code-security/security-advisories/guidance-on-reporting-and-writing-information-about-vulnerabilities/privately-reporting-a-security-vulnerability
+    about: Please report security issues privately, not as public issues.
+  - name: GenieX runtime issue
+    url: https://github.com/qualcomm/GenieX/issues
+    about: Problems with the GenieX CLI or models themselves belong upstream.

@@ -1,0 +1,19 @@
+name: Feature request
+description: Suggest an idea or a GenieX feature Calcine should expose
+labels: ["enhancement", "triage"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+  - type: input
+    id: geniex-command
+    attributes:
+      label: Related GenieX command or flag
+      placeholder: geniex pull --model-hub localfs

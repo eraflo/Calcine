@@ -1,0 +1,49 @@
+name: Bug report
+description: Something doesn't work as expected
+labels: ["bug", "triage"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: Include what you expected to happen.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open the Library page
+        2. Pull qualcomm/Qwen3-4B
+        3. …
+    validations:
+      required: true
+  - type: input
+    id: calcine-version
+    attributes:
+      label: Calcine version
+      placeholder: 0.1.0-beta.3
+    validations:
+      required: true
+  - type: input
+    id: geniex-version
+    attributes:
+      label: GenieX version
+      description: Shown on the Hardware page, or run `geniex version`.
+      placeholder: v0.8.0
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Device and chipset
+      placeholder: Snapdragon X Elite, Windows 11 ARM64
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Settings → Diagnostics → Copy logs. Remove anything private.
+      render: text

@@ -7,6 +7,8 @@
 # --- Tauri ---
 src-tauri/gen/schemas/
 src-tauri/WixTools/
+# GenieX installer fetched at build time (pinned in runtime/geniex.json)
+src-tauri/resources/geniex/
 
 # --- Node / frontend ---
 node_modules/
