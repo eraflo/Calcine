@@ -46,6 +46,10 @@ export const messages = defineMessages({
     connectHint:
       "Any OpenAI-compatible client works. Set <code>{variable}</code> to a key created below.",
     snippetLanguage: "Language",
+    snippetKeys: "Server › API keys",
+    snippetOpenWebUiSettings: "Admin Panel › Settings › Connections › OpenAI API › Add connection",
+    snippetOpenWebUiLocal:
+      "Run Open WebUI on this PC (pip install open-webui): Calcine only listens on this PC, so Docker containers can't reach it.",
     // Keys
     keysTitle: "API keys",
     keysDescription: "One key per app, so you can see who uses the API and revoke access.",
@@ -139,6 +143,11 @@ export const messages = defineMessages({
     connectHint:
       "Tout client compatible OpenAI convient. Renseignez dans <code>{variable}</code> une clé créée ci-dessous.",
     snippetLanguage: "Langage",
+    snippetKeys: "Serveur › Clés API",
+    snippetOpenWebUiSettings:
+      "Panneau d'administration › Réglages › Connexions › API OpenAI › Ajouter une connexion",
+    snippetOpenWebUiLocal:
+      "Lancez Open WebUI sur ce PC (pip install open-webui) : Calcine n'écoute que sur ce PC, un conteneur Docker ne peut pas le joindre.",
     keysTitle: "Clés API",
     keysDescription:
       "Une clé par application, pour savoir qui utilise l'API et pouvoir révoquer son accès.",

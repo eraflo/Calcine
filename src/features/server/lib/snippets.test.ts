@@ -10,7 +10,8 @@ describe("snippet", () => {
     (language) => {
       const code = snippet(language, BASE, MODEL);
       expect(code).toContain(BASE);
-      expect(code).toContain(MODEL);
+      // Open WebUI lists the models itself.
+      if (language !== "openwebui") expect(code).toContain(MODEL);
       expect(code).toContain("CALCINE_API_KEY");
       expect(code).not.toMatch(/calcine_[0-9a-f]{8}/);
     },
