@@ -68,6 +68,27 @@ describe("streamChat", () => {
     expect(deltas).toEqual(["Thinking", "Hello", " there"]);
   });
 
+  it("reports how many speculative guesses were kept", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        sse([
+          'data:{"choices":[{"delta":{"content":"Hi"}}]}',
+          'data:{"choices":[],"timings":{"predicted_per_second":80,"draft_n":6,"draft_n_accepted":4}}',
+          "data:[DONE]",
+        ]),
+      ),
+    );
+    const result = await streamChat({
+      url: "u",
+      token: "t",
+      body: {},
+      signal: new AbortController().signal,
+      onDelta: () => {},
+    });
+    expect(result.stats).toMatchObject({ draftTokens: 6, draftAccepted: 4 });
+  });
+
   it("surfaces the gateway's error message", async () => {
     vi.stubGlobal(
       "fetch",

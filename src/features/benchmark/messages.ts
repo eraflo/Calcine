@@ -28,6 +28,7 @@ export const messages = defineMessages({
     generatedTokens: "Generated",
     repetitions: "Repetitions",
     powerMode: "Power mode",
+    specHint: "Run once with and once without to measure the gain.",
     tokens: "{count} tokens",
     runs: "{count} runs",
     start: "Run benchmark",
@@ -50,6 +51,7 @@ export const messages = defineMessages({
     failed: "Failed",
     spread: "± {value}",
     setup: "{prompt} prompt tokens · {generated} generated · {runs} runs · {power}",
+    withSpec: "speculative: {method}",
     // Leaderboard
     leaderboardTitle: "Fastest models",
     leaderboardHint: "Each model's best generation speed, on its fastest unit.",
@@ -95,6 +97,7 @@ export const messages = defineMessages({
     generatedTokens: "Générés",
     repetitions: "Répétitions",
     powerMode: "Mode d'alimentation",
+    specHint: "Lancez avec et sans pour mesurer le gain.",
     tokens: "{count} tokens",
     runs: "{count} passes",
     start: "Lancer le benchmark",
@@ -116,6 +119,7 @@ export const messages = defineMessages({
     failed: "Échec",
     spread: "± {value}",
     setup: "{prompt} tokens de prompt · {generated} générés · {runs} passes · {power}",
+    withSpec: "spéculatif : {method}",
     leaderboardTitle: "Modèles les plus rapides",
     leaderboardHint:
       "La meilleure vitesse de génération de chaque modèle, sur son unité la plus rapide.",

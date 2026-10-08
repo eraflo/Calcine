@@ -213,6 +213,8 @@ async fn measure_all(
             generated_tokens: request.generated_tokens,
             repetitions: request.repetitions,
             power_mode: request.power_mode.clone(),
+            spec_type: request.spec_type.clone(),
+            draft_model: request.draft_model.clone(),
             measure,
             error,
         });

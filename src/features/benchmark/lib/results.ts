@@ -28,6 +28,8 @@ export type Session = {
   generatedTokens: number;
   repetitions: number;
   powerMode: string;
+  specType: string | null;
+  draftModel: string | null;
   results: BenchResult[];
 };
 
@@ -49,6 +51,8 @@ export function sessions(history: readonly BenchResult[]): Session[] {
         generatedTokens: result.generatedTokens,
         repetitions: result.repetitions,
         powerMode: result.powerMode,
+        specType: result.specType ?? null,
+        draftModel: result.draftModel ?? null,
         results: [result],
       });
     }
@@ -96,15 +100,17 @@ export function leaderboard(history: readonly BenchResult[]) {
   const latest = new Map<string, BenchResult>();
   for (const result of history) {
     if (!result.measure) continue;
-    const key = `${result.model}|${result.unit}`;
+    const key = `${result.model}|${result.specType ?? ""}|${result.unit}`;
     const seen = latest.get(key);
     if (!seen || result.startedAtMs > seen.startedAtMs) latest.set(key, result);
   }
   const perModel = new Map<string, BenchResult>();
   for (const result of latest.values()) {
-    const current = perModel.get(result.model);
+    // With and without speculative decoding are listed apart.
+    const key = `${result.model}|${result.specType ?? ""}`;
+    const current = perModel.get(key);
     if (!current || (median(result, "decodeTps") ?? 0) > (median(current, "decodeTps") ?? 0)) {
-      perModel.set(result.model, result);
+      perModel.set(key, result);
     }
   }
   return [...perModel.values()].sort(
@@ -123,6 +129,8 @@ export function toCsv(history: readonly BenchResult[]): string {
     "generated_tokens",
     "repetitions",
     "power_mode",
+    "spec_type",
+    "draft_model",
     "ttft_ms_median",
     "ttft_ms_stdev",
     "prefill_tps_median",
@@ -147,6 +155,8 @@ export function toCsv(history: readonly BenchResult[]): string {
       result.generatedTokens,
       result.repetitions,
       result.powerMode,
+      result.specType,
+      result.draftModel,
       measure?.ttftMs.median,
       measure?.ttftMs.stdev,
       measure?.prefillTps.median,

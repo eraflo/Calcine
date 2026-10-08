@@ -273,6 +273,12 @@ impl Benchmarker for GeniexBench {
             .arg("--output-json")
             .arg(&report_path)
             .args(["--cell-id", "calcine"]);
+        if let Some(spec) = &request.spec_type {
+            command.arg("--spec-type").arg(spec);
+            if let Some(draft) = &request.draft_model {
+                command.arg("--draft-model").arg(draft);
+            }
+        }
         if let Some(data_dir) = &self.geniex.config().data_dir {
             command.arg("--mm-data-dir").arg(data_dir);
         }

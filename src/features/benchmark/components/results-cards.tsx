@@ -41,6 +41,12 @@ export function SessionCard({ session, latest }: { session: Session; latest: boo
             runs: String(session.repetitions),
             power: tchat(`power_${session.powerMode}` as "power_burst"),
           })}
+          {session.specType &&
+            ` · ${t("withSpec", {
+              method: [tchat(`spec_${session.specType}` as "spec_off"), session.draftModel]
+                .filter(Boolean)
+                .join(" + "),
+            })}`}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-6">
@@ -87,6 +93,9 @@ export function LeaderboardCard({ history }: { history: readonly BenchResult[] }
             >
               <span className="truncate font-mono text-xs" title={result.model}>
                 {result.model}
+                {result.specType && (
+                  <span className="ml-1.5 font-sans text-[10px] text-info">{result.specType}</span>
+                )}
               </span>
               <div className="h-2.5 overflow-hidden rounded-full bg-muted">
                 <div

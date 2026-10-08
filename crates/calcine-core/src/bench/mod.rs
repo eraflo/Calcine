@@ -44,7 +44,26 @@ pub struct BenchRequest {
     pub repetitions: u32,
     /// HTP power mode (`burst`, `balanced`, …).
     pub power_mode: String,
+    /// Speculative decoding method (`ngram-cache`, `draft-simple`, …),
+    /// llama.cpp only.
+    #[serde(default)]
+    pub spec_type: Option<String>,
+    /// Draft model for the `draft-*` methods (GenieX id).
+    #[serde(default)]
+    pub draft_model: Option<String>,
 }
+
+/// Speculative decoding methods `geniex-bench` and GenieX accept.
+pub const SPEC_TYPES: &[&str] = &[
+    "ngram-cache",
+    "ngram-simple",
+    "ngram-map-k",
+    "ngram-map-k4v",
+    "ngram-mod",
+    "draft-simple",
+    "draft-eagle3",
+    "draft-mtp",
+];
 
 impl BenchRequest {
     /// Why this request can't run, if it can't.
@@ -63,6 +82,17 @@ impl BenchRequest {
         }
         if !(1..=20).contains(&self.repetitions) {
             return Err("run between 1 and 20 repetitions".into());
+        }
+        if let Some(spec) = &self.spec_type {
+            if !SPEC_TYPES.contains(&spec.as_str()) {
+                return Err(format!("unknown speculative decoding method {spec}"));
+            }
+            if self.runtime != Runtime::LlamaCpp {
+                return Err("speculative decoding needs a llama.cpp model".into());
+            }
+            if spec.starts_with("draft-") && self.draft_model.as_deref().is_none_or(str::is_empty) {
+                return Err("choose a draft model".into());
+            }
         }
         Ok(())
     }
@@ -107,6 +137,10 @@ pub struct BenchResult {
     pub generated_tokens: u32,
     pub repetitions: u32,
     pub power_mode: String,
+    #[serde(default)]
+    pub spec_type: Option<String>,
+    #[serde(default)]
+    pub draft_model: Option<String>,
     /// `None` when the run failed.
     pub measure: Option<BenchMeasure>,
     pub error: Option<String>,
@@ -164,6 +198,8 @@ mod tests {
             generated_tokens: 128,
             repetitions: 5,
             power_mode: "burst".into(),
+            spec_type: None,
+            draft_model: None,
         }
     }
 
@@ -194,6 +230,41 @@ mod tests {
             .validate()
             .is_err()
         );
+        let ngram = BenchRequest {
+            runtime: Runtime::LlamaCpp,
+            spec_type: Some("ngram-cache".into()),
+            ..request()
+        };
+        assert!(ngram.validate().is_ok());
+        assert!(
+            BenchRequest {
+                runtime: Runtime::Qairt,
+                ..ngram.clone()
+            }
+            .validate()
+            .is_err()
+        );
+        let draft = BenchRequest {
+            spec_type: Some("draft-simple".into()),
+            ..ngram.clone()
+        };
+        assert!(draft.validate().is_err());
+        assert!(
+            BenchRequest {
+                draft_model: Some("a/b:Q4_0".into()),
+                ..draft
+            }
+            .validate()
+            .is_ok()
+        );
+        assert!(
+            BenchRequest {
+                spec_type: Some("bogus".into()),
+                ..ngram
+            }
+            .validate()
+            .is_err()
+        );
     }
 
     #[test]
@@ -209,6 +280,8 @@ mod tests {
             generated_tokens: 128,
             repetitions: 5,
             power_mode: "burst".into(),
+            spec_type: None,
+            draft_model: None,
             measure: None,
             error: None,
         };

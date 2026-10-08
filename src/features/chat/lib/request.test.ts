@@ -107,6 +107,36 @@ describe("vision encoder", () => {
   });
 });
 
+describe("speculative decoding", () => {
+  const llama = model("llama_cpp");
+
+  it("sends n-gram methods alone and draft methods with their model", () => {
+    const ngram = { ...DEFAULT_SETTINGS, specType: "ngram-cache" as const, draftMax: 8 };
+    expect(buildChatRequest(llama, "m/x", ngram, hello)).toMatchObject({
+      spec_type: "ngram-cache",
+      spec_n_max: 8,
+    });
+    expect(buildChatRequest(llama, "m/x", ngram, hello)).not.toHaveProperty("spec_draft_model");
+
+    const draft = {
+      ...DEFAULT_SETTINGS,
+      specType: "draft-simple" as const,
+      draftModel: "a/b:Q4_0",
+    };
+    expect(buildChatRequest(llama, "m/x", draft, hello)).toMatchObject({
+      spec_type: "draft-simple",
+      spec_draft_model: "a/b:Q4_0",
+    });
+  });
+
+  it("leaves it out without a draft model, and for AI Hub models", () => {
+    const missing = { ...DEFAULT_SETTINGS, specType: "draft-simple" as const };
+    expect(buildChatRequest(llama, "m/x", missing, hello)).not.toHaveProperty("spec_type");
+    const ngram = { ...DEFAULT_SETTINGS, specType: "ngram-simple" as const };
+    expect(buildChatRequest(model("qairt"), "m/x", ngram, hello)).not.toHaveProperty("spec_type");
+  });
+});
+
 describe("stopIndex", () => {
   it("finds the earliest stop sequence", () => {
     expect(stopIndex("one. two\n\nthree", ["\n\n", "."])).toBe(3);

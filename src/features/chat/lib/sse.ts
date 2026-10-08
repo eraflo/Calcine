@@ -23,6 +23,9 @@ export type StreamStats = {
   completionTokens?: number;
   tokensPerSecond?: number;
   firstTokenMs?: number;
+  /** Tokens guessed by speculative decoding, and how many were kept. */
+  draftTokens?: number;
+  draftAccepted?: number;
   durationMs: number;
 };
 
@@ -35,7 +38,7 @@ type Chunk = {
   error?: string | { message?: string };
   choices?: { delta?: { content?: string | null; reasoning_content?: string | null } }[];
   usage?: { prompt_tokens?: number; completion_tokens?: number };
-  timings?: { predicted_per_second?: number };
+  timings?: { predicted_per_second?: number; draft_n?: number; draft_n_accepted?: number };
 };
 
 /** POST a streaming chat completion and report text as it arrives. */
@@ -90,6 +93,11 @@ export async function streamChat({
     }
     if (chunk.timings?.predicted_per_second) {
       result.stats.tokensPerSecond = chunk.timings.predicted_per_second;
+    }
+    // Only present when speculative decoding guessed something.
+    if (chunk.timings?.draft_n) {
+      result.stats.draftTokens = chunk.timings.draft_n;
+      result.stats.draftAccepted = chunk.timings.draft_n_accepted ?? 0;
     }
   });
 

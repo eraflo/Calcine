@@ -129,6 +129,12 @@ fn sample(request: &BenchRequest, unit: ComputeUnit, seed: u32) -> BenchMeasure 
     };
     let size: f64 = billions / 0.6;
     let noise = 1.0 + f64::from(seed % 7) / 100.0;
+    // Speculative decoding helps generation a little in the demo.
+    let decode = if request.spec_type.is_some() {
+        decode * 1.25
+    } else {
+        decode
+    };
     let stat = |median: f64| BenchStat {
         median,
         min: median * 0.96,

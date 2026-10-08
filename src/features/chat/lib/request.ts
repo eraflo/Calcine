@@ -40,7 +40,36 @@ export type ChatSettings = {
   /** Where llama.cpp vision models encode images. GenieX 0.8 accepts the
    * CPU or an NPU device, not the GPU. */
   visionCompute: VisionCompute | null;
+  /** Speculative decoding (llama.cpp only): guess tokens ahead, then check them. */
+  specType: SpecType | null;
+  /** Small model with the same vocabulary, for the `draft-*` methods. */
+  draftModel: string | null;
+  /** Most tokens guessed per step (`spec_n_max`). */
+  draftMax: number | null;
+  /** Fewest tokens guessed per step (`spec_n_min`). */
+  draftMin: number | null;
+  /** Lowest probability a guessed token may have (`spec_p_min`). */
+  draftPMin: number | null;
 };
+
+/** GenieX's speculative decoding methods, simplest first. */
+export const SPEC_TYPES = [
+  "ngram-cache",
+  "ngram-simple",
+  "ngram-map-k",
+  "ngram-map-k4v",
+  "ngram-mod",
+  "draft-simple",
+  "draft-eagle3",
+  "draft-mtp",
+] as const;
+
+export type SpecType = (typeof SPEC_TYPES)[number];
+
+/** `draft-*` methods guess with a second, smaller model. */
+export function needsDraftModel(spec: SpecType | null): boolean {
+  return spec?.startsWith("draft-") ?? false;
+}
 
 export type VisionCompute = "cpu" | "npu";
 
@@ -64,6 +93,11 @@ export const DEFAULT_SETTINGS: ChatSettings = {
   stop: [],
   gpuLayers: null,
   visionCompute: null,
+  specType: null,
+  draftModel: null,
+  draftMax: null,
+  draftMin: null,
+  draftPMin: null,
 };
 
 /** Sampling presets, from focused to inventive. */
@@ -126,6 +160,22 @@ function toApiMessage({ role, content, media }: ChatTurn) {
   };
 }
 
+/** Speculative decoding fields. A `draft-*` method without its draft model is left out. */
+function speculative(settings: ChatSettings) {
+  const { specType, draftModel } = settings;
+  if (!specType) return {};
+  if (needsDraftModel(specType) && !draftModel) return {};
+  return {
+    spec_type: specType,
+    ...(needsDraftModel(specType) ? { spec_draft_model: draftModel } : {}),
+    ...optional({
+      spec_n_max: settings.draftMax,
+      spec_n_min: settings.draftMin,
+      spec_p_min: settings.draftPMin,
+    }),
+  };
+}
+
 /** Where the first stop sequence starts in `text`, if any. */
 export function stopIndex(text: string, stops: readonly string[]): number | null {
   let first: number | null = null;
@@ -179,6 +229,7 @@ export function buildChatRequest(
     ...(llamaCpp && supportsMedia(model) && settings.visionCompute
       ? { vit_compute: VISION_DEVICES[settings.visionCompute] }
       : {}),
+    ...(llamaCpp ? speculative(settings) : {}),
     ...(settings.powerMode !== DEFAULT_SETTINGS.powerMode
       ? { power_mode: settings.powerMode }
       : {}),

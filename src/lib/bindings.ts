@@ -228,6 +228,13 @@ export type BenchRequest = {
 	repetitions: number,
 	/**  HTP power mode (`burst`, `balanced`, …). */
 	powerMode: string,
+	/**
+	 *  Speculative decoding method (`ngram-cache`, `draft-simple`, …),
+	 *  llama.cpp only.
+	 */
+	specType?: string | null,
+	/**  Draft model for the `draft-*` methods (GenieX id). */
+	draftModel?: string | null,
 };
 
 /**  One compute unit's result in the history. */
@@ -243,6 +250,8 @@ export type BenchResult = {
 	generatedTokens: number,
 	repetitions: number,
 	powerMode: string,
+	specType?: string | null,
+	draftModel?: string | null,
 	/**  `None` when the run failed. */
 	measure: BenchMeasure | null,
 	error: string | null,

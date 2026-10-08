@@ -331,6 +331,8 @@ mod bench_tests {
             generated_tokens: 128,
             repetitions: 3,
             power_mode: "burst".into(),
+            spec_type: None,
+            draft_model: None,
         };
         let job = services.start_benchmark(request.clone()).unwrap();
         assert!(services.start_benchmark(request).is_err(), "one at a time");

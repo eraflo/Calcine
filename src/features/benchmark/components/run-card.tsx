@@ -5,7 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, Select } from "@/components/ui/field";
 import { Progress } from "@/components/ui/progress";
-import { POWER_MODES, type PowerMode } from "@/features/chat/lib/request";
+import {
+  needsDraftModel,
+  POWER_MODES,
+  type PowerMode,
+  SPEC_TYPES,
+  type SpecType,
+} from "@/features/chat/lib/request";
 import { messages as chatMessages } from "@/features/chat/messages";
 import { modelsQuery } from "@/features/library/api";
 import { useCancelJob } from "@/features/tasks/api";
@@ -38,6 +44,8 @@ export function RunCard() {
   const [generatedTokens, setGeneratedTokens] = useState(128);
   const [repetitions, setRepetitions] = useState(5);
   const [powerMode, setPowerMode] = useState<PowerMode>("burst");
+  const [specType, setSpecType] = useState<SpecType | null>(null);
+  const [draftModel, setDraftModel] = useState<string | null>(null);
   const start = useStartBenchmark();
   const cancel = useCancelJob();
   const running = useRunningJob("benchmark");
@@ -58,6 +66,12 @@ export function RunCard() {
       current.includes(unit) ? current.filter((u) => u !== unit) : [...current, unit],
     );
   const chosen = available.filter((unit) => units.includes(unit));
+  // Speculative decoding is a llama.cpp feature; drafts share the vocabulary.
+  const speculative = target?.model.runtime === "llama_cpp" ? specType : null;
+  const drafts = targets.filter(
+    (candidate) =>
+      candidate.model.runtime === "llama_cpp" && candidate.model.name !== target?.model.name,
+  );
 
   return (
     <Card>
@@ -166,6 +180,50 @@ export function RunCard() {
               </Field>
             </div>
 
+            {target?.model.runtime === "llama_cpp" && (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label={tchat("speculative")} htmlFor="bench-spec" hint={t("specHint")}>
+                  <Select
+                    id="bench-spec"
+                    value={specType ?? ""}
+                    disabled={Boolean(running)}
+                    onChange={(event) =>
+                      setSpecType((event.target.value || null) as SpecType | null)
+                    }
+                  >
+                    <option value="">{tchat("spec_off")}</option>
+                    {SPEC_TYPES.map((type) => (
+                      <option key={type} value={type}>
+                        {tchat(`spec_${type}`)}
+                      </option>
+                    ))}
+                  </Select>
+                </Field>
+                {needsDraftModel(specType) && (
+                  <Field
+                    label={tchat("draftModel")}
+                    htmlFor="bench-draft"
+                    hint={drafts.length ? tchat("draftModelHint") : tchat("noDraftModels")}
+                  >
+                    <Select
+                      id="bench-draft"
+                      value={draftModel ?? ""}
+                      disabled={Boolean(running) || drafts.length === 0}
+                      onChange={(event) => setDraftModel(event.target.value || null)}
+                      className="font-mono"
+                    >
+                      <option value="">{tchat("draftModelNone")}</option>
+                      {drafts.map(({ id }) => (
+                        <option key={id} value={id}>
+                          {id}
+                        </option>
+                      ))}
+                    </Select>
+                  </Field>
+                )}
+              </div>
+            )}
+
             {running ? (
               <div className="flex items-center gap-3">
                 <div className="flex flex-1 flex-col gap-1.5">
@@ -199,7 +257,13 @@ export function RunCard() {
                 )}
                 <Button
                   variant="default"
-                  disabled={!ready || !target || chosen.length === 0 || start.isPending}
+                  disabled={
+                    !ready ||
+                    !target ||
+                    chosen.length === 0 ||
+                    start.isPending ||
+                    (speculative !== null && needsDraftModel(speculative) && !draftModel)
+                  }
                   onClick={() =>
                     target &&
                     start.mutate({
@@ -210,6 +274,8 @@ export function RunCard() {
                       generatedTokens,
                       repetitions,
                       powerMode,
+                      specType: speculative,
+                      draftModel: needsDraftModel(speculative) ? draftModel : null,
                     })
                   }
                 >
