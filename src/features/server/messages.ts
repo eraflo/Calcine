@@ -47,6 +47,9 @@ export const messages = defineMessages({
       "Any OpenAI-compatible client works. Set <code>{variable}</code> to a key created below.",
     snippetLanguage: "Language",
     snippetKeys: "Server › API keys",
+    snippetOllamaSetting: "1. Turn on Settings › Local API › Ollama apps",
+    snippetOllamaDefault: "2. Leave the app on Ollama's address: no key needed there",
+    snippetOllamaWithKey: "Apps that can send headers can use the main port with a key:",
     snippetOpenWebUiSettings: "Admin Panel › Settings › Connections › OpenAI API › Add connection",
     snippetOpenWebUiLocal:
       "Run Open WebUI on this PC (pip install open-webui): Calcine only listens on this PC, so Docker containers can't reach it.",
@@ -144,6 +147,10 @@ export const messages = defineMessages({
       "Tout client compatible OpenAI convient. Renseignez dans <code>{variable}</code> une clé créée ci-dessous.",
     snippetLanguage: "Langage",
     snippetKeys: "Serveur › Clés API",
+    snippetOllamaSetting: "1. Activez Réglages › API locale › Applis Ollama",
+    snippetOllamaDefault: "2. Laissez l'appli sur l'adresse d'Ollama : pas de clé nécessaire",
+    snippetOllamaWithKey:
+      "Les applis qui peuvent envoyer des en-têtes peuvent utiliser le port principal avec une clé :",
     snippetOpenWebUiSettings:
       "Panneau d'administration › Réglages › Connexions › API OpenAI › Ajouter une connexion",
     snippetOpenWebUiLocal:

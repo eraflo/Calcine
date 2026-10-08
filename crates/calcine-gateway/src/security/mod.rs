@@ -6,6 +6,8 @@
 //!    use the API even without a CORS preflight.
 //! 3. A valid API key (`Authorization: Bearer calcine_…`), unless keys are
 //!    turned off, in which case callers are anonymous with limited rights.
+//!    On the Ollama port, callers without a key get the same limited rights:
+//!    Ollama clients can't send one.
 //!
 //! Bodies are then checked per route (see [`sanitize`]).
 
@@ -23,10 +25,28 @@ use crate::error::api_error;
 use crate::state::AppState;
 
 /// Paths that answer without a key (liveness only, no data).
-const PUBLIC_PATHS: &[&str] = &["/v1", "/v1/"];
+const PUBLIC_PATHS: &[&str] = &["/", "/v1", "/v1/", "/api/version"];
+
+/// Which socket a request came in on. Set per listener, never from headers.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Listener {
+    /// The main port (18181 by default).
+    Main,
+    /// Ollama's port, for apps that only speak Ollama.
+    Ollama { port: u16 },
+}
 
 pub async fn guard(State(app): State<Arc<AppState>>, mut request: Request, next: Next) -> Response {
-    if !host_allowed(request.headers(), app.port) {
+    let listener = request
+        .extensions()
+        .get::<Listener>()
+        .copied()
+        .unwrap_or(Listener::Main);
+    let port = match listener {
+        Listener::Main => app.port,
+        Listener::Ollama { port } => port,
+    };
+    if !host_allowed(request.headers(), port) {
         return api_error(
             StatusCode::BAD_REQUEST,
             "invalid_request_error",
@@ -70,6 +90,7 @@ pub async fn guard(State(app): State<Arc<AppState>>, mut request: Request, next:
                     );
                 }
             },
+            None if matches!(listener, Listener::Ollama { .. }) => Caller::OllamaClient,
             None if !app.settings().require_api_key => Caller::Anonymous,
             None => {
                 return with_cors(

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/field";
 import { Switch } from "@/components/ui/switch";
+import { gatewayQuery } from "@/features/server/api";
 import { defineMessages, useT } from "@/i18n";
 import { call, commands, unwrap } from "@/lib/api";
 
@@ -28,6 +29,12 @@ const strings = defineMessages({
     add: "Add",
     removeOrigin: "Remove {origin}",
     invalidOrigin: "{origin} isn't an origin: use the form http://host:port, without a path.",
+    ollama: "Ollama apps",
+    ollamaHint:
+      "Also answer on port 11434, where apps made for Ollama look. They need no key there, but can only run models.",
+    ollamaListening: "Ollama apps can connect to {url}.",
+    ollamaPortTaken:
+      "Port 11434 is already used, probably by Ollama. Quit it to let Calcine answer there.",
   },
   fr: {
     startup: "Démarrage",
@@ -51,6 +58,12 @@ const strings = defineMessages({
     removeOrigin: "Retirer {origin}",
     invalidOrigin:
       "{origin} n'est pas une origine : utilisez la forme http://hôte:port, sans chemin.",
+    ollama: "Applis Ollama",
+    ollamaHint:
+      "Répondre aussi sur le port 11434, où cherchent les applis faites pour Ollama. Elles n'y ont pas besoin de clé, mais ne peuvent qu'exécuter des modèles.",
+    ollamaListening: "Les applis Ollama peuvent se connecter à {url}.",
+    ollamaPortTaken:
+      "Le port 11434 est déjà utilisé, sans doute par Ollama. Quittez-le pour que Calcine y réponde.",
   },
 });
 
@@ -124,6 +137,11 @@ export function LocalApiCard() {
     mutationFn: (origins: string[]) => unwrap(() => commands.setAllowedOrigins(origins)),
     onSettled: refresh,
   });
+  const saveOllama = useMutation({
+    mutationFn: (enabled: boolean) => unwrap(() => commands.setOllamaPort(enabled)),
+    onSettled: refresh,
+  });
+  const { data: status } = useQuery(gatewayQuery);
 
   const origins = settings.data?.allowedOrigins ?? [];
   const portNumber = Number(port);
@@ -220,6 +238,36 @@ export function LocalApiCard() {
           <p className="text-[11px] text-muted-foreground">{t("originsHint")}</p>
           {(invalid || saveOrigins.isError) && (
             <p className="text-xs text-destructive">{invalid ?? saveOrigins.error?.message}</p>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center justify-between gap-4">
+            <label htmlFor="ollama-port" className="flex flex-col">
+              <span className="text-sm">{t("ollama")}</span>
+              <span className="text-[11px] text-muted-foreground">{t("ollamaHint")}</span>
+            </label>
+            <Switch
+              id="ollama-port"
+              checked={settings.data?.ollamaPortEnabled ?? false}
+              disabled={!settings.data || saveOllama.isPending}
+              onCheckedChange={(enabled) => saveOllama.mutate(enabled)}
+            />
+          </div>
+          {settings.data?.ollamaPortEnabled && status?.ollamaUrl && (
+            <p className="text-xs text-success">
+              {t("ollamaListening", { url: status.ollamaUrl })}
+            </p>
+          )}
+          {settings.data?.ollamaPortEnabled && status?.ollamaError && (
+            <p className="text-xs text-warning">
+              {status.ollamaError.includes("already used")
+                ? t("ollamaPortTaken")
+                : status.ollamaError}
+            </p>
+          )}
+          {saveOllama.isError && (
+            <p className="text-xs text-destructive">{saveOllama.error.message}</p>
           )}
         </div>
       </CardContent>

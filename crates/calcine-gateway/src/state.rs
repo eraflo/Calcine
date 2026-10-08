@@ -26,6 +26,10 @@ pub struct GatewayStatus {
     pub active_requests: u32,
     pub queued_requests: u32,
     pub require_api_key: bool,
+    /// Where Ollama apps connect, when the Ollama port is on and listening.
+    pub ollama_url: Option<String>,
+    /// Why the Ollama port isn't listening (taken by Ollama itself, ...).
+    pub ollama_error: Option<String>,
 }
 
 #[derive(Debug)]

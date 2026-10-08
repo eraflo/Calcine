@@ -43,6 +43,24 @@ libraries show the reason.
 - **Require an API key** can be turned off for clients that can't send one. In
   that mode, keyless callers can only run models: no management, no local files.
 
+## Ollama apps
+
+Ollama's API (`/api/chat`, `/api/generate`, `/api/tags`, ...) is translated to
+GenieX's OpenAI API. On the main port it follows the rules above. Settings ›
+Local API › **Ollama apps** also opens Ollama's port, `127.0.0.1:11434`, for
+apps that can't send a key:
+
+- The same Host and Origin checks apply: other machines and web pages are
+  refused.
+- Callers without a key there can only run models (no management, no local
+  files), like keyless callers when keys aren't required. They show up as
+  "Ollama app" in the request log.
+- Which port a request came in on is decided by the socket it arrived on,
+  never by its headers, so a request to the main port can't pass for an
+  Ollama one.
+- It's off by default. If Ollama itself is running, the port is taken and
+  Calcine says so.
+
 ## Privacy
 
 The request log records who called which model, the status, duration, token

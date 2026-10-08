@@ -44,6 +44,8 @@ every web page you visit.
   Hugging Face, ModelScope or Docker Hub link, or import a folder.
 - **See the NPU work.** Live NPU, GPU, CPU and memory load, drivers, and a self-test that
   compares speed on each compute unit.
+- **Works with Ollama apps.** Ollama's API is translated too, and can answer on Ollama's
+  port, 11434, for apps that only speak Ollama.
 - **OpenAI-compatible API.** On `127.0.0.1:18181`, GenieX's default port, with per-app keys,
   a request queue and a request log that never records prompts.
 - **Always up to date.** GenieX ships in the installer and can be updated or rolled back

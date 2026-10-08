@@ -28,6 +28,7 @@ configured, with `NO_COLOR=1` in the environment.
 
 | What | Where | Notes |
 |---|---|---|
+| Ollama API (`/api/version`, `tags`, `show`, `ps`, `chat`, `generate`) | `calcine-gateway` › `ollama.rs`, `routes/ollama.rs` | Translated to `/v1/chat/completions` (images, options, `think`, `format`, tools), answered as JSON lines or one object. On the main port with a key, and on 11434 without one when turned on (Settings › Local API). Model management (`pull`, `delete`, ...) answers 501: it stays in the app |
 | Hugging Face search (GGUF) | `calcine-hub` › `ModelDirectory::search` | `GET /api/models?filter=gguf`, honours `HF_ENDPOINT` |
 | Precisions with download sizes | `calcine-hub` › `ModelDirectory::details` | `GET /api/models/{repo}?blobs=true`; shards summed, vision projector added |
 | AI Hub chipsets | `calcine-hub` › `ModelDirectory::chipsets` | `releases/latest/platform.json`, filtered to the host OS like GenieX |

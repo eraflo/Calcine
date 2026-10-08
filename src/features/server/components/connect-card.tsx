@@ -21,6 +21,9 @@ export function ConnectCard() {
     keys: t("snippetKeys"),
     openWebUiSettings: t("snippetOpenWebUiSettings"),
     openWebUiLocal: t("snippetOpenWebUiLocal"),
+    ollamaSetting: t("snippetOllamaSetting"),
+    ollamaDefault: t("snippetOllamaDefault"),
+    ollamaWithKey: t("snippetOllamaWithKey"),
   });
 
   return (

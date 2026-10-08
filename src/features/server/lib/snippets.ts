@@ -4,7 +4,8 @@ export type SnippetLanguage =
   | "javascript"
   | "langchain"
   | "continue"
-  | "openwebui";
+  | "openwebui"
+  | "ollama";
 
 export const SNIPPET_LANGUAGES: { id: SnippetLanguage; label: string }[] = [
   { id: "curl", label: "curl" },
@@ -13,6 +14,7 @@ export const SNIPPET_LANGUAGES: { id: SnippetLanguage; label: string }[] = [
   { id: "langchain", label: "LangChain" },
   { id: "continue", label: "Continue" },
   { id: "openwebui", label: "Open WebUI" },
+  { id: "ollama", label: "Ollama apps" },
 ];
 
 /** Comments in the setup snippets, in the UI language. */
@@ -23,6 +25,12 @@ export type SnippetNotes = {
   openWebUiSettings: string;
   /** Open WebUI must run on this PC, not in Docker. */
   openWebUiLocal: string;
+  /** Where the Ollama port is turned on. */
+  ollamaSetting: string;
+  /** Apps keep Ollama's default address and need no key. */
+  ollamaDefault: string;
+  /** Ollama's API also answers on the main port, with a key. */
+  ollamaWithKey: string;
 };
 
 const ENGLISH_NOTES: SnippetNotes = {
@@ -30,6 +38,9 @@ const ENGLISH_NOTES: SnippetNotes = {
   openWebUiSettings: "Admin Panel › Settings › Connections › OpenAI API › Add connection",
   openWebUiLocal:
     "Run Open WebUI on this PC (pip install open-webui): Calcine only listens on this PC, so Docker containers can't reach it.",
+  ollamaSetting: "1. Turn on Settings › Local API › Ollama apps",
+  ollamaDefault: "2. Leave the app on Ollama's address: no key needed there",
+  ollamaWithKey: "Apps that can send headers can use the main port with a key:",
 };
 
 /** Environment variable the snippets read the API key from. */
@@ -103,5 +114,17 @@ export function snippet(
         "",
         `# ${notes.openWebUiLocal}`,
       ].join("\n");
+    case "ollama": {
+      const origin = baseUrl.replace(/\/v1$/, "");
+      return [
+        `# ${notes.ollamaSetting}`,
+        `# ${notes.ollamaDefault}`,
+        `curl http://127.0.0.1:11434/api/chat -d '{"model": "${model}", "messages": [{"role": "user", "content": "Hello!"}]}'`,
+        "",
+        `# ${notes.ollamaWithKey}`,
+        `curl ${origin}/api/chat -H "Authorization: Bearer $${KEY_VARIABLE}" \\`,
+        `  -d '{"model": "${model}", "messages": [{"role": "user", "content": "Hello!"}]}'`,
+      ].join("\n");
+    }
   }
 }

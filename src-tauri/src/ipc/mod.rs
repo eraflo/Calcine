@@ -63,6 +63,7 @@ pub fn builder() -> Builder<Wry> {
             commands::server::gateway_settings,
             commands::server::set_gateway_port,
             commands::server::set_allowed_origins,
+            commands::server::set_ollama_port,
             commands::server::list_requests,
             commands::server::list_api_keys,
             commands::server::create_api_key,

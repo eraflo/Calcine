@@ -379,3 +379,210 @@ async fn allowed_origins_are_validated_and_take_effect() {
     // Allowed origin: past the Origin check, stopped by the missing key.
     assert_eq!(reply.status(), StatusCode::UNAUTHORIZED);
 }
+
+fn ollama_chat(stream: bool) -> Value {
+    json!({
+        "model": "qualcomm/Qwen3-0.6B:latest",
+        "stream": stream,
+        "messages": [{ "role": "user", "content": "hello" }],
+    })
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn speaks_ollama_on_the_main_port_with_a_key() {
+    let h = start(any_port()).await;
+    let version: Value = h
+        .http
+        .get(format!("{}/api/version", h.base))
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    assert!(version["version"].is_string());
+
+    let anonymous = h
+        .http
+        .get(format!("{}/api/tags", h.base))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(anonymous.status(), StatusCode::UNAUTHORIZED);
+
+    let token = h.key(&[KeyScope::Inference], false);
+    let tags: Value = h
+        .http
+        .get(format!("{}/api/tags", h.base))
+        .bearer_auth(&token)
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    assert!(
+        tags["models"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|m| m["name"] == "qualcomm/Qwen3-4B:W4A16")
+    );
+
+    // Streamed by default, as JSON lines ending with statistics.
+    let response = h
+        .http
+        .post(format!("{}/api/chat", h.base))
+        .bearer_auth(&token)
+        .json(&ollama_chat(true))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(
+        response.headers()[header::CONTENT_TYPE],
+        "application/x-ndjson"
+    );
+    let lines: Vec<Value> = response
+        .text()
+        .await
+        .unwrap()
+        .lines()
+        .map(|line| serde_json::from_str(line).unwrap())
+        .collect();
+    let (last, pieces) = lines.split_last().unwrap();
+    assert_eq!(last["done"], true);
+    assert!(last["eval_count"].as_u64().is_some_and(|count| count > 0));
+    let text: String = pieces
+        .iter()
+        .filter_map(|piece| piece["message"]["content"].as_str())
+        .collect();
+    assert!(text.contains("hello"));
+
+    let whole: Value = h
+        .http
+        .post(format!("{}/api/chat", h.base))
+        .bearer_auth(&token)
+        .json(&ollama_chat(false))
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    assert_eq!(whole["done"], true);
+    assert!(
+        whole["message"]["content"]
+            .as_str()
+            .unwrap()
+            .contains("hello")
+    );
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn ollama_generate_and_unsupported_routes() {
+    let h = start(any_port()).await;
+    let token = h.key(&[KeyScope::Inference], false);
+    let generate: Value = h
+        .http
+        .post(format!("{}/api/generate", h.base))
+        .bearer_auth(&token)
+        .json(&json!({ "model": "qualcomm/Qwen3-0.6B", "prompt": "hello", "stream": false }))
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    assert!(generate["response"].as_str().unwrap().contains("hello"));
+
+    let pull = h
+        .http
+        .post(format!("{}/api/pull", h.base))
+        .bearer_auth(&token)
+        .json(&json!({ "model": "x" }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(pull.status(), StatusCode::NOT_IMPLEMENTED);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn the_ollama_port_needs_no_key_but_only_runs_models() {
+    let h = start(GatewaySettings {
+        ollama_port_enabled: true,
+        ollama_port: 0,
+        ..any_port()
+    })
+    .await;
+    let ollama = h
+        .gateway
+        .status()
+        .ollama_url
+        .expect("Ollama port listening");
+
+    let root = h.http.get(&ollama).send().await.unwrap();
+    assert_eq!(root.text().await.unwrap(), "Ollama is running");
+
+    let tags = h
+        .http
+        .get(format!("{ollama}/api/tags"))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(tags.status(), StatusCode::OK);
+
+    let chat: Value = h
+        .http
+        .post(format!("{ollama}/api/chat"))
+        .json(&ollama_chat(false))
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    assert_eq!(chat["done"], true);
+    let entry = h.gateway.requests().into_iter().next().unwrap();
+    assert_eq!(entry.client, "Ollama app");
+    assert_eq!(entry.path, "/api/chat");
+
+    let manage = h
+        .http
+        .get(format!("{ollama}/calcine/v1/models"))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(manage.status(), StatusCode::FORBIDDEN);
+
+    // The main port still wants a key.
+    let main = h
+        .http
+        .get(format!("{}/api/tags", h.base))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(main.status(), StatusCode::UNAUTHORIZED);
+
+    // Browser pages are refused here too.
+    let page = h
+        .http
+        .get(format!("{ollama}/api/tags"))
+        .header(header::ORIGIN, "https://evil.example")
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(page.status(), StatusCode::FORBIDDEN);
+
+    h.gateway.set_ollama_port(false).await.unwrap();
+    assert!(h.gateway.status().ollama_url.is_none());
+    tokio::time::sleep(Duration::from_millis(200)).await;
+    assert!(
+        h.http
+            .get(format!("{ollama}/api/tags"))
+            .timeout(Duration::from_secs(2))
+            .send()
+            .await
+            .is_err()
+    );
+}

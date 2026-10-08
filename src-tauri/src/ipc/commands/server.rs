@@ -151,3 +151,10 @@ pub fn set_allowed_origins(
         .set_allowed_origins(origins)
         .map_err(ApiError::invalid_input)
 }
+
+/// Also answer Ollama apps on port 11434, without a key (inference only).
+#[tauri::command]
+#[specta::specta]
+pub async fn set_ollama_port(gateway: State<'_, Arc<Gateway>>, enabled: bool) -> ApiResult<()> {
+    gateway.set_ollama_port(enabled).await.map_err(ApiError::io)
+}

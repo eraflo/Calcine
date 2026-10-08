@@ -116,6 +116,8 @@ export const commands = {
 	setGatewayPort: (port: number) => typedError<null, ApiError>(__TAURI_INVOKE("set_gateway_port", { port })),
 	/**  Browser origins allowed to call the local API (local web apps). */
 	setAllowedOrigins: (origins: string[]) => typedError<null, ApiError>(__TAURI_INVOKE("set_allowed_origins", { origins })),
+	/**  Also answer Ollama apps on port 11434, without a key (inference only). */
+	setOllamaPort: (enabled: boolean) => typedError<null, ApiError>(__TAURI_INVOKE("set_ollama_port", { enabled })),
 	/**  Recent API requests, newest first. */
 	listRequests: () => __TAURI_INVOKE<RequestEntry[]>("list_requests"),
 	listApiKeys: () => __TAURI_INVOKE<ApiKeyInfo[]>("list_api_keys"),
@@ -259,6 +261,13 @@ export type GatewaySettings = {
 	requireApiKey?: boolean,
 	/**  Extra browser origins allowed to call the API (e.g. a local web UI). */
 	allowedOrigins?: string[],
+	/**
+	 *  Also answer on Ollama's port, where callers need no key (inference
+	 *  only), for apps that only speak Ollama.
+	 */
+	ollamaPortEnabled?: boolean,
+	/**  Ollama's port, 11434. Configurable for tests. */
+	ollamaPort?: number,
 };
 
 /**  What the Server page shows. */
@@ -272,6 +281,10 @@ export type GatewayStatus = {
 	activeRequests: number,
 	queuedRequests: number,
 	requireApiKey: boolean,
+	/**  Where Ollama apps connect, when the Ollama port is on and listening. */
+	ollamaUrl: string | null,
+	/**  Why the Ollama port isn't listening (taken by Ollama itself, ...). */
+	ollamaError: string | null,
 };
 
 /**  The gateway or the inference server changed state. */
