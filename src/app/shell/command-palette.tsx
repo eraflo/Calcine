@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import {
   Copy,
+  FolderInput,
   KeyRound,
   Languages,
   MessageSquarePlus,
@@ -91,6 +92,15 @@ export function CommandPalette() {
               <CommandItem onSelect={run(() => navigate({ to: "/server" }))}>
                 <KeyRound />
                 {t("createKey")}
+              </CommandItem>
+              <CommandItem
+                onSelect={run(() => {
+                  useUi.getState().setImporting({ path: null });
+                  void navigate({ to: "/library" });
+                })}
+              >
+                <FolderInput />
+                {t("importModel")}
               </CommandItem>
               <CommandItem
                 onSelect={run(() =>

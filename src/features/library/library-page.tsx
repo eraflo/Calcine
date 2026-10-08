@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Compass, FolderInput, Library, Plus, RefreshCw } from "lucide-react";
-import { useState } from "react";
 import { EmptyState } from "@/components/calcine/feedback/empty-state";
 import { ErrorState } from "@/components/calcine/feedback/error-state";
 import { Page } from "@/components/calcine/layout/page";
@@ -12,6 +11,7 @@ import { useT } from "@/i18n";
 import { common } from "@/i18n/common";
 import { formatBytes, totalBytes } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { useUi } from "@/stores/ui";
 import { modelsQuery } from "./api";
 import { ImportDialog } from "./components/import-dialog";
 import { ModelCard } from "./components/model-card";
@@ -23,7 +23,8 @@ export function LibraryPage() {
   const tc = useT(common);
   const { data: models, error, isPending, isFetching, refetch } = useQuery(modelsQuery);
   const { data: hardware } = useQuery(hardwareQuery);
-  const [importing, setImporting] = useState<{ path: string | null } | null>(null);
+  const importing = useUi((state) => state.importing);
+  const setImporting = useUi((state) => state.setImporting);
   const dragging = useFileDrop((path) => setImporting({ path }));
 
   const summary = models
