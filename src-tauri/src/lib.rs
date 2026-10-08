@@ -39,15 +39,21 @@ pub fn run() {
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
             desktop::show_main_window(app);
         }))
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_opener::init())
         .manage(services.clone())
+        .manage(desktop::locale::Locale::default())
         .invoke_handler(specta.invoke_handler())
         .setup(move |app| {
             specta.mount_events(app);
             setup::start(app, &services)?;
+            desktop::notifications::notify_finished_jobs(app.handle(), &services.jobs);
             desktop::tray::install(app)?;
             Ok(())
         })
         .on_window_event(desktop::on_window_event)
+        .on_permission_request(desktop::on_permission_request)
         .build(tauri::generate_context!())
         .expect("error while building Calcine");
 

@@ -179,7 +179,7 @@ fn streamed(exchange: Exchange, response: reqwest::Response) -> Response {
             entry.duration_ms = Some(elapsed_ms(exchange.started));
             entry.first_token_ms = first_token_ms;
             scanner.usage.apply(entry);
-            entry.error = error;
+            entry.error = error.or(scanner.error);
         });
     });
 

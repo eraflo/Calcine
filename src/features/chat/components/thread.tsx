@@ -1,13 +1,11 @@
 import { useEffect, useRef } from "react";
 import { LogoMark } from "@/components/calcine/brand/logo";
+import { useT } from "@/i18n";
+import { messages as strings } from "../messages";
 import { type Conversation, useLiveReply } from "../store";
 import { Message } from "./message";
 
-const SUGGESTIONS = [
-  "Explain what an NPU is, in two sentences.",
-  "Write a haiku about a laptop that runs AI offline.",
-  "Give me three ideas for a weekend project.",
-];
+const SUGGESTIONS = ["suggestion1", "suggestion2", "suggestion3"] as const;
 
 /** The messages of a conversation, following the reply as it streams. */
 export function Thread({
@@ -17,6 +15,7 @@ export function Thread({
   conversation: Conversation | undefined;
   onSuggestion: (text: string) => void;
 }) {
+  const t = useT(strings);
   const live = useLiveReply();
   const bottom = useRef<HTMLDivElement>(null);
   const messages = conversation?.messages ?? [];
@@ -32,20 +31,18 @@ export function Thread({
       <div className="flex flex-1 flex-col items-center justify-center gap-5 px-6 text-center">
         <LogoMark className="size-10" />
         <div className="flex flex-col gap-1">
-          <h2 className="text-lg font-semibold tracking-tight">What's on your mind?</h2>
-          <p className="text-sm text-muted-foreground">
-            Everything runs on this device. Nothing leaves your PC.
-          </p>
+          <h2 className="text-lg font-semibold tracking-tight">{t("emptyTitle")}</h2>
+          <p className="text-sm text-muted-foreground">{t("emptyHint")}</p>
         </div>
         <div className="flex max-w-xl flex-wrap justify-center gap-2">
-          {SUGGESTIONS.map((suggestion) => (
+          {SUGGESTIONS.map((key) => (
             <button
-              key={suggestion}
+              key={key}
               type="button"
-              onClick={() => onSuggestion(suggestion)}
+              onClick={() => onSuggestion(t(key))}
               className="rounded-full border bg-card px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-muted-foreground/40 hover:text-foreground"
             >
-              {suggestion}
+              {t(key)}
             </button>
           ))}
         </div>

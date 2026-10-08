@@ -3,6 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import {
   Copy,
   KeyRound,
+  Languages,
   MessageSquarePlus,
   Monitor,
   Moon,
@@ -23,15 +24,19 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/compone
 import { useChat } from "@/features/chat/store";
 import { modelsQuery } from "@/features/library/api";
 import { gatewayQuery, useStartServer, useStopServer } from "@/features/server/api";
+import { useLanguage, useT } from "@/i18n";
 import { API_BASE_URL } from "@/lib/api";
 import { useTheme } from "@/stores/theme";
 import { useUi } from "@/stores/ui";
+import { messages } from "../messages";
 import { allNavigation } from "../navigation";
 
 export function CommandPalette() {
+  const t = useT(messages);
   const open = useUi((state) => state.paletteOpen);
   const setOpen = useUi((state) => state.setPaletteOpen);
   const setTheme = useTheme((state) => state.setTheme);
+  const setLanguage = useLanguage((state) => state.setPreference);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: gateway } = useQuery(gatewayQuery);
@@ -48,23 +53,21 @@ export function CommandPalette() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent>
-        <DialogTitle className="sr-only">Command palette</DialogTitle>
-        <DialogDescription className="sr-only">
-          Search pages and actions, then press Enter.
-        </DialogDescription>
+        <DialogTitle className="sr-only">{t("palette")}</DialogTitle>
+        <DialogDescription className="sr-only">{t("paletteHint")}</DialogDescription>
         <Command loop>
-          <CommandInput placeholder="Search or run a command…" />
+          <CommandInput placeholder={t("search")} />
           <CommandList>
-            <CommandEmpty>No results.</CommandEmpty>
-            <CommandGroup heading="Go to">
+            <CommandEmpty>{t("noResults")}</CommandEmpty>
+            <CommandGroup heading={t("goTo")}>
               {allNavigation.map(({ to, label, icon: Icon }) => (
                 <CommandItem key={to} onSelect={run(() => navigate({ to }))}>
                   <Icon />
-                  {label}
+                  {t(label)}
                 </CommandItem>
               ))}
             </CommandGroup>
-            <CommandGroup heading="Actions">
+            <CommandGroup heading={t("actions")}>
               <CommandItem
                 onSelect={run(() => {
                   useChat.setState({ activeId: null });
@@ -72,22 +75,22 @@ export function CommandPalette() {
                 })}
               >
                 <MessageSquarePlus />
-                New chat
+                {t("newChat")}
               </CommandItem>
               {serverRunning ? (
                 <CommandItem onSelect={run(() => stopServer.mutate())}>
                   <Square />
-                  Stop GenieX
+                  {t("stopGeniex")}
                 </CommandItem>
               ) : (
                 <CommandItem onSelect={run(() => startServer.mutate())}>
                   <Play />
-                  Start GenieX
+                  {t("startGeniex")}
                 </CommandItem>
               )}
               <CommandItem onSelect={run(() => navigate({ to: "/server" }))}>
                 <KeyRound />
-                Create an API key
+                {t("createKey")}
               </CommandItem>
               <CommandItem
                 onSelect={run(() =>
@@ -95,26 +98,36 @@ export function CommandPalette() {
                 )}
               >
                 <RefreshCw />
-                Refresh model library
+                {t("refreshLibrary")}
               </CommandItem>
               <CommandItem onSelect={run(() => navigator.clipboard.writeText(baseUrl))}>
                 <Copy />
-                Copy API base URL
+                {t("copyBaseUrl")}
                 <span className="ml-auto font-mono text-xs text-muted-foreground">{baseUrl}</span>
               </CommandItem>
             </CommandGroup>
-            <CommandGroup heading="Theme">
+            <CommandGroup heading={t("theme")}>
               <CommandItem onSelect={run(() => setTheme("dark"))}>
                 <Moon />
-                Dark theme
+                {t("darkTheme")}
               </CommandItem>
               <CommandItem onSelect={run(() => setTheme("light"))}>
                 <Sun />
-                Light theme
+                {t("lightTheme")}
               </CommandItem>
               <CommandItem onSelect={run(() => setTheme("system"))}>
                 <Monitor />
-                Match system theme
+                {t("systemTheme")}
+              </CommandItem>
+            </CommandGroup>
+            <CommandGroup heading={t("language")}>
+              <CommandItem value="language english" onSelect={run(() => setLanguage("en"))}>
+                <Languages />
+                {t("english")}
+              </CommandItem>
+              <CommandItem value="langue français" onSelect={run(() => setLanguage("fr"))}>
+                <Languages />
+                {t("french")}
               </CommandItem>
             </CommandGroup>
           </CommandList>

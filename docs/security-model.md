@@ -25,7 +25,7 @@ outside request goes through the gateway.
 | A browser `Origin`, when present, must be allowed (Calcine's webview by default) | Web pages calling the API from your browser (CSRF), even with simple requests that skip CORS preflight |
 | `Authorization: Bearer calcine_…` must be a known key (on by default) | Other local programs using your models without your consent |
 | Key scopes: `inference` (`/v1/*`) and `manage` (`/calcine/v1/*`) | An app meant to chat downloading or deleting models |
-| Request bodies: local paths and URLs refused in `image_url`, `input_audio`, `grammar_path`, `spec_draft_model` unless the key allows local files | GenieX reading arbitrary files (`C:/Users/…`) or fetching internal URLs (SSRF) on an app's behalf |
+| Request bodies: local paths and URLs refused in `image_url`, `grammar_path`, `spec_draft_model` unless the key allows local files (`input_audio` is always decoded as base64 by GenieX, so it needs no check) | GenieX reading arbitrary files (`C:/Users/…`) or fetching internal URLs (SSRF) on an app's behalf |
 | 64 MiB body limit | Memory exhaustion |
 
 Errors use the OpenAI shape (`{"error": {"message", "type"}}`) so client

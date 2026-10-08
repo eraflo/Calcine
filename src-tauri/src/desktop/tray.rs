@@ -1,23 +1,27 @@
 //! System tray: Calcine keeps running (and serving apps) when its window is closed.
 
-use tauri::App;
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
+use tauri::{App, AppHandle, Manager, Wry};
 
+use super::locale::Language;
 use super::show_main_window;
 
 const OPEN: &str = "open";
 const QUIT: &str = "quit";
 
+/// Menu entries kept to relabel them when the language changes.
+struct TrayItems {
+    open: MenuItem<Wry>,
+    quit: MenuItem<Wry>,
+}
+
 pub fn install(app: &App) -> tauri::Result<()> {
-    let menu = Menu::with_items(
-        app,
-        &[
-            &MenuItem::with_id(app, OPEN, "Open Calcine", true, None::<&str>)?,
-            &PredefinedMenuItem::separator(app)?,
-            &MenuItem::with_id(app, QUIT, "Quit Calcine", true, None::<&str>)?,
-        ],
-    )?;
+    let strings = Language::default().strings();
+    let open = MenuItem::with_id(app, OPEN, strings.open, true, None::<&str>)?;
+    let quit = MenuItem::with_id(app, QUIT, strings.quit, true, None::<&str>)?;
+    let menu = Menu::with_items(app, &[&open, &PredefinedMenuItem::separator(app)?, &quit])?;
+    app.manage(TrayItems { open, quit });
 
     let mut tray = TrayIconBuilder::with_id("main")
         .tooltip("Calcine")
@@ -43,4 +47,13 @@ pub fn install(app: &App) -> tauri::Result<()> {
     }
     tray.build(app)?;
     Ok(())
+}
+
+/// Relabel the menu in `language`.
+pub fn set_language(app: &AppHandle, language: Language) {
+    let strings = language.strings();
+    if let Some(items) = app.try_state::<TrayItems>() {
+        let _ = items.open.set_text(strings.open);
+        let _ = items.quit.set_text(strings.quit);
+    }
 }

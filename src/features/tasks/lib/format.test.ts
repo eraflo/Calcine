@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
+import { translator } from "@/i18n";
 import type { Job } from "@/lib/api";
+import { messages } from "../messages";
 import { formatDuration, percent, progressLabel, secondsLeft, upsertJob } from "./format";
+
+const t = translator(messages, "en");
 
 const job = (overrides: Partial<Job> = {}): Job => ({
   id: 1,
@@ -22,12 +26,12 @@ describe("job progress", () => {
     const unknown = job({ progress: { doneBytes: 10, totalBytes: null, bytesPerSecond: null } });
     expect(percent(unknown)).toBeNull();
     expect(secondsLeft(unknown)).toBeNull();
-    expect(progressLabel(unknown)).toBe("10 B");
+    expect(progressLabel(unknown, t)).toBe("10 B");
   });
 
   it("describes progress like a download manager", () => {
-    expect(progressLabel(job())).toBe("181 MiB of 725 MiB · 18 MiB/s · 30s left");
-    expect(progressLabel(job({ progress: null }))).toBe("Starting…");
+    expect(progressLabel(job(), t)).toBe("181 MiB of 725 MiB · 18 MiB/s · 30s left");
+    expect(progressLabel(job({ progress: null }), t)).toBe("Starting…");
   });
 });
 

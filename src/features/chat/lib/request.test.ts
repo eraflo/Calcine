@@ -43,6 +43,36 @@ describe("buildChatRequest", () => {
   });
 });
 
+describe("media", () => {
+  it("sends images and recordings before the text, OpenAI style", () => {
+    const body = buildChatRequest(model("llama_cpp"), "m/x", DEFAULT_SETTINGS, [
+      {
+        role: "user",
+        content: "What is this?",
+        media: [
+          { kind: "image", dataUrl: "data:image/jpeg;base64,AAAA" },
+          { kind: "audio", base64: "UklGRg" },
+        ],
+      },
+    ]);
+    expect(body.messages[0]).toEqual({
+      role: "user",
+      content: [
+        { type: "image_url", image_url: { url: "data:image/jpeg;base64,AAAA" } },
+        { type: "input_audio", input_audio: { data: "UklGRg", format: "wav" } },
+        { type: "text", text: "What is this?" },
+      ],
+    });
+  });
+
+  it("keeps plain strings without media", () => {
+    const body = buildChatRequest(model("llama_cpp"), "m/x", DEFAULT_SETTINGS, [
+      { role: "user", content: "Hi", media: [] },
+    ]);
+    expect(body.messages[0]).toEqual({ role: "user", content: "Hi" });
+  });
+});
+
 describe("toCurl", () => {
   it("escapes single quotes for the shell", () => {
     const curl = toCurl("http://127.0.0.1:18181/v1/chat/completions", { text: "it's" });

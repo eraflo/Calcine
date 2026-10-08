@@ -19,6 +19,24 @@ describe("streamChat", () => {
       headers: { "Content-Type": "text/event-stream" },
     });
 
+  it("throws errors GenieX reports inside a 200 stream", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        sse(['data:{"code":-201201,"error":"SDKError(Multimodal generation failed)"}']),
+      ),
+    );
+    await expect(
+      streamChat({
+        url: "http://x/v1/chat/completions",
+        token: "t",
+        body: {},
+        signal: new AbortController().signal,
+        onDelta: () => {},
+      }),
+    ).rejects.toThrow("Multimodal generation failed");
+  });
+
   it("collects content, reasoning and stats from a GenieX stream", async () => {
     vi.stubGlobal(
       "fetch",

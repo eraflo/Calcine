@@ -5,5 +5,8 @@ mod store;
 mod types;
 
 pub use reference::{ModelHub, ModelReference, PullRequest};
-pub use store::{ModelCatalog, ModelStore};
-pub use types::{ComputeUnit, HubCatalog, HubModel, LocalModel, ModelKey, ModelType, Runtime};
+pub use store::{ModelCatalog, ModelDirectory, ModelStore};
+pub use types::{
+    Chipset, ComputeUnit, HubCatalog, HubModel, LocalModel, ModelKey, ModelType, RemoteModel,
+    RemoteModelDetails, RemotePrecision, Runtime,
+};

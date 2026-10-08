@@ -11,6 +11,8 @@ pub type JobId = u32;
 pub enum JobKind {
     /// Downloading a model (`geniex pull`).
     Pull { model: String },
+    /// Copying a model from this PC into the cache (`geniex pull --model-hub localfs`).
+    Import { model: String, path: String },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]

@@ -3,6 +3,11 @@
 Calcine is licensed under the MIT License (see [LICENSE](LICENSE)). Calcine installers
 redistribute the following third-party software, unmodified.
 
+`crates/calcine-hub/src/quant.rs` follows the precision naming rules of
+GenieX's model manager (`sdk/model-manager/crates/core/src/manifest_builder.rs`,
+BSD 3-Clause, license below) so that Calcine names precisions exactly like
+`geniex pull` does.
+
 ## GenieX CLI
 
 - **Project**: https://github.com/qualcomm/GenieX

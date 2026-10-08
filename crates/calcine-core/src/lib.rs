@@ -10,9 +10,9 @@
 //!
 //! | Module | Types | Service trait |
 //! |---|---|---|
-//! | [`models`] | `LocalModel`, `HubModel`, `ModelReference`… | `ModelStore`, `ModelCatalog` |
+//! | [`models`] | `LocalModel`, `HubModel`, `ModelReference`, `RemoteModel`… | `ModelStore`, `ModelCatalog`, `ModelDirectory` |
 //! | [`runtime`] | `RuntimeInfo` | `RuntimeManager` |
-//! | [`hardware`] | `HardwareInfo`, `Accelerator`… | `HardwareProbe` |
+//! | [`hardware`] | `HardwareInfo`, `HardwareUsage`… | `HardwareProbe` |
 //! | [`jobs`] | `Job`, `JobState`… | — (`JobManager` runs them) |
 
 pub mod error;

@@ -5,7 +5,7 @@ use calcine_core::hardware::Accelerator;
 use calcine_core::models::ComputeUnit;
 use serde::Deserialize;
 
-use crate::PlatformDevices;
+use crate::snapshot::PlatformDevices;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename = "Win32_PnPSignedDriver", rename_all = "PascalCase")]

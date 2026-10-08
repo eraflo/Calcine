@@ -1,0 +1,79 @@
+{
+  "_id": "6806957aa07d59f3777bc8e6",
+  "id": "ggml-org/SmolVLM-256M-Instruct-GGUF",
+  "private": false,
+  "tags": [
+    "gguf",
+    "base_model:HuggingFaceTB/SmolVLM-256M-Instruct",
+    "base_model:quantized:HuggingFaceTB/SmolVLM-256M-Instruct",
+    "license:apache-2.0",
+    "endpoints_compatible",
+    "region:us",
+    "conversational"
+  ],
+  "downloads": 14869,
+  "likes": 20,
+  "modelId": "ggml-org/SmolVLM-256M-Instruct-GGUF",
+  "author": "ggml-org",
+  "sha": "b9e4379657e1450d04d02eec8e345667265b0a00",
+  "lastModified": "2025-04-30T11:11:37.000Z",
+  "gated": false,
+  "disabled": false,
+  "model-index": null,
+  "config": {},
+  "siblings": [
+    {
+      "rfilename": ".gitattributes",
+      "blobId": "c4f09e9d2ef0ba70c67013c5629c1c3017ad92c6",
+      "size": 1803
+    },
+    {
+      "rfilename": "README.md",
+      "blobId": "73eb671c0e7e97fac8d7fa22b7c133a9ccd7bf04",
+      "size": 268
+    },
+    {
+      "rfilename": "SmolVLM-256M-Instruct-Q8_0.gguf",
+      "blobId": "20da2c71b3530f722f1fc3397d4721a6b57d094e",
+      "size": 175054528,
+      "lfs": {
+        "sha256": "2a31195d3769c0b0fd0a4906201666108834848db768af11de1d2cef7cd35e65",
+        "size": 175054528,
+        "pointerSize": 134
+      }
+    },
+    {
+      "rfilename": "SmolVLM-256M-Instruct-f16.gguf",
+      "blobId": "422dc85b11c5931f127ee775d7b2381875796585",
+      "size": 327809728,
+      "lfs": {
+        "sha256": "2f0cf33ce293f1a17b094e13e57f7ebd660ad6c0467a5e567a753e333a0c2429",
+        "size": 327809728,
+        "pointerSize": 134
+      }
+    },
+    {
+      "rfilename": "mmproj-SmolVLM-256M-Instruct-Q8_0.gguf",
+      "blobId": "caa4abb681a656ec021af443353b149ef9018a15",
+      "size": 103769856,
+      "lfs": {
+        "sha256": "7e943f7c53f0382a6fc41b6ee0c2def63ba4fded9ab8ed039cc9e2ab905e0edd",
+        "size": 103769856,
+        "pointerSize": 134
+      }
+    },
+    {
+      "rfilename": "mmproj-SmolVLM-256M-Instruct-f16.gguf",
+      "blobId": "dddab10ce6fdaf85e24dfa4aabeb6c014ad5fb95",
+      "size": 190031616,
+      "lfs": {
+        "sha256": "0802360aca1748f112ea510b8ff277c65b1361c8ef30ed89b83c9c7a60d08e96",
+        "size": 190031616,
+        "pointerSize": 134
+      }
+    }
+  ],
+  "spaces": ["tardellirs/model-pulse"],
+  "createdAt": "2025-04-21T18:59:06.000Z",
+  "usedStorage": 796665728
+}

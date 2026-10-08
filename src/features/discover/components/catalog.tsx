@@ -12,12 +12,16 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { type Availability, useAvailability } from "@/features/library/availability";
 import { usePullByName } from "@/features/tasks/api";
 import { percent } from "@/features/tasks/lib/format";
+import { useT } from "@/i18n";
+import { common } from "@/i18n/common";
 import type { HubModel } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { catalogQuery } from "../api";
+import { messages } from "../messages";
 
 /** Qualcomm AI Hub models with a pre-compiled NPU build. */
 export function AiHubCatalog() {
+  const t = useT(messages);
   const [showAll, setShowAll] = useState(false);
   const [filter, setFilter] = useState("");
   const compatible = useQuery(catalogQuery(false));
@@ -37,21 +41,20 @@ export function AiHubCatalog() {
   return (
     <section className="flex flex-col gap-3">
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h2 className="text-sm font-medium">Qualcomm AI Hub</h2>
-          <p className="text-xs text-muted-foreground">
-            Pre-compiled for the Hexagon NPU
-            {compatible.data?.chipset ? ` · showing models for ${compatible.data.chipset}` : ""}
-          </p>
-        </div>
+        <p className="text-xs text-muted-foreground">
+          {t("aiHubDescription")}
+          {compatible.data?.chipset
+            ? ` · ${t("aiHubShowingFor", { chipset: compatible.data.chipset })}`
+            : ""}
+        </p>
         <div className="flex items-center gap-2">
           <div className="flex h-8 items-center gap-2 rounded-md border bg-card px-2.5 focus-within:ring-2 focus-within:ring-ring">
             <Search className="size-3.5 text-muted-foreground" />
             <input
               value={filter}
               onChange={(event) => setFilter(event.target.value)}
-              placeholder="Filter models"
-              aria-label="Filter models"
+              placeholder={t("filterModels")}
+              aria-label={t("filterModels")}
               className="w-40 bg-transparent text-[13px] outline-none placeholder:text-muted-foreground"
             />
           </div>
@@ -62,7 +65,7 @@ export function AiHubCatalog() {
               onChange={(event) => setShowAll(event.target.checked)}
               className="accent-[var(--primary)]"
             />
-            All chipsets
+            {t("allChipsets")}
           </label>
         </div>
       </div>
@@ -76,9 +79,7 @@ export function AiHubCatalog() {
       ) : shown.isError ? (
         <ErrorState error={shown.error} onRetry={() => shown.refetch()} />
       ) : models.length === 0 ? (
-        <p className="py-8 text-center text-sm text-muted-foreground">
-          No model matches “{filter}”.
-        </p>
+        <p className="py-8 text-center text-sm text-muted-foreground">{t("noMatch", { filter })}</p>
       ) : (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           {models.map((model) => (
@@ -104,6 +105,7 @@ function CatalogCard({
   availability: Availability;
   otherChipsets: boolean;
 }) {
+  const t = useT(messages);
   const [owner, shortName] = splitName(model.name);
   const pull = usePullByName();
 
@@ -124,10 +126,13 @@ function CatalogCard({
       <div className="flex flex-wrap items-center gap-1.5">
         <RuntimeBadge runtime="qairt" />
         <ModelTypeBadge type={model.modelType} />
-        {otherChipsets && <Badge tone="warning">Built for other chipsets</Badge>}
+        {otherChipsets && <Badge tone="warning">{t("otherChipsets")}</Badge>}
       </div>
       {availability.status === "downloading" && (
-        <Progress value={percent(availability.job)} label={`Downloading ${model.name}`} />
+        <Progress
+          value={percent(availability.job)}
+          label={t("downloadModel", { name: model.name })}
+        />
       )}
     </Card>
   );
@@ -144,13 +149,15 @@ function CatalogAction({
   onDownload: () => void;
   busy: boolean;
 }) {
+  const t = useT(messages);
+  const tc = useT(common);
   switch (availability.status) {
     case "installed":
       return (
         <Button size="sm" variant="ghost" asChild>
           <Link to="/library">
             <Check className="text-success" />
-            In library
+            {t("inLibrary")}
           </Link>
         </Button>
       );
@@ -162,9 +169,14 @@ function CatalogAction({
       );
     case "available":
       return (
-        <Button size="sm" onClick={onDownload} disabled={busy} aria-label={`Download ${name}`}>
+        <Button
+          size="sm"
+          onClick={onDownload}
+          disabled={busy}
+          aria-label={t("downloadModel", { name })}
+        >
           <Download />
-          Download
+          {tc("download")}
         </Button>
       );
   }

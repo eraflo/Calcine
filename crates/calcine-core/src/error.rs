@@ -25,6 +25,11 @@ pub enum Error {
     #[error("cancelled")]
     Cancelled,
 
+    /// A hub or download server couldn't be reached or answered with an
+    /// error. The message is shown verbatim.
+    #[error("{0}")]
+    Network(String),
+
     #[error("{0} isn't available yet")]
     NotImplemented(&'static str),
 
@@ -42,6 +47,7 @@ pub enum ErrorKind {
     Parse,
     InvalidInput,
     Cancelled,
+    Network,
     NotImplemented,
     Io,
 }
@@ -55,6 +61,7 @@ impl Error {
             Self::Parse(_) => ErrorKind::Parse,
             Self::InvalidInput(_) => ErrorKind::InvalidInput,
             Self::Cancelled => ErrorKind::Cancelled,
+            Self::Network(_) => ErrorKind::Network,
             Self::NotImplemented(_) => ErrorKind::NotImplemented,
             Self::Io(_) => ErrorKind::Io,
         }

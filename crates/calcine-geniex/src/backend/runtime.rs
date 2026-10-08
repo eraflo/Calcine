@@ -1,4 +1,4 @@
-//! `geniex version` and `config get`.
+//! `geniex version` and `config get|set chipset`.
 
 use std::path::PathBuf;
 
@@ -30,6 +30,16 @@ impl RuntimeManager for Geniex {
             (!chipset.is_empty() && !chipset.eq_ignore_ascii_case("unknown"))
                 .then(|| chipset.to_owned()),
         )
+    }
+
+    async fn set_chipset(&self, chipset: Option<&str>) -> Result<()> {
+        // An empty value clears the setting; GenieX then detects the chipset.
+        // Always pass a value: without one GenieX opens an interactive picker.
+        let value = chipset.map(str::trim).unwrap_or_default();
+        self.cli()?
+            .run(&["config", "set", "chipset", value])
+            .await
+            .map(drop)
     }
 
     fn models_dir(&self) -> Option<PathBuf> {

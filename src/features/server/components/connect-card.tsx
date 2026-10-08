@@ -3,12 +3,15 @@ import { useState } from "react";
 import { CopyButton } from "@/components/calcine/actions/copy-button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { modelsQuery } from "@/features/library/api";
+import { useT } from "@/i18n";
 import { cn } from "@/lib/utils";
 import { gatewayQuery } from "../api";
 import { KEY_VARIABLE, SNIPPET_LANGUAGES, type SnippetLanguage, snippet } from "../lib/snippets";
+import { messages } from "../messages";
 
 /** Ready-to-paste code for other apps, using a model from the library. */
 export function ConnectCard() {
+  const t = useT(messages);
   const [language, setLanguage] = useState<SnippetLanguage>("python");
   const { data: status } = useQuery(gatewayQuery);
   const { data: models = [] } = useQuery(modelsQuery);
@@ -19,14 +22,17 @@ export function ConnectCard() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Connect an app</CardTitle>
+        <CardTitle>{t("connectTitle")}</CardTitle>
         <CardDescription>
-          Any OpenAI-compatible client works. Set <code className="font-mono">{KEY_VARIABLE}</code>{" "}
-          to a key created below.
+          {t.rich(
+            "connectHint",
+            { code: (text) => <code className="font-mono">{text}</code> },
+            { variable: KEY_VARIABLE },
+          )}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-2">
-        <div role="tablist" aria-label="Language" className="flex gap-1">
+        <div role="tablist" aria-label={t("snippetLanguage")} className="flex gap-1">
           {SNIPPET_LANGUAGES.map(({ id, label }) => (
             <button
               key={id}

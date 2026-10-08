@@ -1,42 +1,40 @@
 import { Cpu, Image, Type } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip } from "@/components/ui/tooltip";
+import { useT } from "@/i18n";
 import type { ModelType, Runtime } from "@/lib/api";
+import { messages } from "../messages";
 
-const RUNTIMES: Record<Runtime, { label: string; tone: "npu" | "gpu" | "neutral"; hint: string }> =
-  {
-    qairt: {
-      label: "QAIRT · NPU",
-      tone: "npu",
-      hint: "Pre-compiled Qualcomm AI Hub bundle. Runs natively on the Hexagon NPU.",
-    },
-    llama_cpp: {
-      label: "llama.cpp",
-      tone: "gpu",
-      hint: "GGUF model. Runs on the NPU, GPU or CPU.",
-    },
-    unknown: { label: "Unknown runtime", tone: "neutral", hint: "Runtime not recognized." },
-  };
+const RUNTIMES = {
+  qairt: { label: "qairt", hint: "qairtHint", tone: "npu" },
+  llama_cpp: { label: "llamaCpp", hint: "llamaCppHint", tone: "gpu" },
+  unknown: { label: "unknownRuntime", hint: "unknownRuntimeHint", tone: "neutral" },
+} as const satisfies Record<
+  Runtime,
+  { label: keyof (typeof messages)["en"]; hint: keyof (typeof messages)["en"]; tone: string }
+>;
 
 export function RuntimeBadge({ runtime }: { runtime: Runtime }) {
+  const t = useT(messages);
   const { label, tone, hint } = RUNTIMES[runtime];
   return (
-    <Tooltip content={hint}>
+    <Tooltip content={t(hint)}>
       <Badge tone={tone} tabIndex={0}>
         <Cpu aria-hidden="true" />
-        {label}
+        {t(label)}
       </Badge>
     </Tooltip>
   );
 }
 
 export function ModelTypeBadge({ type }: { type: ModelType }) {
-  if (type === "unknown") return <Badge>Type unknown</Badge>;
+  const t = useT(messages);
+  if (type === "unknown") return <Badge>{t("typeUnknown")}</Badge>;
   const vision = type === "vlm";
   return (
     <Badge>
       {vision ? <Image aria-hidden="true" /> : <Type aria-hidden="true" />}
-      {vision ? "Vision" : "Text"}
+      {vision ? t("vision") : t("text")}
     </Badge>
   );
 }

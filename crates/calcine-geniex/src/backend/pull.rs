@@ -19,6 +19,12 @@ pub(crate) async fn run(cli: &Cli, request: &PullRequest, ctx: &JobCtx) -> Resul
     if let Some(hub) = request.reference.hub.cli_value() {
         args.extend(["--model-hub", hub]);
     }
+    if request.is_import() {
+        let path = request.local_path.as_deref().ok_or_else(|| {
+            Error::InvalidInput("choose a folder or a .zip file to import".into())
+        })?;
+        args.extend(["--local-path", path]);
+    }
     match request.model_type {
         Some(ModelType::Llm) => args.extend(["--model-type", "llm"]),
         Some(ModelType::Vlm) => args.extend(["--model-type", "vlm"]),

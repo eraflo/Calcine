@@ -16,12 +16,16 @@ authors = ["The Calcine Authors"]
 calcine-core = { path = "crates/calcine-core" }
 calcine-gateway = { path = "crates/calcine-gateway" }
 calcine-geniex = { path = "crates/calcine-geniex" }
+calcine-hub = { path = "crates/calcine-hub" }
 calcine-hw = { path = "crates/calcine-hw" }
 calcine-mock = { path = "crates/calcine-mock" }
 
 # Tauri
 tauri = { version = "2.12", features = ["tray-icon"] }
 tauri-plugin-single-instance = "2.5"
+tauri-plugin-dialog = "2"
+tauri-plugin-notification = "2"
+tauri-plugin-opener = "2"
 tauri-build = { version = "2.7", features = [] }
 tauri-specta = { version = "=2.0.0-rc.25", features = ["derive", "typescript"] }
 specta = { version = "=2.0.0-rc.25", features = ["derive"] }
@@ -48,9 +52,12 @@ sha2 = "0.11"
 hex = "0.4"
 getrandom = "0.4"
 win32job = "2"
+windows-sys = "0.61"
 
 [workspace.lints.rust]
-unsafe_code = "forbid"
+# Denied everywhere; the only exception is calcine-hw's Windows performance
+# counter bindings (`windows/gpu_engines.rs`), which must call the C API.
+unsafe_code = "deny"
 missing_debug_implementations = "warn"
 
 [workspace.lints.clippy]

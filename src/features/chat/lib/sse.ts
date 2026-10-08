@@ -31,6 +31,8 @@ export type StreamResult = { content: string; reasoning: string; stats: StreamSt
 type Delta = { content?: string; reasoning?: string };
 
 type Chunk = {
+  /** GenieX reports generation failures inside the stream, after a 200. */
+  error?: string | { message?: string };
   choices?: { delta?: { content?: string | null; reasoning_content?: string | null } }[];
   usage?: { prompt_tokens?: number; completion_tokens?: number };
   timings?: { predicted_per_second?: number };
@@ -62,9 +64,17 @@ export async function streamChat({
   }
 
   const result: StreamResult = { content: "", reasoning: "", stats: { durationMs: 0 } };
+  let failure: string | null = null;
   const parser = createSseParser((data) => {
     if (data === "[DONE]" || !data.startsWith("{")) return;
     const chunk = JSON.parse(data) as Chunk;
+    if (chunk.error) {
+      failure =
+        typeof chunk.error === "string"
+          ? chunk.error
+          : (chunk.error.message ?? "Generation failed");
+      return;
+    }
     const delta = chunk.choices?.[0]?.delta;
     const content = delta?.content ?? undefined;
     const reasoning = delta?.reasoning_content ?? undefined;
@@ -89,6 +99,7 @@ export async function streamChat({
     if (done) break;
     parser.push(value);
   }
+  if (failure) throw new Error(failure);
   result.stats.durationMs = Math.round(performance.now() - started);
   return result;
 }

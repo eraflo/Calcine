@@ -1,17 +1,18 @@
 import type { ComputeUnit, LocalModel } from "@/lib/api";
 
+/** GenieX power modes, fastest first. Labels live in the chat messages. */
 export const POWER_MODES = [
-  { value: "burst", label: "Burst (fastest)" },
-  { value: "sustained_high_performance", label: "Sustained high performance" },
-  { value: "high_performance", label: "High performance" },
-  { value: "balanced", label: "Balanced" },
-  { value: "low_balanced", label: "Low balanced" },
-  { value: "high_power_saver", label: "High power saver" },
-  { value: "power_saver", label: "Power saver" },
-  { value: "low_power_saver", label: "Low power saver (coolest)" },
+  "burst",
+  "sustained_high_performance",
+  "high_performance",
+  "balanced",
+  "low_balanced",
+  "high_power_saver",
+  "power_saver",
+  "low_power_saver",
 ] as const;
 
-export type PowerMode = (typeof POWER_MODES)[number]["value"];
+export type PowerMode = (typeof POWER_MODES)[number];
 
 export type ChatSettings = {
   systemPrompt: string;
@@ -33,11 +34,35 @@ export const DEFAULT_SETTINGS: ChatSettings = {
   powerMode: "burst",
 };
 
-export type ChatTurn = { role: "user" | "assistant"; content: string };
+/** An image or a recording sent with a message. */
+export type MediaPart = { kind: "image"; dataUrl: string } | { kind: "audio"; base64: string };
+
+export type ChatTurn = { role: "user" | "assistant"; content: string; media?: MediaPart[] };
 
 /** Whether the model lets you choose where it runs. */
 export function supportsComputeChoice(model: LocalModel | undefined): boolean {
   return model?.runtime === "llama_cpp";
+}
+
+/** Whether the model takes images and audio. */
+export function supportsMedia(model: LocalModel | undefined): boolean {
+  return model?.modelType === "vlm";
+}
+
+/** OpenAI message content: plain text, or parts with the media first. */
+function toApiMessage({ role, content, media }: ChatTurn) {
+  if (!media?.length) return { role, content };
+  return {
+    role,
+    content: [
+      ...media.map((part) =>
+        part.kind === "image"
+          ? { type: "image_url" as const, image_url: { url: part.dataUrl } }
+          : { type: "input_audio" as const, input_audio: { data: part.base64, format: "wav" } },
+      ),
+      ...(content ? [{ type: "text" as const, text: content }] : []),
+    ],
+  };
 }
 
 /**
@@ -50,9 +75,10 @@ export function buildChatRequest(
   settings: ChatSettings,
   history: readonly ChatTurn[],
 ) {
+  const turns = history.map(toApiMessage);
   const messages = settings.systemPrompt.trim()
-    ? [{ role: "system" as const, content: settings.systemPrompt.trim() }, ...history]
-    : [...history];
+    ? [{ role: "system" as const, content: settings.systemPrompt.trim() }, ...turns]
+    : turns;
   return {
     model: modelId,
     messages,

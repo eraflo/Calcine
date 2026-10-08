@@ -42,17 +42,23 @@ impl ModelStore for MockBackend {
             }
         }
 
+        // Hugging Face and local GGUF models run on llama.cpp.
+        let (runtime, default_precision) = if request.reference.name.starts_with("qualcomm/") {
+            (Runtime::Qairt, "W4A16")
+        } else {
+            (Runtime::LlamaCpp, "Q4_0")
+        };
         let precision = request
             .reference
             .precision
             .clone()
-            .unwrap_or_else(|| "W4A16".into());
+            .unwrap_or_else(|| default_precision.into());
         let mut models = self.models();
         models.retain(|model| model.name != request.reference.name);
         models.push(LocalModel {
             name: request.reference.name,
             size_bytes: PULL_BYTES,
-            runtime: Runtime::Qairt,
+            runtime,
             model_type: request.model_type.unwrap_or(ModelType::Llm),
             precisions: vec![precision],
         });
@@ -72,6 +78,21 @@ impl ModelStore for MockBackend {
                 }
             }
         }
+        Ok(())
+    }
+
+    async fn clean(&self) -> Result<()> {
+        self.models().clear();
+        Ok(())
+    }
+
+    async fn set_type(&self, name: &str, model_type: ModelType) -> Result<()> {
+        let mut models = self.models();
+        let model = models
+            .iter_mut()
+            .find(|model| model.name == name)
+            .ok_or_else(|| Error::InvalidInput(format!("{name} isn't downloaded")))?;
+        model.model_type = model_type;
         Ok(())
     }
 }

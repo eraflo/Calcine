@@ -81,10 +81,7 @@ async fn pull(
     }
     match ModelReference::parse(&body.model) {
         Ok(reference) => {
-            let id = app.services.start_pull(PullRequest {
-                reference,
-                model_type: None,
-            });
+            let id = app.services.start_pull(PullRequest::download(reference));
             (StatusCode::ACCEPTED, Json(json!({ "jobId": id }))).into_response()
         }
         Err(err) => api_error(
@@ -117,7 +114,7 @@ async fn remove(
         name: reference.name,
         precision: reference.precision,
     };
-    match app.services.models.remove(&[key]).await {
+    match app.services.remove_models(&[key]).await {
         Ok(()) => StatusCode::NO_CONTENT.into_response(),
         Err(err) => api_error(
             StatusCode::BAD_REQUEST,

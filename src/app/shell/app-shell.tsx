@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { useGatewayEvents } from "@/features/server/api";
 import { useJobEvents } from "@/features/tasks/api";
 import { TaskDrawer } from "@/features/tasks/components/task-drawer";
+import { useSyncLanguage } from "@/i18n/sync";
 import { useUi } from "@/stores/ui";
 import { CommandPalette } from "./command-palette";
 import { Sidebar } from "./sidebar";
@@ -10,6 +11,7 @@ import { Topbar } from "./topbar";
 
 export function AppShell() {
   useGlobalShortcuts();
+  useSyncLanguage();
   useJobEvents();
   useGatewayEvents();
 

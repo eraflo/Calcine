@@ -1,27 +1,33 @@
 import { MonitorSmartphone, PackageX, TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useT } from "@/i18n";
+import { common } from "@/i18n/common";
 import { CalcineError } from "@/lib/api";
+import { messages } from "../messages";
 import { EmptyState } from "./empty-state";
 
 /** Friendly rendering of a failed backend call, with a retry when it can help. */
 export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () => void }) {
+  const t = useT(messages);
+  const tc = useT(common);
   const kind = error instanceof CalcineError ? error.kind : undefined;
 
   if (kind === "not_in_tauri") {
     return (
-      <EmptyState icon={MonitorSmartphone} title="Open Calcine in the desktop app">
-        This page needs Calcine's backend, which isn't available in a regular browser. Run{" "}
-        <code className="font-mono text-foreground">bun run app</code> or{" "}
-        <code className="font-mono text-foreground">bun run app:mock</code>.
+      <EmptyState icon={MonitorSmartphone} title={t("desktopOnly")}>
+        {t.rich("desktopOnlyHint", {
+          code: (text) => <code className="font-mono text-foreground">{text}</code>,
+        })}
       </EmptyState>
     );
   }
 
   if (kind === "runtime_not_found") {
     return (
-      <EmptyState icon={PackageX} title="GenieX isn't installed">
-        Calcine's installer sets up GenieX for you. In development, install it from the{" "}
-        <span className="text-foreground">GenieX releases</span> page, then refresh.
+      <EmptyState icon={PackageX} title={t("geniexMissing")}>
+        {t.rich("geniexMissingHint", {
+          strong: (text) => <span className="text-foreground">{text}</span>,
+        })}
       </EmptyState>
     );
   }
@@ -29,11 +35,11 @@ export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () =>
   return (
     <EmptyState
       icon={TriangleAlert}
-      title="Something went wrong"
+      title={t("somethingWrong")}
       action={
         onRetry && (
           <Button size="sm" onClick={onRetry}>
-            Try again
+            {tc("retry")}
           </Button>
         )
       }

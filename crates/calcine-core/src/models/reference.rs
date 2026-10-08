@@ -17,6 +17,8 @@ pub enum ModelHub {
     HuggingFace,
     ModelScope,
     DockerHub,
+    /// A folder or AI Hub archive on this PC (`--local-path`).
+    LocalFs,
 }
 
 impl ModelHub {
@@ -28,6 +30,7 @@ impl ModelHub {
             Self::HuggingFace => Some("hf"),
             Self::ModelScope => Some("modelscope"),
             Self::DockerHub => Some("docker"),
+            Self::LocalFs => Some("localfs"),
         }
     }
 }
@@ -111,6 +114,51 @@ pub struct PullRequest {
     pub reference: ModelReference,
     /// Override GenieX's LLM/VLM detection.
     pub model_type: Option<ModelType>,
+    /// Folder (GGUF files, extracted AI Hub bundle) or AI Hub `.zip` to import,
+    /// for [`ModelHub::LocalFs`].
+    pub local_path: Option<String>,
+}
+
+impl PullRequest {
+    /// Download `reference`, letting GenieX detect the model type.
+    pub fn download(reference: ModelReference) -> Self {
+        Self {
+            reference,
+            model_type: None,
+            local_path: None,
+        }
+    }
+
+    /// Import a model from this PC under `name` (`owner/model`).
+    pub fn import(
+        name: &str,
+        path: impl Into<String>,
+        model_type: Option<ModelType>,
+    ) -> Result<Self> {
+        let reference = ModelReference::parse(name)?;
+        if reference.hub != ModelHub::Auto || reference.precision.is_some() {
+            return Err(invalid(
+                "name the import like owner/model, e.g. local/my-model",
+            ));
+        }
+        let path = path.into();
+        if path.trim().is_empty() {
+            return Err(invalid("choose a folder or a .zip file to import"));
+        }
+        Ok(Self {
+            reference: ModelReference {
+                hub: ModelHub::LocalFs,
+                ..reference
+            },
+            model_type,
+            local_path: Some(path),
+        })
+    }
+
+    /// Whether this copies a model from disk rather than downloading it.
+    pub fn is_import(&self) -> bool {
+        self.reference.hub == ModelHub::LocalFs
+    }
 }
 
 fn invalid(message: &str) -> Error {

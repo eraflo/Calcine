@@ -2,9 +2,25 @@ import { useQuery } from "@tanstack/react-query";
 import { useCallback, useRef } from "react";
 import { modelsQuery } from "@/features/library/api";
 import { connectionQuery } from "@/features/server/api";
-import { buildChatRequest, type ChatTurn } from "./lib/request";
+import type { Attachment } from "./lib/attachments";
+import { buildChatRequest, type ChatTurn, type MediaPart } from "./lib/request";
 import { streamChat } from "./lib/sse";
-import { newId, useChat, useLiveReply } from "./store";
+import { type ChatMessage, newId, useChat, useLiveReply, useMediaPayloads } from "./store";
+
+/** An attachment ready to send: what the thread shows and what the model gets. */
+export type PendingAttachment = { attachment: Attachment; payload: MediaPart };
+
+/** History as the API expects it. Attachments whose data is gone are left out. */
+export function toTurns(messages: readonly ChatMessage[]): ChatTurn[] {
+  const payloads = useMediaPayloads.getState();
+  return messages
+    .filter((message) => !message.error && (message.content || message.attachments?.length))
+    .map(({ role, content, attachments }) => ({
+      role,
+      content,
+      media: attachments?.flatMap((attachment) => payloads[attachment.id] ?? []),
+    }));
+}
 
 /** Send a message in a conversation and stream the reply; stop it on demand. */
 export function useSend() {
@@ -14,17 +30,23 @@ export function useSend() {
   const streaming = useLiveReply((state) => state.messageId !== null);
 
   const send = useCallback(
-    async (conversationId: string, text: string) => {
+    async (conversationId: string, text: string, pending: readonly PendingAttachment[] = []) => {
       const chat = useChat.getState();
       const conversation = chat.conversations.find((c) => c.id === conversationId);
       if (!conversation || !connection || controller.current) return;
 
-      const history: ChatTurn[] = conversation.messages
-        .filter((message) => !message.error && message.content)
-        .map(({ role, content }) => ({ role, content }));
-      history.push({ role: "user", content: text });
+      useMediaPayloads.setState(
+        Object.fromEntries(pending.map(({ attachment, payload }) => [attachment.id, payload])),
+      );
+      const userMessage: ChatMessage = {
+        id: newId(),
+        role: "user",
+        content: text,
+        ...(pending.length ? { attachments: pending.map(({ attachment }) => attachment) } : {}),
+      };
+      const history = toTurns([...conversation.messages, userMessage]);
 
-      chat.addMessage(conversationId, { id: newId(), role: "user", content: text });
+      chat.addMessage(conversationId, userMessage);
       const replyId = newId();
       chat.addMessage(conversationId, { id: replyId, role: "assistant", content: "" });
 

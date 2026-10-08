@@ -1,7 +1,9 @@
 import { Link } from "@tanstack/react-router";
 import { RuntimeBadge } from "@/components/calcine/badges/runtime-badge";
 import { Select } from "@/components/ui/field";
+import { useT } from "@/i18n";
 import type { LocalModel } from "@/lib/api";
+import { messages } from "../messages";
 
 /** Pick one of the downloaded models. */
 export function ModelPicker({
@@ -13,12 +15,13 @@ export function ModelPicker({
   value: string | undefined;
   onChange: (modelId: string) => void;
 }) {
+  const t = useT(messages);
   if (models.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        No model yet.{" "}
+        {t("noModel")}{" "}
         <Link to="/discover" className="text-info hover:underline">
-          Download one
+          {t("downloadOne")}
         </Link>
       </p>
     );
@@ -29,10 +32,10 @@ export function ModelPicker({
       <Select
         value={value ?? ""}
         onChange={(event) => onChange(event.target.value)}
-        aria-label="Model"
+        aria-label={t("model")}
         className="w-72 font-mono text-[12px]"
       >
-        {!selected && <option value="">Pick a model</option>}
+        {!selected && <option value="">{t("pickModel")}</option>}
         {models.map((model) => (
           <option key={model.name} value={model.name}>
             {model.name}

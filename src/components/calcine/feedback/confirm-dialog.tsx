@@ -7,6 +7,8 @@ import {
   DialogDescription,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useT } from "@/i18n";
+import { common } from "@/i18n/common";
 
 /** A centered yes/no dialog for destructive or important actions. */
 export function ConfirmDialog({
@@ -28,6 +30,7 @@ export function ConfirmDialog({
   busy?: boolean;
   onConfirm: () => void;
 }) {
+  const tc = useT(common);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="top-1/2 max-w-md -translate-y-1/2 p-5">
@@ -37,7 +40,7 @@ export function ConfirmDialog({
         </DialogDescription>
         <div className="mt-5 flex justify-end gap-2">
           <DialogClose asChild>
-            <Button variant="ghost">Cancel</Button>
+            <Button variant="ghost">{tc("cancel")}</Button>
           </DialogClose>
           <Button
             variant={destructive ? "destructive" : "default"}

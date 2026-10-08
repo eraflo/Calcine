@@ -161,6 +161,9 @@ impl Usage {
 pub struct SseUsage {
     pending: Vec<u8>,
     pub usage: Usage,
+    /// GenieX reports generation failures as a `data:{"error": …}` event
+    /// after answering 200.
+    pub error: Option<String>,
 }
 
 impl SseUsage {
@@ -175,12 +178,23 @@ impl SseUsage {
                 continue;
             };
             let data = data.trim();
-            if data.starts_with('{')
-                && (data.contains("\"usage\"") || data.contains("\"timings\""))
-                && let Ok(value) = serde_json::from_str::<Value>(data)
-            {
-                self.usage.merge(Usage::from_json(&value));
+            let interesting = data.contains("\"usage\"")
+                || data.contains("\"timings\"")
+                || data.contains("\"error\"");
+            if !data.starts_with('{') || !interesting {
+                continue;
             }
+            let Ok(value) = serde_json::from_str::<Value>(data) else {
+                continue;
+            };
+            if let Some(error) = value.get("error") {
+                let message = error
+                    .as_str()
+                    .or_else(|| error.get("message").and_then(Value::as_str))
+                    .unwrap_or("generation failed");
+                self.error = Some(message.to_owned());
+            }
+            self.usage.merge(Usage::from_json(&value));
         }
     }
 }
@@ -205,6 +219,18 @@ mod tests {
         assert_eq!(scanner.usage.prompt_tokens, Some(30));
         assert_eq!(scanner.usage.completion_tokens, Some(2));
         assert_eq!(scanner.usage.tokens_per_second, Some(143.1));
+    }
+
+    #[test]
+    fn notices_errors_inside_a_stream() {
+        let mut scanner = SseUsage::default();
+        scanner.feed(
+            b"data:{\"code\":-201201,\"error\":\"SDKError(Multimodal generation failed)\"}\n\n",
+        );
+        assert_eq!(
+            scanner.error.as_deref(),
+            Some("SDKError(Multimodal generation failed)")
+        );
     }
 
     #[test]

@@ -1,6 +1,10 @@
 //! GenieX accepts local file paths and URLs inside request bodies (images,
-//! audio, grammars, draft models) and reads or fetches them itself. Unless a
-//! key is allowed to, only inline `data:` content gets through.
+//! grammars, draft models) and reads or fetches them itself. Unless a key is
+//! allowed to, only inline `data:` images get through.
+//!
+//! Audio needs no check: GenieX always decodes `input_audio.data` as base64
+//! (adding a `data:audio/<format>;base64,` prefix when missing), so it can't
+//! point at a file or URL.
 
 use serde_json::Value;
 
@@ -45,17 +49,16 @@ pub fn check_body(body: &Value, allow_local_files: bool) -> Result<(), Refusal> 
             .into_iter()
             .flatten()
         {
-            let source = part
+            let image = part
                 .pointer("/image_url/url")
                 .or_else(|| part.get("image_url"))
-                .or_else(|| part.pointer("/input_audio/data"))
                 .and_then(Value::as_str);
-            if let Some(source) = source
-                && !is_inline(source)
+            if let Some(image) = image
+                && !is_inline(image)
             {
                 return Err(
-                    "images and audio must be sent inline as `data:` URLs. This key \
-                            can't make GenieX read local files or fetch URLs."
+                    "images must be sent inline as `data:` URLs. This key can't make \
+                            GenieX read local files or fetch URLs."
                         .into(),
                 );
             }
@@ -106,11 +109,14 @@ mod tests {
         let image = chat_with(
             &json!({ "type": "image_url", "image_url": { "url": "data:image/png;base64,AAAA" } }),
         );
-        let audio = chat_with(
-            &json!({ "type": "input_audio", "input_audio": { "data": "DATA:audio/wav;base64,AA" } }),
-        );
         assert_eq!(check_body(&image, false), Ok(()));
-        assert_eq!(check_body(&audio, false), Ok(()));
+        // OpenAI's shape (raw base64 plus a format) and data URLs.
+        for data in ["UklGRiQAAABXQVZF", "DATA:audio/wav;base64,AA"] {
+            let audio = chat_with(
+                &json!({ "type": "input_audio", "input_audio": { "data": data, "format": "wav" } }),
+            );
+            assert_eq!(check_body(&audio, false), Ok(()));
+        }
     }
 
     #[test]
@@ -124,12 +130,6 @@ mod tests {
             let image = chat_with(&json!({ "type": "image_url", "image_url": { "url": source } }));
             assert!(
                 check_body(&image, false).is_err(),
-                "{source} should be refused"
-            );
-            let audio =
-                chat_with(&json!({ "type": "input_audio", "input_audio": { "data": source } }));
-            assert!(
-                check_body(&audio, false).is_err(),
                 "{source} should be refused"
             );
         }

@@ -1,12 +1,15 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { type ChatSettings, DEFAULT_SETTINGS } from "./lib/request";
+import type { Attachment } from "./lib/attachments";
+import { type ChatSettings, DEFAULT_SETTINGS, type MediaPart, POWER_MODES } from "./lib/request";
 import type { StreamStats } from "./lib/sse";
 
 export type ChatMessage = {
   id: string;
   role: "user" | "assistant";
   content: string;
+  /** Images and recordings; their data is in {@link useMediaPayloads}. */
+  attachments?: Attachment[];
   reasoning?: string;
   stats?: StreamStats;
   error?: string;
@@ -51,7 +54,7 @@ export const useChat = create<ChatState>()(
         const id = newId();
         set((state) => ({
           conversations: [
-            { id, title: "New chat", modelId, messages: [], updatedAt: Date.now() },
+            { id, title: "", modelId, messages: [], updatedAt: Date.now() },
             ...state.conversations,
           ],
           activeId: id,
@@ -99,14 +102,36 @@ export const useChat = create<ChatState>()(
         })),
       setSettings: (patch) => set((state) => ({ settings: { ...state.settings, ...patch } })),
     }),
-    { name: "calcine.chat", version: 1 },
+    {
+      name: "calcine.chat",
+      version: 2,
+      migrate: (persisted, version) => {
+        const state = persisted as Pick<ChatState, "conversations" | "settings">;
+        if (version < 2) {
+          // Titles are shown translated when empty; power modes lost their labels.
+          state.conversations = state.conversations.map((c) =>
+            c.title === "New chat" ? { ...c, title: "" } : c,
+          );
+          if (!POWER_MODES.includes(state.settings.powerMode)) {
+            state.settings = { ...state.settings, powerMode: DEFAULT_SETTINGS.powerMode };
+          }
+        }
+        return state as ChatState;
+      },
+    },
   ),
 );
 
 export function titleFrom(text: string): string {
   const line = text.trim().split("\n")[0] ?? "";
-  return line.length > 48 ? `${line.slice(0, 47)}…` : line || "New chat";
+  return line.length > 48 ? `${line.slice(0, 47)}…` : line;
 }
+
+/**
+ * Image and audio data of attachments, kept in memory only: they're large,
+ * and conversations are saved in local storage.
+ */
+export const useMediaPayloads = create<Record<string, MediaPart>>()(() => ({}));
 
 /** The reply being generated, kept out of persisted state (it changes per token). */
 type LiveReply = {

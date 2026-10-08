@@ -5,15 +5,19 @@ import { ErrorState } from "@/components/calcine/feedback/error-state";
 import { Button } from "@/components/ui/button";
 import { Tooltip } from "@/components/ui/tooltip";
 import { modelsQuery } from "@/features/library/api";
+import { useT } from "@/i18n";
 import { Composer } from "./components/composer";
 import { ConversationList } from "./components/conversation-list";
 import { ModelPicker } from "./components/model-picker";
 import { SettingsPanel } from "./components/settings-panel";
 import { Thread } from "./components/thread";
+import { supportsMedia } from "./lib/request";
+import { messages } from "./messages";
 import { useChat } from "./store";
-import { useSend } from "./use-send";
+import { type PendingAttachment, useSend } from "./use-send";
 
 export function ChatPage() {
+  const t = useT(messages);
   const models = useQuery(modelsQuery);
   const conversations = useChat((state) => state.conversations);
   const activeId = useChat((state) => state.activeId);
@@ -31,10 +35,10 @@ export function ChatPage() {
   const model = installed.find((candidate) => candidate.name === modelId);
   const missingModel = Boolean(active && !model && models.isSuccess);
 
-  const sendText = (text: string) => {
+  const sendText = (text: string, attachments: PendingAttachment[] = []) => {
     if (!modelId) return;
     const id = active?.id ?? create(modelId);
-    void send(id, text);
+    void send(id, text, attachments);
   };
 
   if (models.isError) {
@@ -57,29 +61,26 @@ export function ChatPage() {
               active ? setModel(active.id, next) : useChat.setState({ lastModelId: next })
             }
           />
-          {missingModel && (
-            <span className="text-xs text-warning">
-              This conversation's model was removed. Pick another one.
-            </span>
-          )}
-          <Tooltip content={showSettings ? "Hide settings" : "Show settings"}>
+          {missingModel && <span className="text-xs text-warning">{t("missingModel")}</span>}
+          <Tooltip content={showSettings ? t("hideSettings") : t("showSettings")}>
             <Button
               variant="ghost"
               size="icon"
               className="ml-auto"
               onClick={() => setShowSettings((shown) => !shown)}
-              aria-label="Toggle settings"
+              aria-label={t("toggleSettings")}
               aria-pressed={showSettings}
             >
               <PanelRight />
             </Button>
           </Tooltip>
         </header>
-        <Thread conversation={active} onSuggestion={sendText} />
+        <Thread conversation={active} onSuggestion={(text) => sendText(text)} />
         <Composer
           disabled={!model || !ready}
-          disabledReason={!ready ? "Calcine's API isn't ready yet" : undefined}
+          disabledReason={!ready ? t("apiNotReady") : undefined}
           streaming={streaming}
+          media={supportsMedia(model)}
           onSend={sendText}
           onStop={stop}
         />

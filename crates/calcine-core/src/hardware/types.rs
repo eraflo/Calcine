@@ -37,6 +37,19 @@ pub struct Accelerator {
     pub driver_version: Option<String>,
 }
 
+/// Live load of the compute units, sampled about once a second.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct HardwareUsage {
+    /// Average over all cores, 0-100.
+    pub cpu_percent: f32,
+    /// Busiest GPU engine, 0-100. `None` when the OS doesn't report it.
+    pub gpu_percent: Option<f32>,
+    /// Hexagon NPU, 0-100. `None` when the OS doesn't report it.
+    pub npu_percent: Option<f32>,
+    pub memory: MemoryInfo,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct DiskSpace {

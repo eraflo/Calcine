@@ -5,6 +5,7 @@ use std::sync::Arc;
 use calcine_core::jobs::JobManager;
 use calcine_core::{BackendKind, Services};
 use calcine_geniex::{Geniex, GeniexConfig, GeniexServer, ServeOptions};
+use calcine_hub::{HubConfig, HubDirectory};
 use calcine_hw::SystemProbe;
 use calcine_mock::MockBackend;
 
@@ -33,9 +34,12 @@ fn geniex_services() -> Services {
         backend: BackendKind::Geniex,
         models: geniex.clone(),
         catalog: geniex.clone(),
+        directory: Arc::new(
+            HubDirectory::new(HubConfig::default()).expect("the system TLS stack should load"),
+        ),
         runtime: geniex,
         server,
-        hardware: Arc::new(SystemProbe),
+        hardware: Arc::new(SystemProbe::new()),
         jobs: JobManager::new(),
     }
 }

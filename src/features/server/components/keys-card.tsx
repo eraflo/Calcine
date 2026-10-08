@@ -6,12 +6,15 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
+import { useT } from "@/i18n";
 import type { ApiKeyInfo } from "@/lib/api";
 import { formatRelative } from "@/lib/format";
 import { apiKeysQuery, gatewayQuery, useRequireApiKey, useRevokeApiKey } from "../api";
+import { messages } from "../messages";
 import { CreateKeyDialog } from "./create-key-dialog";
 
 export function KeysCard() {
+  const t = useT(messages);
   const { data: keys = [] } = useQuery(apiKeysQuery);
   const { data: status } = useQuery(gatewayQuery);
   const requireKey = useRequireApiKey();
@@ -24,14 +27,12 @@ export function KeysCard() {
     <Card>
       <CardHeader className="flex-row items-start justify-between gap-4">
         <div className="flex flex-col gap-1">
-          <CardTitle>API keys</CardTitle>
-          <CardDescription>
-            One key per app, so you can see who uses the API and revoke access.
-          </CardDescription>
+          <CardTitle>{t("keysTitle")}</CardTitle>
+          <CardDescription>{t("keysDescription")}</CardDescription>
         </div>
         <Button variant="default" size="sm" onClick={() => setCreating(true)}>
           <Plus />
-          New key
+          {t("newKey")}
         </Button>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
@@ -44,15 +45,15 @@ export function KeysCard() {
           />
           <span className="flex flex-col gap-0.5">
             <label htmlFor="require-api-key" className="text-sm font-medium">
-              Require an API key
+              {t("requireKey")}
             </label>
             <span className="text-xs text-muted-foreground">
               {required ? (
-                "Requests without a valid key are refused."
+                t("requireKeyOn")
               ) : (
                 <span className="flex items-center gap-1 text-warning">
                   <ShieldAlert className="size-3.5" />
-                  Any program on this PC can use your models. Managing models still needs a key.
+                  {t("requireKeyOff")}
                 </span>
               )}
             </span>
@@ -60,9 +61,7 @@ export function KeysCard() {
         </div>
 
         {keys.length === 0 ? (
-          <p className="py-4 text-center text-sm text-muted-foreground">
-            No keys yet. Create one for each app that should use Calcine.
-          </p>
+          <p className="py-4 text-center text-sm text-muted-foreground">{t("noKeys")}</p>
         ) : (
           <ul className="flex flex-col divide-y rounded-md border">
             {keys.map((key) => (
@@ -74,21 +73,23 @@ export function KeysCard() {
                     <code className="font-mono text-xs text-muted-foreground">{key.preview}</code>
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Created {formatRelative(key.createdAtMs)} ·{" "}
-                    {key.lastUsedAtMs ? `used ${formatRelative(key.lastUsedAtMs)}` : "never used"}
+                    {t("keyCreated", { when: formatRelative(key.createdAtMs) })} ·{" "}
+                    {key.lastUsedAtMs
+                      ? t("keyUsed", { when: formatRelative(key.lastUsedAtMs) })
+                      : t("keyNeverUsed")}
                   </p>
                 </div>
                 <div className="flex flex-wrap justify-end gap-1">
-                  {key.scopes.includes("inference") && <Badge>Run models</Badge>}
-                  {key.scopes.includes("manage") && <Badge tone="info">Manage models</Badge>}
-                  {key.allowLocalFiles && <Badge tone="warning">Local files</Badge>}
+                  {key.scopes.includes("inference") && <Badge>{t("runModels")}</Badge>}
+                  {key.scopes.includes("manage") && <Badge tone="info">{t("manageModels")}</Badge>}
+                  {key.allowLocalFiles && <Badge tone="warning">{t("localFiles")}</Badge>}
                 </div>
                 <Button
                   size="icon"
                   variant="ghost"
                   className="size-7 hover:text-destructive"
                   onClick={() => setRevoking(key)}
-                  aria-label={`Revoke ${key.name}`}
+                  aria-label={t("revokeKey", { name: key.name })}
                 >
                   <Trash2 />
                 </Button>
@@ -102,15 +103,15 @@ export function KeysCard() {
       <ConfirmDialog
         open={revoking !== null}
         onOpenChange={(open) => !open && setRevoking(null)}
-        title={`Revoke ${revoking?.name ?? "this key"}?`}
-        confirmLabel="Revoke"
+        title={t("revokeTitle", { name: revoking?.name ?? t("thisKey") })}
+        confirmLabel={t("revoke")}
         destructive
         busy={revoke.isPending}
         onConfirm={() =>
           revoking && revoke.mutate(revoking.id, { onSuccess: () => setRevoking(null) })
         }
       >
-        <p>Apps using it lose access right away. This can't be undone.</p>
+        <p>{t("revokeBody")}</p>
       </ConfirmDialog>
     </Card>
   );

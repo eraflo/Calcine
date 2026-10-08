@@ -4,10 +4,12 @@
 //! non-Snapdragon PCs, with realistic data shaped like real GenieX output.
 //! Downloads are simulated with progress so the task drawer can be exercised.
 //!
-//! - `data`: the sample models, catalog and device
-//! - `models`, `runtime`, `hardware`: the service trait implementations
+//! - `data`: the sample models, catalog, hub results and device
+//! - `models`, `directory`, `runtime`, `hardware`, `server`: the service
+//!   trait implementations
 
 mod data;
+mod directory;
 mod hardware;
 mod models;
 mod runtime;
@@ -16,7 +18,7 @@ mod server;
 pub use server::MockServer;
 
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use calcine_core::jobs::JobManager;
 use calcine_core::models::LocalModel;
@@ -27,6 +29,10 @@ pub struct MockBackend {
     models: Mutex<Vec<LocalModel>>,
     /// Simulated download duration.
     pull_duration: Duration,
+    /// Set with `config set chipset`; `None` means detected.
+    chipset: Mutex<Option<String>>,
+    /// Drives the simulated hardware load.
+    started: Instant,
 }
 
 impl Default for MockBackend {
@@ -34,6 +40,8 @@ impl Default for MockBackend {
         Self {
             models: Mutex::new(data::sample_models()),
             pull_duration: Duration::from_secs(6),
+            chipset: Mutex::new(None),
+            started: Instant::now(),
         }
     }
 }
@@ -56,6 +64,7 @@ impl MockBackend {
             backend: BackendKind::Mock,
             models: backend.clone(),
             catalog: backend.clone(),
+            directory: backend.clone(),
             runtime: backend.clone(),
             hardware: backend,
             server: Arc::new(MockServer::default()),
@@ -66,12 +75,16 @@ impl MockBackend {
     fn models(&self) -> MutexGuard<'_, Vec<LocalModel>> {
         self.models.lock().unwrap_or_else(PoisonError::into_inner)
     }
+
+    fn pinned_chipset(&self) -> MutexGuard<'_, Option<String>> {
+        self.chipset.lock().unwrap_or_else(PoisonError::into_inner)
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use calcine_core::jobs::JobState;
-    use calcine_core::models::{ModelKey, ModelReference, PullRequest};
+    use calcine_core::models::{ModelKey, ModelReference, ModelType, PullRequest};
 
     use super::*;
 
@@ -89,10 +102,7 @@ mod tests {
         let services = MockBackend::default()
             .with_pull_duration(Duration::ZERO)
             .into_services();
-        let request = PullRequest {
-            reference: ModelReference::parse("qualcomm/Qwen3-0.6B").unwrap(),
-            model_type: None,
-        };
+        let request = PullRequest::download(ModelReference::parse("qualcomm/Qwen3-0.6B").unwrap());
         let id = services.start_pull(request);
         let mut events = services.jobs.subscribe();
         while services
@@ -127,6 +137,64 @@ mod tests {
         services.models.remove(&[key]).await.unwrap();
         let models = services.models.list().await.unwrap();
         assert!(models.iter().all(|m| m.name != "qualcomm/Qwen3-4B"));
+    }
+
+    #[tokio::test]
+    async fn set_type_clean_and_chipset() {
+        let services = MockBackend::services();
+        services
+            .models
+            .set_type("unsloth/Qwen3-0.6B-GGUF", ModelType::Vlm)
+            .await
+            .unwrap();
+        let models = services.models.list().await.unwrap();
+        assert!(
+            models
+                .iter()
+                .any(|m| m.model_type == ModelType::Vlm && m.name.contains("0.6B"))
+        );
+        assert!(
+            services
+                .models
+                .set_type("nope/nope", ModelType::Llm)
+                .await
+                .is_err()
+        );
+
+        services
+            .runtime
+            .set_chipset(Some("qualcomm-snapdragon-x-plus-8-core"))
+            .await
+            .unwrap();
+        assert_eq!(
+            services.runtime.chipset().await.unwrap().as_deref(),
+            Some("qualcomm-snapdragon-x-plus-8-core")
+        );
+        services.runtime.set_chipset(None).await.unwrap();
+        assert_eq!(
+            services.runtime.chipset().await.unwrap().as_deref(),
+            Some(data::CHIPSET)
+        );
+
+        services.models.clean().await.unwrap();
+        assert_eq!(services.models.list().await.unwrap().len(), 0);
+    }
+
+    #[tokio::test]
+    async fn directory_finds_and_details_models() {
+        let services = MockBackend::services();
+        let found = services.directory.search("smol", 10).await.unwrap();
+        assert!(found.iter().all(|m| m.name.to_lowercase().contains("smol")));
+        let details = services
+            .directory
+            .details(&ModelReference::parse(&found[0].name).unwrap())
+            .await
+            .unwrap();
+        assert_eq!(
+            details.precisions.iter().filter(|p| p.recommended).count(),
+            1
+        );
+        assert_ne!(services.directory.chipsets().await.unwrap().len(), 0);
     }
 }
 

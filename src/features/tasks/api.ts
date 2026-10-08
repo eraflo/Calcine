@@ -2,7 +2,15 @@ import { queryOptions, useMutation, useQueryClient } from "@tanstack/react-query
 import { isTauri } from "@tauri-apps/api/core";
 import { useEffect } from "react";
 import { modelsQuery } from "@/features/library/api";
-import { call, commands, events, type Job, type PullRequest, unwrap } from "@/lib/api";
+import {
+  call,
+  commands,
+  events,
+  type Job,
+  type ModelType,
+  type PullRequest,
+  unwrap,
+} from "@/lib/api";
 import { useUi } from "@/stores/ui";
 import { upsertJob } from "./lib/format";
 
@@ -28,7 +36,7 @@ export function useJobEvents() {
     events.jobUpdated
       .listen(({ payload: job }) => {
         queryClient.setQueryData<Job[]>(jobsQuery.queryKey, (jobs = []) => upsertJob(jobs, job));
-        if (job.kind.type === "pull" && job.state.state === "succeeded") {
+        if (job.state.state === "succeeded") {
           void queryClient.invalidateQueries({ queryKey: modelsQuery.queryKey });
         }
       })
@@ -60,9 +68,21 @@ export function usePullByName() {
     ...startPull,
     pull: async (name: string) => {
       const reference = await unwrap(() => commands.parseModelReference(name));
-      return startPull.mutateAsync({ reference, modelType: null });
+      return startPull.mutateAsync({ reference, modelType: null, localPath: null });
     },
   };
+}
+
+export type ImportRequest = { name: string; path: string; modelType: ModelType | null };
+
+/** Copy a model from this PC into the cache, and show the task drawer. */
+export function useImportModel() {
+  const setTasksOpen = useUi((state) => state.setTasksOpen);
+  return useMutation({
+    mutationFn: ({ name, path, modelType }: ImportRequest) =>
+      unwrap(() => commands.importModel(name, path, modelType)),
+    onSuccess: () => setTasksOpen(true),
+  });
 }
 
 export function useCancelJob() {

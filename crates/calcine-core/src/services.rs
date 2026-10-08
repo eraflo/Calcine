@@ -4,9 +4,10 @@ use std::sync::Arc;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
+use crate::Result;
 use crate::hardware::HardwareProbe;
 use crate::jobs::{JobId, JobKind, JobManager, JobState};
-use crate::models::{ModelCatalog, ModelStore, PullRequest};
+use crate::models::{ModelCatalog, ModelDirectory, ModelKey, ModelStore, PullRequest};
 use crate::runtime::{InferenceServer, RuntimeManager};
 
 /// Which implementation backs the services.
@@ -25,6 +26,8 @@ pub struct Services {
     pub backend: BackendKind,
     pub models: Arc<dyn ModelStore>,
     pub catalog: Arc<dyn ModelCatalog>,
+    /// Hugging Face and AI Hub over HTTP.
+    pub directory: Arc<dyn ModelDirectory>,
     pub runtime: Arc<dyn RuntimeManager>,
     /// `geniex serve`, started on demand by the gateway.
     pub server: Arc<dyn InferenceServer>,
@@ -35,8 +38,14 @@ pub struct Services {
 impl Services {
     /// Start downloading a model, or return the job already downloading it.
     pub fn start_pull(&self, request: PullRequest) -> JobId {
-        let kind = JobKind::Pull {
-            model: request.reference.cli_arg(),
+        let model = request.reference.cli_arg();
+        let kind = if request.is_import() {
+            JobKind::Import {
+                model,
+                path: request.local_path.clone().unwrap_or_default(),
+            }
+        } else {
+            JobKind::Pull { model }
         };
         if let Some(job) = self
             .jobs
@@ -51,6 +60,21 @@ impl Services {
             kind,
             move |ctx| async move { store.pull(request, ctx).await },
         )
+    }
+}
+
+impl Services {
+    /// Delete models or precisions. Stops `geniex serve` first: Windows
+    /// can't delete the files of a loaded model.
+    pub async fn remove_models(&self, keys: &[ModelKey]) -> Result<()> {
+        self.server.stop().await?;
+        self.models.remove(keys).await
+    }
+
+    /// Delete every cached model, stopping `geniex serve` first.
+    pub async fn clean_models(&self) -> Result<()> {
+        self.server.stop().await?;
+        self.models.clean().await
     }
 }
 

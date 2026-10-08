@@ -4,16 +4,21 @@ import { type FormEvent, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { useStartPull } from "@/features/tasks/api";
 import { useDebounced } from "@/hooks/use-debounced";
-import { HUB_LABELS, referenceQuery } from "../api";
+import { useT } from "@/i18n";
+import type { ModelReference } from "@/lib/api";
+import { referenceQuery } from "../api";
+import { messages } from "../messages";
 
-/** Paste any model name or link; Calcine shows what it understood before downloading. */
-export function AddModelCard() {
+/**
+ * Paste any model name or link; Calcine shows what it understood, then
+ * `onDownload` lets the user pick a precision.
+ */
+export function AddModelCard({ onDownload }: { onDownload: (reference: ModelReference) => void }) {
+  const t = useT(messages);
   const [input, setInput] = useState("");
   const query = useDebounced(input.trim(), 250);
   const preview = useQuery(referenceQuery(query));
-  const startPull = useStartPull();
 
   const reference = query === input.trim() ? preview.data : undefined;
   const error = query && preview.isError ? preview.error.message : null;
@@ -21,14 +26,15 @@ export function AddModelCard() {
   const submit = (event: FormEvent) => {
     event.preventDefault();
     if (!reference) return;
-    startPull.mutate({ reference, modelType: null }, { onSuccess: () => setInput("") });
+    onDownload(reference);
+    setInput("");
   };
 
   return (
     <Card className="p-4">
       <form onSubmit={submit} className="flex flex-col gap-3">
         <label htmlFor="model-reference" className="text-sm font-medium">
-          Add a model by name or link
+          {t("addTitle")}
         </label>
         <div className="flex gap-2">
           <div className="flex h-9 flex-1 items-center gap-2 rounded-md border bg-background px-3 focus-within:ring-2 focus-within:ring-ring">
@@ -37,21 +43,15 @@ export function AddModelCard() {
               id="model-reference"
               value={input}
               onChange={(event) => setInput(event.target.value)}
-              placeholder="Paste a link, or type owner/model"
+              placeholder={t("addPlaceholder")}
               autoComplete="off"
               spellCheck={false}
               className="h-full w-full bg-transparent font-mono text-[13px] outline-none placeholder:font-sans placeholder:text-muted-foreground"
             />
           </div>
-          <Button
-            type="submit"
-            variant="default"
-            size="lg"
-            className="h-9"
-            disabled={!reference || startPull.isPending}
-          >
+          <Button type="submit" variant="default" size="lg" className="h-9" disabled={!reference}>
             <Download />
-            Download
+            {t("addContinue")}
           </Button>
         </div>
 
@@ -61,20 +61,19 @@ export function AddModelCard() {
           ) : reference ? (
             <span className="flex flex-wrap items-center gap-2">
               <span className="font-mono text-foreground">{reference.name}</span>
-              <Badge tone="info">{HUB_LABELS[reference.hub]}</Badge>
+              <Badge tone="info">{t(`hub_${reference.hub}`)}</Badge>
               <Badge tone="outline" className="font-mono">
-                {reference.precision ?? "recommended precision"}
+                {reference.precision ?? t("recommendedPrecision")}
               </Badge>
             </span>
           ) : (
             <span>
-              Hugging Face, ModelScope and Docker Hub links work, as do names like{" "}
-              <code className="font-mono">qualcomm/Qwen3-4B</code>. Add{" "}
-              <code className="font-mono">:Q4_0</code> to pick a GGUF precision (best on the NPU).
+              {t.rich("addHint", {
+                code: (text) => <code className="font-mono">{text}</code>,
+              })}
             </span>
           )}
         </div>
-        {startPull.isError && <p className="text-xs text-destructive">{startPull.error.message}</p>}
       </form>
     </Card>
   );

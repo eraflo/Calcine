@@ -1,36 +1,38 @@
 import { useQuery } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useLanguage, useT } from "@/i18n";
 import type { RequestEntry } from "@/lib/api";
 import { requestsQuery } from "../api";
+import { messages } from "../messages";
 
 /** The latest API requests. Prompts and replies are never recorded. */
 export function RequestsCard() {
+  const t = useT(messages);
+  const language = useLanguage((state) => state.language);
   const { data: requests = [] } = useQuery(requestsQuery);
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Recent requests</CardTitle>
-        <CardDescription>
-          Who called the API and how fast it answered. Prompts aren't recorded.
-        </CardDescription>
+        <CardTitle>{t("requestsTitle")}</CardTitle>
+        <CardDescription>{t("requestsDescription")}</CardDescription>
       </CardHeader>
       <CardContent>
         {requests.length === 0 ? (
-          <p className="py-4 text-center text-sm text-muted-foreground">No requests yet.</p>
+          <p className="py-4 text-center text-sm text-muted-foreground">{t("noRequests")}</p>
         ) : (
           <div className="max-h-80 overflow-auto overscroll-contain rounded-md border">
             <table className="w-full text-left text-xs">
               <thead className="sticky top-0 bg-card text-muted-foreground">
                 <tr className="border-b">
-                  <th className="px-3 py-2 font-medium">Time</th>
-                  <th className="px-3 py-2 font-medium">App</th>
-                  <th className="px-3 py-2 font-medium">Model</th>
-                  <th className="px-3 py-2 font-medium">Status</th>
-                  <th className="px-3 py-2 text-right font-medium">Duration</th>
-                  <th className="px-3 py-2 text-right font-medium">Tokens</th>
-                  <th className="px-3 py-2 text-right font-medium">Speed</th>
+                  <th className="px-3 py-2 font-medium">{t("columnTime")}</th>
+                  <th className="px-3 py-2 font-medium">{t("columnApp")}</th>
+                  <th className="px-3 py-2 font-medium">{t("columnModel")}</th>
+                  <th className="px-3 py-2 font-medium">{t("columnStatus")}</th>
+                  <th className="px-3 py-2 text-right font-medium">{t("columnDuration")}</th>
+                  <th className="px-3 py-2 text-right font-medium">{t("columnTokens")}</th>
+                  <th className="px-3 py-2 text-right font-medium">{t("columnSpeed")}</th>
                 </tr>
               </thead>
               <tbody className="tabular-nums">
@@ -41,7 +43,7 @@ export function RequestsCard() {
                     title={request.error ?? undefined}
                   >
                     <td className="px-3 py-2 text-muted-foreground">
-                      {new Date(request.startedAtMs).toLocaleTimeString()}
+                      {new Date(request.startedAtMs).toLocaleTimeString(language)}
                     </td>
                     <td className="px-3 py-2">{request.client}</td>
                     <td className="max-w-48 truncate px-3 py-2 font-mono">
@@ -52,13 +54,18 @@ export function RequestsCard() {
                     </td>
                     <td className="px-3 py-2 text-right">
                       {request.durationMs !== null
-                        ? `${(request.durationMs / 1000).toFixed(1)}s`
+                        ? t("seconds", {
+                            value: (request.durationMs / 1000).toLocaleString(language, {
+                              minimumFractionDigits: 1,
+                              maximumFractionDigits: 1,
+                            }),
+                          })
                         : "…"}
                     </td>
                     <td className="px-3 py-2 text-right">{request.completionTokens ?? "—"}</td>
                     <td className="px-3 py-2 text-right">
                       {request.tokensPerSecond
-                        ? `${request.tokensPerSecond.toFixed(0)} tok/s`
+                        ? t("tokensPerSecond", { value: Math.round(request.tokensPerSecond) })
                         : "—"}
                     </td>
                   </tr>
@@ -73,8 +80,9 @@ export function RequestsCard() {
 }
 
 function StatusBadge({ request }: { request: RequestEntry }) {
-  if (request.status === null) return <Badge tone="info">Running</Badge>;
+  const t = useT(messages);
+  if (request.status === null) return <Badge tone="info">{t("requestRunning")}</Badge>;
   if (request.status < 400 && !request.error) return <Badge tone="success">{request.status}</Badge>;
-  if (request.status < 400) return <Badge tone="warning">Stopped</Badge>;
+  if (request.status < 400) return <Badge tone="warning">{t("requestStopped")}</Badge>;
   return <Badge tone="danger">{request.status}</Badge>;
 }

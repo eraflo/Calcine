@@ -6,14 +6,17 @@ import { CopyButton } from "@/components/calcine/actions/copy-button";
 import { StatusDot } from "@/components/calcine/feedback/status-dot";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { useT } from "@/i18n";
 import type { GatewayStatus } from "@/lib/api";
 import { gatewayQuery, serverLogsQuery, useStartServer, useStopServer } from "../api";
 import { describeStatus } from "../lib/status";
+import { messages } from "../messages";
 
 /** Is the API reachable, and is GenieX running behind it? */
 export function StatusCard() {
+  const t = useT(messages);
   const { data: status } = useQuery(gatewayQuery);
-  const summary = describeStatus(status);
+  const summary = describeStatus(status, t);
   const start = useStartServer();
   const stop = useStopServer();
   const serverState = status?.server.state;
@@ -31,7 +34,7 @@ export function StatusCard() {
           {running ? (
             <Button onClick={() => stop.mutate()} disabled={stop.isPending}>
               <Square />
-              Stop GenieX
+              {t("stopGeniex")}
             </Button>
           ) : (
             <Button
@@ -40,7 +43,7 @@ export function StatusCard() {
               disabled={start.isPending || !status?.listening}
             >
               <Play />
-              Start GenieX
+              {t("startGeniex")}
             </Button>
           )}
         </div>
@@ -56,12 +59,13 @@ export function StatusCard() {
 }
 
 function Endpoint({ status }: { status: GatewayStatus }) {
+  const t = useT(messages);
   return (
     <div className="flex items-center gap-2 rounded-md border bg-background px-3 py-2">
-      <span className="text-xs text-muted-foreground">Base URL</span>
+      <span className="text-xs text-muted-foreground">{t("baseUrl")}</span>
       <code className="min-w-0 flex-1 truncate font-mono text-[13px]">{status.baseUrl}</code>
       <span className="text-xs text-muted-foreground tabular-nums">
-        {status.activeRequests} running · {status.queuedRequests} waiting
+        {t("activity", { active: status.activeRequests, queued: status.queuedRequests })}
       </span>
       <CopyButton value={status.baseUrl} />
     </div>
@@ -69,6 +73,7 @@ function Endpoint({ status }: { status: GatewayStatus }) {
 }
 
 function ServerLogs() {
+  const t = useT(messages);
   const [open, setOpen] = useState(false);
   const { data: lines = [] } = useQuery({ ...serverLogsQuery, enabled: open });
   return (
@@ -79,11 +84,11 @@ function ServerLogs() {
             open ? "size-3.5 rotate-90 transition-transform" : "size-3.5 transition-transform"
           }
         />
-        GenieX output
+        {t("geniexOutput")}
       </Collapsible.Trigger>
       <Collapsible.Content>
         <pre className="mt-2 max-h-56 overflow-auto overscroll-contain rounded-md border bg-background p-3 font-mono text-[11px] leading-relaxed text-muted-foreground">
-          {lines.length ? lines.join("\n") : "Nothing yet. GenieX starts on the first request."}
+          {lines.length ? lines.join("\n") : t("geniexOutputEmpty")}
         </pre>
       </Collapsible.Content>
     </Collapsible.Root>

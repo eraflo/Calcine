@@ -9,22 +9,52 @@ import * as __TAURI_EVENT from "@tauri-apps/api/event";
 export const commands = {
 	/**  Calcine's own version and the active backend. */
 	appInfo: () => __TAURI_INVOKE<AppInfo>("app_info"),
+	/**  The UI language, for the tray menu and notifications. */
+	setLanguage: (language: Language) => __TAURI_INVOKE<void>("set_language", { language }),
 	/**  Models in the local GenieX cache (`geniex list`). */
 	listModels: () => typedError<LocalModel[], ApiError>(__TAURI_INVOKE("list_models")),
 	/**  Delete whole models or single precisions (`geniex remove`). */
 	removeModels: (keys: ModelKey[]) => typedError<null, ApiError>(__TAURI_INVOKE("remove_models", { keys })),
+	/**  Delete every cached model (`geniex clean`). */
+	cleanModels: () => typedError<null, ApiError>(__TAURI_INVOKE("clean_models")),
+	/**  Correct whether a model takes images and audio (`geniex model set-type`). */
+	setModelType: (name: string, modelType: ModelType) => typedError<null, ApiError>(__TAURI_INVOKE("set_model_type", { name, modelType })),
 	/**  Understand a pasted model name or link, to preview it before downloading. */
 	parseModelReference: (input: string) => typedError<ModelReference, ApiError>(__TAURI_INVOKE("parse_model_reference", { input })),
 	/**  Start a download in the background. Progress arrives as `JobUpdated` events. */
 	pullModel: (request: PullRequest) => typedError<number, ApiError>(__TAURI_INVOKE("pull_model", { request })),
+	/**  Copy a model folder or AI Hub `.zip` from this PC into the cache. */
+	importModel: (name: string, path: string, modelType: "llm" | "vlm" | 
+/**  A type this version of Calcine doesn't know about yet. */
+"unknown" | null) => typedError<number, ApiError>(__TAURI_INVOKE("import_model", { name, path, modelType })),
+	/**
+	 *  Ask for a folder or `.zip` to import with the system file picker. `None`
+	 *  when the user cancels.
+	 */
+	pickImportSource: (source: ImportSource) => __TAURI_INVOKE<string | null>("pick_import_source", { source }),
+	/**  Show the model cache in the file manager. */
+	openModelsFolder: () => typedError<null, ApiError>(__TAURI_INVOKE("open_models_folder")),
 	/**  Qualcomm AI Hub models with an NPU build (`geniex model list [--all]`). */
 	aihubCatalog: (allChipsets: boolean) => typedError<HubCatalog, ApiError>(__TAURI_INVOKE("aihub_catalog", { allChipsets })),
+	/**  Search Hugging Face for GGUF models. */
+	searchModels: (query: string, limit: number) => typedError<RemoteModel[], ApiError>(__TAURI_INVOKE("search_models", { query, limit })),
+	/**  Precisions of a remote model with their download sizes. */
+	modelDetails: (reference: ModelReference) => typedError<RemoteModelDetails, ApiError>(__TAURI_INVOKE("model_details", { reference })),
 	/**  The installed GenieX runtime (`geniex version`). */
 	runtimeInfo: () => typedError<RuntimeInfo, ApiError>(__TAURI_INVOKE("runtime_info")),
 	/**  The Snapdragon chipset GenieX targets (`geniex config get chipset`). */
 	chipset: () => typedError<string | null, ApiError>(__TAURI_INVOKE("chipset")),
+	/**
+	 *  Pin the chipset models are downloaded for, or `None` to detect it again
+	 *  (`geniex config set chipset`).
+	 */
+	setChipset: (chipset: string | null) => typedError<null, ApiError>(__TAURI_INVOKE("set_chipset", { chipset })),
+	/**  Chipsets Qualcomm AI Hub builds models for. */
+	listChipsets: () => typedError<Chipset[], ApiError>(__TAURI_INVOKE("list_chipsets")),
 	/**  CPU, memory, NPU/GPU and free space for the model cache. */
 	hardwareInfo: () => typedError<HardwareInfo, ApiError>(__TAURI_INVOKE("hardware_info")),
+	/**  Live CPU, GPU, NPU and memory load. Poll about once a second. */
+	hardwareUsage: () => typedError<HardwareUsage, ApiError>(__TAURI_INVOKE("hardware_usage")),
 	/**  Every known job, newest first. */
 	listJobs: () => __TAURI_INVOKE<Job[]>("list_jobs"),
 	/**  Ask a running job to stop. Returns `false` if it already finished. */
@@ -95,6 +125,24 @@ export type BackendKind =
 /**  In-memory fake data (`CALCINE_BACKEND=mock`). */
 "mock";
 
+/**  A chipset Qualcomm AI Hub compiles models for. */
+export type Chipset = {
+	/**
+	 *  Canonical id saved by `geniex config set chipset`, e.g.
+	 *  `qualcomm-snapdragon-x-elite`.
+	 */
+	id: string,
+	/**
+	 *  Reference device, e.g. `Snapdragon X Elite CRD` (what GenieX reports
+	 *  when it detects the chipset itself).
+	 */
+	device: string,
+	/**  Marketing name, e.g. `Snapdragon X Elite`. */
+	marketingName: string | null,
+	/**  Other names GenieX accepts (`sc8380xp`, …). */
+	aliases: string[],
+};
+
 /**  Hardware a model can run on (the `--compute` flag of GenieX). */
 export type ComputeUnit = 
 /**  Hexagon NPU. */
@@ -120,7 +168,7 @@ export type DiskSpace = {
 };
 
 /**  Stable, machine-readable error category exposed to the frontend. */
-export type ErrorKind = "runtime_not_found" | "command" | "timeout" | "parse" | "invalid_input" | "cancelled" | "not_implemented" | "io";
+export type ErrorKind = "runtime_not_found" | "command" | "timeout" | "parse" | "invalid_input" | "cancelled" | "network" | "not_implemented" | "io";
 
 /**  How Calcine's own UI talks to the gateway. */
 export type GatewayConnection = {
@@ -155,6 +203,17 @@ export type HardwareInfo = {
 	modelsDisk: DiskSpace | null,
 };
 
+/**  Live load of the compute units, sampled about once a second. */
+export type HardwareUsage = {
+	/**  Average over all cores, 0-100. */
+	cpuPercent: number | null,
+	/**  Busiest GPU engine, 0-100. `None` when the OS doesn't report it. */
+	gpuPercent: number | null,
+	/**  Hexagon NPU, 0-100. `None` when the OS doesn't report it. */
+	npuPercent: number | null,
+	memory: MemoryInfo,
+};
+
 /**  The Qualcomm AI Hub catalog, optionally filtered for one chipset. */
 export type HubCatalog = {
 	/**  Chipset the list was filtered for (`None` for the full catalog). */
@@ -174,6 +233,13 @@ export type HubModel = {
 	chipsets: string[],
 };
 
+/**  What can be imported. */
+export type ImportSource = 
+/**  GGUF files, or an extracted AI Hub bundle. */
+"folder" | 
+/**  An AI Hub `.zip`. */
+"archive";
+
 /**  A snapshot of one job, as sent to the UI. */
 export type Job = {
 	id: number,
@@ -187,7 +253,9 @@ export type Job = {
 /**  What a job does. */
 export type JobKind = 
 /**  Downloading a model (`geniex pull`). */
-{ type: "pull"; model: string };
+{ type: "pull"; model: string } | 
+/**  Copying a model from this PC into the cache (`geniex pull --model-hub localfs`). */
+{ type: "import"; model: string; path: string };
 
 export type JobProgress = {
 	doneBytes: number,
@@ -206,6 +274,8 @@ export type KeyScope =
 "inference" | 
 /**  Download and remove models, read jobs (`/calcine/v1/*`). */
 "manage";
+
+export type Language = "en" | "fr";
 
 /**  A model in the local GenieX cache. */
 export type LocalModel = {
@@ -229,7 +299,9 @@ export type ModelHub =
 /**  Let GenieX decide from the name. */
 "auto" | 
 /**  Qualcomm AI Hub (pre-compiled NPU bundles). */
-"ai_hub" | "hugging_face" | "model_scope" | "docker_hub";
+"ai_hub" | "hugging_face" | "model_scope" | "docker_hub" | 
+/**  A folder or AI Hub archive on this PC (`--local-path`). */
+"local_fs";
 
 /**  A model reference, optionally pinned to one precision (`name:precision`). */
 export type ModelKey = {
@@ -271,6 +343,46 @@ export type PullRequest = {
 	reference: ModelReference,
 	/**  Override GenieX's LLM/VLM detection. */
 	modelType: ModelType | null,
+	/**
+	 *  Folder (GGUF files, extracted AI Hub bundle) or AI Hub `.zip` to import,
+	 *  for [`ModelHub::LocalFs`].
+	 */
+	localPath: string | null,
+};
+
+/**  A model found on a hub (Hugging Face search). */
+export type RemoteModel = {
+	/**  Repository, ready to pull: `unsloth/Qwen3-0.6B-GGUF`. */
+	name: string,
+	hub: ModelHub,
+	/**  `Unknown` when the hub doesn't say. */
+	modelType: ModelType,
+	downloads: number,
+	likes: number,
+	/**  ISO 8601 date of the last update. */
+	updatedAt: string | null,
+	/**  Needs accepting a license on the hub website first. */
+	gated: boolean,
+};
+
+/**  What a remote model offers, to choose before downloading. */
+export type RemoteModelDetails = {
+	name: string,
+	hub: ModelHub,
+	/**  Guessed like GenieX does: a vision projector file means VLM. */
+	modelType: ModelType,
+	/**  The one GenieX picks when none is given comes first. */
+	precisions: RemotePrecision[],
+	gated: boolean,
+};
+
+export type RemotePrecision = {
+	/**  `Q4_0`, `Q8_0`, `F16`… as passed to `geniex pull name:precision`. */
+	name: string,
+	/**  Download size, including the vision projector for VLMs. */
+	sizeBytes: number,
+	/**  What GenieX downloads when no precision is given. */
+	recommended: boolean,
 };
 
 export type RequestEntry = {

@@ -1,13 +1,15 @@
+import type { Translate } from "@/i18n";
 import type { Job } from "@/lib/api";
 import { formatBytes } from "@/lib/format";
+import type { messages } from "../messages";
+
+type TasksT = Translate<(typeof messages)["en"]>;
 
 export const isRunning = (job: Job) => job.state.state === "running";
 
+/** The model a job is about (`owner/model[:precision]`). */
 export function jobTitle(job: Job): string {
-  switch (job.kind.type) {
-    case "pull":
-      return job.kind.model;
-  }
+  return job.kind.model;
 }
 
 /** 0–100, or `null` while the total is unknown. */
@@ -34,17 +36,22 @@ export function formatDuration(seconds: number): string {
 }
 
 /** `245 MiB of 725 MiB · 17 MiB/s · 30s left` */
-export function progressLabel(job: Job): string {
+export function progressLabel(job: Job, t: TasksT): string {
   const progress = job.progress;
-  if (!progress) return "Starting…";
+  if (!progress) return t("starting");
   const parts = [
     progress.totalBytes
-      ? `${formatBytes(progress.doneBytes)} of ${formatBytes(progress.totalBytes)}`
+      ? t("progressOf", {
+          done: formatBytes(progress.doneBytes),
+          total: formatBytes(progress.totalBytes),
+        })
       : formatBytes(progress.doneBytes),
   ];
-  if (progress.bytesPerSecond) parts.push(`${formatBytes(progress.bytesPerSecond)}/s`);
+  if (progress.bytesPerSecond) {
+    parts.push(t("perSecond", { speed: formatBytes(progress.bytesPerSecond) }));
+  }
   const left = secondsLeft(job);
-  if (left !== null && left > 0) parts.push(`${formatDuration(left)} left`);
+  if (left !== null && left > 0) parts.push(t("left", { duration: formatDuration(left) }));
   return parts.join(" · ");
 }
 

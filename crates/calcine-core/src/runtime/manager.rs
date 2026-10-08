@@ -15,6 +15,10 @@ pub trait RuntimeManager: Send + Sync {
     /// The configured or detected Snapdragon chipset (`geniex config get chipset`).
     async fn chipset(&self) -> Result<Option<String>>;
 
+    /// Pin the chipset models are downloaded for (`geniex config set chipset`),
+    /// or go back to detecting it with `None`.
+    async fn set_chipset(&self, chipset: Option<&str>) -> Result<()>;
+
     /// Where models are cached on disk.
     fn models_dir(&self) -> Option<PathBuf>;
 }

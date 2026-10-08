@@ -2,8 +2,13 @@
 
 use std::path::Path;
 
-use calcine_core::hardware::{Accelerator, DiskSpace, HardwareInfo, MemoryInfo, Processor};
-use calcine_core::models::{ComputeUnit, HubCatalog, HubModel, LocalModel, ModelType, Runtime};
+use calcine_core::hardware::{
+    Accelerator, DiskSpace, HardwareInfo, HardwareUsage, MemoryInfo, Processor,
+};
+use calcine_core::models::{
+    Chipset, ComputeUnit, HubCatalog, HubModel, LocalModel, ModelHub, ModelType, RemoteModel,
+    RemoteModelDetails, RemotePrecision, Runtime,
+};
 use calcine_core::runtime::RuntimeInfo;
 
 pub(crate) const CHIPSET: &str = "Snapdragon X Elite CRD";
@@ -110,4 +115,123 @@ pub(crate) fn hardware(models_dir: Option<&Path>) -> HardwareInfo {
             available_bytes: 412 * GIB,
         }),
     }
+}
+
+/// Gentle waves so the gauges move: the NPU works in bursts, like during
+/// generation.
+#[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+pub(crate) fn usage(seconds: f32) -> HardwareUsage {
+    let wave = |period: f32, low: f32, high: f32| {
+        let phase = (seconds / period * std::f32::consts::TAU).sin() * 0.5 + 0.5;
+        low + (high - low) * phase
+    };
+    let npu = wave(20.0, -40.0, 85.0).max(0.0);
+    // Up to 2 GiB more in use while the NPU works.
+    let busy_mib = u64::from((npu / 100.0 * 2048.0) as u16);
+    HardwareUsage {
+        cpu_percent: wave(7.0, 6.0, 22.0),
+        gpu_percent: Some(wave(11.0, 1.0, 9.0)),
+        npu_percent: Some(npu),
+        memory: MemoryInfo {
+            total_bytes: 32 * GIB,
+            available_bytes: (18 * GIB).saturating_sub(busy_mib << 20),
+        },
+    }
+}
+
+/// Hugging Face search results.
+pub(crate) fn hub_models() -> Vec<RemoteModel> {
+    let model = |name: &str, model_type, downloads, likes| RemoteModel {
+        name: name.into(),
+        hub: ModelHub::HuggingFace,
+        model_type,
+        downloads,
+        likes,
+        updated_at: Some("2026-09-12T08:00:00.000Z".into()),
+        gated: false,
+    };
+    vec![
+        model("unsloth/Qwen3-0.6B-GGUF", ModelType::Llm, 1_204_331, 412),
+        model("unsloth/Qwen3-4B-GGUF", ModelType::Llm, 982_114, 388),
+        model(
+            "bartowski/Llama-3.2-3B-Instruct-GGUF",
+            ModelType::Llm,
+            640_902,
+            251,
+        ),
+        model(
+            "ggml-org/SmolVLM-256M-Instruct-GGUF",
+            ModelType::Unknown,
+            14_869,
+            20,
+        ),
+        model(
+            "ggml-org/SmolVLM-500M-Instruct-GGUF",
+            ModelType::Unknown,
+            35_220,
+            58,
+        ),
+        model("ggml-org/gemma-3-4b-it-GGUF", ModelType::Vlm, 410_552, 140),
+    ]
+}
+
+/// Precisions for any Hugging Face name, sized from the parameter count in it.
+#[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+pub(crate) fn hub_details(name: &str) -> RemoteModelDetails {
+    let billions = name
+        .split(['-', '/'])
+        .find_map(|part| {
+            let number = part.strip_suffix(['B', 'b'])?;
+            number.parse::<f64>().ok()
+        })
+        .unwrap_or(0.5);
+    let vlm = name.to_ascii_lowercase().contains("vl") || name.contains("gemma-3");
+    let projector = if vlm { 190_000_000.0 } else { 0.0 };
+    let size = |bits: f64| (billions * 1e9 * bits / 8.0 + projector) as u64;
+    let precision = |name: &str, bits, recommended| RemotePrecision {
+        name: name.into(),
+        size_bytes: size(bits),
+        recommended,
+    };
+    RemoteModelDetails {
+        name: name.into(),
+        hub: ModelHub::HuggingFace,
+        model_type: if vlm { ModelType::Vlm } else { ModelType::Llm },
+        precisions: vec![
+            precision("Q4_0", 4.5, true),
+            precision("Q4_K_M", 4.8, false),
+            precision("Q8_0", 8.5, false),
+            precision("F16", 16.0, false),
+        ],
+        gated: false,
+    }
+}
+
+pub(crate) fn chipsets() -> Vec<Chipset> {
+    let chipset = |id: &str, device: &str, marketing: &str, alias: &str| Chipset {
+        id: id.into(),
+        device: device.into(),
+        marketing_name: Some(marketing.into()),
+        aliases: vec![alias.into()],
+    };
+    vec![
+        chipset(
+            "qualcomm-snapdragon-x-elite",
+            "Snapdragon X Elite CRD",
+            "Snapdragon X Elite",
+            "sc8380xp",
+        ),
+        chipset(
+            "qualcomm-snapdragon-x-plus-8-core",
+            "Snapdragon X Plus 8-Core CRD",
+            "Snapdragon X Plus (8 core)",
+            "sc8340xp",
+        ),
+        chipset(
+            "qualcomm-snapdragon-x2-elite",
+            "Snapdragon X2 Elite CRD",
+            "Snapdragon X2 Elite",
+            "sc8480xp",
+        ),
+    ]
 }

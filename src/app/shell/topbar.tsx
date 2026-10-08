@@ -7,17 +7,22 @@ import { Kbd } from "@/components/ui/kbd";
 import { Tooltip } from "@/components/ui/tooltip";
 import { gatewayQuery } from "@/features/server/api";
 import { describeStatus } from "@/features/server/lib/status";
+import { messages as serverMessages } from "@/features/server/messages";
 import { jobsQuery } from "@/features/tasks/api";
 import { isRunning } from "@/features/tasks/lib/format";
+import { useT } from "@/i18n";
 import { useUi } from "@/stores/ui";
+import { messages } from "../messages";
 
 export function Topbar() {
+  const t = useT(messages);
+  const tServer = useT(serverMessages);
   const setPaletteOpen = useUi((state) => state.setPaletteOpen);
   const setTasksOpen = useUi((state) => state.setTasksOpen);
   const { data: jobs = [] } = useQuery(jobsQuery);
   const running = jobs.filter(isRunning).length;
   const { data: gateway } = useQuery(gatewayQuery);
-  const api = describeStatus(gateway);
+  const api = describeStatus(gateway, tServer);
   const port = gateway?.baseUrl.match(/:(\d+)\//)?.[1] ?? "18181";
 
   return (
@@ -28,7 +33,7 @@ export function Topbar() {
         className="flex h-8 w-full max-w-md items-center gap-2 rounded-md border bg-card px-2.5 text-[13px] text-muted-foreground transition-colors hover:border-muted-foreground/40"
       >
         <Search className="size-4" />
-        <span className="truncate">Search or run a command…</span>
+        <span className="truncate">{t("search")}</span>
         <Kbd className="ml-auto">Ctrl K</Kbd>
       </button>
 
@@ -43,13 +48,13 @@ export function Topbar() {
             <span className="font-mono">:{port}</span>
           </Link>
         </Tooltip>
-        <Tooltip content={running ? `${running} running` : "Tasks"}>
+        <Tooltip content={running ? t("tasksRunning", { count: running }) : t("tasks")}>
           <Button
             variant="ghost"
             size="icon"
             className="relative"
             onClick={() => setTasksOpen(true)}
-            aria-label={running ? `Open tasks, ${running} running` : "Open tasks"}
+            aria-label={running ? t("openTasksRunning", { count: running }) : t("openTasks")}
           >
             <ListChecks />
             {running > 0 && (
