@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use calcine_core::Services;
+use calcine_core::runtime::ServerOptions;
 use calcine_gateway::{
     ApiKeyInfo, CreatedApiKey, Gateway, GatewaySettings, GatewayStatus, KeyError, NewApiKey,
     RequestEntry,
@@ -10,6 +11,7 @@ use specta::Type;
 use tauri::State;
 
 use crate::ipc::error::{ApiError, ApiResult};
+use crate::setup::ServerOptionsFile;
 
 /// How Calcine's own UI talks to the gateway.
 #[derive(Debug, Serialize, Type)]
@@ -54,6 +56,26 @@ pub async fn stop_server(services: State<'_, Services>) -> ApiResult<()> {
 #[specta::specta]
 pub fn server_logs(services: State<'_, Services>) -> Vec<String> {
     services.server.logs()
+}
+
+/// What `geniex serve` starts with: model unload delay, context window.
+#[tauri::command]
+#[specta::specta]
+pub fn server_options(services: State<'_, Services>) -> ServerOptions {
+    services.server.options()
+}
+
+/// Save new server options. A running GenieX restarts to apply them.
+#[tauri::command]
+#[specta::specta]
+pub async fn set_server_options(
+    services: State<'_, Services>,
+    file: State<'_, ServerOptionsFile>,
+    options: ServerOptions,
+) -> ApiResult<()> {
+    options.validate().map_err(ApiError::invalid_input)?;
+    file.save(options).map_err(ApiError::io)?;
+    Ok(services.server.set_options(options).await?)
 }
 
 #[tauri::command]

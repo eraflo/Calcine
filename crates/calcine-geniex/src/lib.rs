@@ -9,7 +9,7 @@
 //! - [`update`]: installing and updating GenieX with its official installer
 
 mod backend;
-pub use backend::{GeniexServer, ServeOptions};
+pub use backend::GeniexServer;
 pub mod cli;
 pub mod parse;
 pub mod update;

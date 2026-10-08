@@ -1,6 +1,7 @@
 //! Build the app state at startup and tear it down on exit.
 
 mod gateway;
+mod server_options;
 mod services;
 
 use std::sync::Arc;
@@ -10,6 +11,7 @@ use calcine_gateway::Gateway;
 use tauri::path::BaseDirectory;
 use tauri::{App, AppHandle, Manager};
 
+pub use self::server_options::ServerOptionsFile;
 use self::services::{AppPaths, services_from_env};
 
 /// Build the services, start the gateway, and forward state changes to the
@@ -29,6 +31,13 @@ pub fn start(app: &App) -> tauri::Result<Services> {
     app.manage(services.clone());
 
     let data_dir = app.path().app_data_dir()?;
+    // The server isn't running yet: this only sets what it starts with.
+    let options_file = ServerOptionsFile::new(&data_dir);
+    let options = options_file.load();
+    if let Err(err) = tauri::async_runtime::block_on(services.server.set_options(options)) {
+        tracing::warn!(%err, "ignoring the saved server options");
+    }
+    app.manage(options_file);
     let gateway = Arc::new(gateway::create(services.clone(), &data_dir));
     app.manage(gateway.clone());
     crate::ipc::events::forward(app.handle(), &services.jobs, &gateway);

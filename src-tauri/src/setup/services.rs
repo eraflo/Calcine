@@ -4,11 +4,11 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use calcine_core::jobs::JobManager;
+use calcine_core::runtime::ServerOptions;
 use calcine_core::{BackendKind, Services};
 use calcine_geniex::update::RELEASE_ENDPOINT;
 use calcine_geniex::{
     BundledInstaller, Geniex, GeniexConfig, GeniexInstaller, GeniexServer, InstallerConfig,
-    ServeOptions,
 };
 use calcine_hub::{HubConfig, HubDirectory};
 use calcine_hw::SystemProbe;
@@ -46,7 +46,7 @@ pub fn services_from_env(paths: &AppPaths) -> Services {
 
 fn geniex_services(paths: &AppPaths) -> Services {
     let geniex = Geniex::new(GeniexConfig::default());
-    let server = Arc::new(GeniexServer::new(geniex.clone(), ServeOptions::default()));
+    let server = Arc::new(GeniexServer::new(geniex.clone(), ServerOptions::default()));
     let installer = GeniexInstaller::new(
         geniex.clone(),
         InstallerConfig {

@@ -56,6 +56,8 @@ pub fn builder() -> Builder<Wry> {
             commands::server::start_server,
             commands::server::stop_server,
             commands::server::server_logs,
+            commands::server::server_options,
+            commands::server::set_server_options,
             commands::server::set_require_api_key,
             commands::server::gateway_settings,
             commands::server::set_gateway_port,

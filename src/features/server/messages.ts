@@ -2,6 +2,22 @@ import { defineMessages } from "@/i18n";
 
 export const messages = defineMessages({
   en: {
+    // Model loading
+    loading: "Model loading",
+    loadingHint: "How GenieX loads models, for the chat and every app.",
+    unloadAfter: "Unload the model after",
+    unloadAfterHint: "Idle time before GenieX frees the memory. The next request loads it again.",
+    contextWindow: "Context window",
+    contextWindowHint:
+      "Tokens llama.cpp models see at once. Larger windows take more memory; AI Hub models keep the context they were compiled with.",
+    tokens: "{count} tokens",
+    minutes_one: "{count} minute",
+    minutes_other: "{count} minutes",
+    hours_one: "{count} hour",
+    hours_other: "{count} hours",
+    defaultChoice: "{value} (default)",
+    restartsGeniex: "GenieX restarts to apply changes: replies in progress stop.",
+    saved: "Saved.",
     title: "Server",
     description: "The local, OpenAI-compatible API for your other apps",
     // Status
@@ -80,6 +96,23 @@ export const messages = defineMessages({
     requestStopped: "Stopped",
   },
   fr: {
+    loading: "Chargement des modèles",
+    loadingHint: "Comment GenieX charge les modèles, pour le chat et toutes les applis.",
+    unloadAfter: "Décharger le modèle après",
+    unloadAfterHint:
+      "Inactivité avant que GenieX libère la mémoire. La requête suivante le recharge.",
+    contextWindow: "Fenêtre de contexte",
+    contextWindowHint:
+      "Tokens que les modèles llama.cpp voient à la fois. Plus grand prend plus de mémoire ; les modèles AI Hub gardent le contexte avec lequel ils ont été compilés.",
+    tokens: "{count} tokens",
+    minutes_one: "{count} minute",
+    minutes_other: "{count} minutes",
+    hours_one: "{count} heure",
+    hours_other: "{count} heures",
+    defaultChoice: "{value} (par défaut)",
+    restartsGeniex:
+      "GenieX redémarre pour appliquer les changements : les réponses en cours s'arrêtent.",
+    saved: "Enregistré.",
     title: "Serveur",
     description: "L'API locale compatible OpenAI pour vos autres applications",
     statusApi: "API",

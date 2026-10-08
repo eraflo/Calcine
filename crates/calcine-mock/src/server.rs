@@ -4,6 +4,7 @@
 //! `enable_think` is false), so the gateway and the Chat page work anywhere.
 
 use std::convert::Infallible;
+use std::sync::{Mutex, PoisonError};
 use std::time::Duration;
 
 use async_trait::async_trait;
@@ -13,7 +14,7 @@ use axum::http::header;
 use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post};
 use calcine_core::Result;
-use calcine_core::runtime::{InferenceServer, ServerState};
+use calcine_core::runtime::{InferenceServer, ServerOptions, ServerState};
 use serde_json::{Value, json};
 use tokio::sync::{mpsc, oneshot, watch};
 use tokio_stream::wrappers::ReceiverStream;
@@ -24,6 +25,7 @@ const TOKEN_DELAY: Duration = Duration::from_millis(25);
 pub struct MockServer {
     running: tokio::sync::Mutex<Option<(String, oneshot::Sender<()>)>>,
     state: watch::Sender<ServerState>,
+    options: Mutex<ServerOptions>,
 }
 
 impl Default for MockServer {
@@ -31,6 +33,7 @@ impl Default for MockServer {
         Self {
             running: tokio::sync::Mutex::new(None),
             state: watch::Sender::new(ServerState::Stopped),
+            options: Mutex::new(ServerOptions::default()),
         }
     }
 }
@@ -78,6 +81,18 @@ impl InferenceServer for MockServer {
 
     fn logs(&self) -> Vec<String> {
         vec!["Mock inference server: replies are canned, no model runs.".into()]
+    }
+
+    fn options(&self) -> ServerOptions {
+        *self.options.lock().unwrap_or_else(PoisonError::into_inner)
+    }
+
+    async fn set_options(&self, options: ServerOptions) -> Result<()> {
+        options
+            .validate()
+            .map_err(calcine_core::Error::InvalidInput)?;
+        *self.options.lock().unwrap_or_else(PoisonError::into_inner) = options;
+        Ok(())
     }
 }
 

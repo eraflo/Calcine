@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 import type { LocalModel } from "@/lib/api";
-import { buildChatRequest, DEFAULT_SETTINGS, toCurl } from "./request";
+import {
+  activePreset,
+  buildChatRequest,
+  DEFAULT_SETTINGS,
+  PRESETS,
+  stopIndex,
+  toCurl,
+  withDefaults,
+} from "./request";
 
 const model = (runtime: LocalModel["runtime"]): LocalModel => ({
   name: "m/x",
@@ -40,6 +48,72 @@ describe("buildChatRequest", () => {
     expect(buildChatRequest(model("qairt"), "m/x", DEFAULT_SETTINGS, hello)).not.toHaveProperty(
       "power_mode",
     );
+  });
+});
+
+describe("optional settings", () => {
+  const llama = model("llama_cpp");
+
+  it("leaves GenieX's defaults alone unless set", () => {
+    const body = buildChatRequest(llama, "m/x", DEFAULT_SETTINGS, hello);
+    for (const key of ["top_p", "top_k", "min_p", "seed", "stop", "ngl"]) {
+      expect(body).not.toHaveProperty(key);
+    }
+  });
+
+  it("sends samplers and stop sequences to every model", () => {
+    const settings = {
+      ...DEFAULT_SETTINGS,
+      topP: 0.9,
+      topK: 40,
+      minP: 0,
+      repetitionPenalty: 1.1,
+      presencePenalty: 0.5,
+      frequencyPenalty: -0.5,
+      stop: ["\n\n", ""],
+    };
+    expect(buildChatRequest(model("qairt"), "m/x", settings, hello)).toMatchObject({
+      top_p: 0.9,
+      top_k: 40,
+      min_p: 0,
+      repetition_penalty: 1.1,
+      presence_penalty: 0.5,
+      frequency_penalty: -0.5,
+      stop: ["\n\n"],
+    });
+  });
+
+  it("sends the seed and offloaded layers to llama.cpp models only", () => {
+    const settings = { ...DEFAULT_SETTINGS, seed: 7, gpuLayers: 0 };
+    expect(buildChatRequest(llama, "m/x", settings, hello)).toMatchObject({ seed: 7, ngl: 0 });
+    const qairt = buildChatRequest(model("qairt"), "m/x", settings, hello);
+    expect(qairt).not.toHaveProperty("seed");
+    expect(qairt).not.toHaveProperty("ngl");
+  });
+});
+
+describe("stopIndex", () => {
+  it("finds the earliest stop sequence", () => {
+    expect(stopIndex("one. two\n\nthree", ["\n\n", "."])).toBe(3);
+    expect(stopIndex("no stop here", ["END", ""])).toBeNull();
+    expect(stopIndex("anything", [])).toBeNull();
+  });
+});
+
+describe("presets", () => {
+  it("recognizes the preset the settings match", () => {
+    expect(activePreset(DEFAULT_SETTINGS)).toBe("balanced");
+    expect(activePreset({ ...DEFAULT_SETTINGS, ...PRESETS.creative })).toBe("creative");
+    expect(activePreset({ ...DEFAULT_SETTINGS, temperature: 0.4 })).toBeNull();
+  });
+
+  it("fills settings saved before a field existed", () => {
+    const old = { systemPrompt: "Hi", temperature: 0.3 } as Partial<typeof DEFAULT_SETTINGS>;
+    expect(withDefaults(old)).toEqual({
+      ...DEFAULT_SETTINGS,
+      systemPrompt: "Hi",
+      temperature: 0.3,
+    });
   });
 });
 

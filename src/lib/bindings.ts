@@ -100,6 +100,10 @@ export const commands = {
 	stopServer: () => typedError<null, ApiError>(__TAURI_INVOKE("stop_server")),
 	/**  Recent output of `geniex serve`. */
 	serverLogs: () => __TAURI_INVOKE<string[]>("server_logs"),
+	/**  What `geniex serve` starts with: model unload delay, context window. */
+	serverOptions: () => __TAURI_INVOKE<ServerOptions>("server_options"),
+	/**  Save new server options. A running GenieX restarts to apply them. */
+	setServerOptions: (options: ServerOptions) => typedError<null, ApiError>(__TAURI_INVOKE("set_server_options", { options })),
 	setRequireApiKey: (require: boolean) => typedError<null, ApiError>(__TAURI_INVOKE("set_require_api_key", { require })),
 	/**  The port and allowed browser origins of the local API. */
 	gatewaySettings: () => __TAURI_INVOKE<GatewaySettings>("gateway_settings"),
@@ -565,6 +569,17 @@ export type RuntimeUpdateCheck = {
 	 *  (`windows-signed.txt`). `geniex update` refuses to install otherwise.
 	 */
 	publisherSigned: boolean,
+};
+
+/**  Defaults `geniex serve` starts with. Changing them restarts the server. */
+export type ServerOptions = {
+	/**  Unload the model after this many idle seconds (`--keepalive`). */
+	keepaliveSecs?: number,
+	/**
+	 *  Context window of llama.cpp models, in tokens (`--nctx`). AI Hub
+	 *  models have theirs compiled in.
+	 */
+	contextSize?: number,
 };
 
 /**  Lifecycle of the inference server process. */

@@ -3,7 +3,7 @@ import { useCallback, useRef } from "react";
 import { modelsQuery } from "@/features/library/api";
 import { connectionQuery } from "@/features/server/api";
 import type { Attachment } from "./lib/attachments";
-import { buildChatRequest, type ChatTurn, type MediaPart } from "./lib/request";
+import { buildChatRequest, type ChatTurn, type MediaPart, stopIndex } from "./lib/request";
 import { streamChat } from "./lib/sse";
 import { type ChatMessage, newId, useChat, useLiveReply, useMediaPayloads } from "./store";
 
@@ -57,13 +57,26 @@ export function useSend() {
 
       const model = models.find((candidate) => candidate.name === conversation.modelId);
       const body = buildChatRequest(model, conversation.modelId, chat.settings, history);
+      // GenieX doesn't apply stop sequences sent over the API: cut the reply here.
+      const stops = chat.settings.stop;
+      let reachedStop = false;
+      const onDelta = (delta: { content?: string; reasoning?: string }) => {
+        live.append(delta);
+        if (!delta.content || stops.length === 0) return;
+        const { content } = useLiveReply.getState();
+        const index = stopIndex(content, stops);
+        if (index === null) return;
+        reachedStop = true;
+        useLiveReply.setState({ content: content.slice(0, index) });
+        abort.abort();
+      };
       try {
         const result = await streamChat({
           url: `${connection.baseUrl}/chat/completions`,
           token: connection.token,
           body,
           signal: abort.signal,
-          onDelta: live.append,
+          onDelta,
         });
         chat.updateMessage(conversationId, replyId, {
           content: result.content,
@@ -72,7 +85,12 @@ export function useSend() {
         });
       } catch (error) {
         const partial = useLiveReply.getState();
-        if (abort.signal.aborted) {
+        if (reachedStop) {
+          chat.updateMessage(conversationId, replyId, {
+            content: partial.content,
+            reasoning: partial.reasoning || undefined,
+          });
+        } else if (abort.signal.aborted) {
           chat.updateMessage(conversationId, replyId, {
             content: partial.content,
             reasoning: partial.reasoning || undefined,

@@ -8,7 +8,7 @@ use std::sync::{Arc, Mutex, PoisonError};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use async_trait::async_trait;
-use calcine_core::runtime::{InferenceServer, ServerState};
+use calcine_core::runtime::{InferenceServer, ServerOptions, ServerState};
 use calcine_core::{Error, Result};
 use tokio::io::{AsyncBufReadExt, AsyncRead, BufReader};
 use tokio::sync::{oneshot, watch};
@@ -21,26 +21,11 @@ const LOG_LINES: usize = 500;
 const STARTUP_TIMEOUT: Duration = Duration::from_secs(60);
 const HEALTH_INTERVAL: Duration = Duration::from_millis(250);
 
-/// Options passed to `geniex serve`.
-#[derive(Debug, Clone)]
-pub struct ServeOptions {
-    /// Unload the model after this many idle seconds (`--keepalive`).
-    pub keepalive_secs: u32,
-}
-
-impl Default for ServeOptions {
-    fn default() -> Self {
-        Self {
-            keepalive_secs: 300,
-        }
-    }
-}
-
 /// The supervised `geniex serve` process.
 #[derive(Debug)]
 pub struct GeniexServer {
     geniex: Geniex,
-    options: ServeOptions,
+    options: Mutex<ServerOptions>,
     running: tokio::sync::Mutex<Option<Running>>,
     state: watch::Sender<ServerState>,
     logs: Arc<Mutex<VecDeque<String>>>,
@@ -55,10 +40,10 @@ struct Running {
 }
 
 impl GeniexServer {
-    pub fn new(geniex: Geniex, options: ServeOptions) -> Self {
+    pub fn new(geniex: Geniex, options: ServerOptions) -> Self {
         Self {
             geniex,
-            options,
+            options: Mutex::new(options),
             running: tokio::sync::Mutex::new(None),
             state: watch::Sender::new(ServerState::Stopped),
             logs: Arc::new(Mutex::new(VecDeque::with_capacity(LOG_LINES))),
@@ -69,7 +54,9 @@ impl GeniexServer {
     async fn start(&self) -> Result<Running> {
         let port = free_port()?;
         let host = format!("127.0.0.1:{port}");
-        let keepalive = self.options.keepalive_secs.to_string();
+        let options = self.options();
+        let keepalive = options.keepalive_secs.to_string();
+        let context_size = options.context_size.to_string();
         // The server is internal: only the gateway talks to it, never a browser.
         let args = [
             "serve",
@@ -79,6 +66,8 @@ impl GeniexServer {
             "http://127.0.0.1",
             "--keepalive",
             &keepalive,
+            "--nctx",
+            &context_size,
         ];
         let mut child = self.geniex.cli()?.command(&args).spawn()?;
         tracing::info!(%host, "starting geniex serve");
@@ -191,6 +180,26 @@ impl InferenceServer for GeniexServer {
             .iter()
             .cloned()
             .collect()
+    }
+
+    fn options(&self) -> ServerOptions {
+        *self.options.lock().unwrap_or_else(PoisonError::into_inner)
+    }
+
+    async fn set_options(&self, options: ServerOptions) -> Result<()> {
+        options.validate().map_err(Error::InvalidInput)?;
+        *self.options.lock().unwrap_or_else(PoisonError::into_inner) = options;
+        let was_running = self
+            .running
+            .lock()
+            .await
+            .as_ref()
+            .is_some_and(|r| !r.exited.load(Ordering::SeqCst));
+        if was_running {
+            self.stop().await?;
+            self.ensure_running().await?;
+        }
+        Ok(())
     }
 }
 

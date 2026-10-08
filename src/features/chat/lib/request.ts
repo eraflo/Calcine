@@ -23,6 +23,20 @@ export type ChatSettings = {
   /** Only used by llama.cpp models; QAIRT bundles always run on the NPU. */
   compute: Exclude<ComputeUnit, "hybrid">;
   powerMode: PowerMode;
+  // Optional sampler settings: `null` leaves GenieX's default.
+  topP: number | null;
+  topK: number | null;
+  minP: number | null;
+  repetitionPenalty: number | null;
+  presencePenalty: number | null;
+  frequencyPenalty: number | null;
+  /** Same seed and settings give the same reply (llama.cpp only). */
+  seed: number | null;
+  /** Stop generating at any of these strings. GenieX 0.8 ignores `stop` in
+   * API requests, so the chat also cuts the reply itself. */
+  stop: string[];
+  /** Layers offloaded to the GPU or NPU, -1 for all (llama.cpp only). */
+  gpuLayers: number | null;
 };
 
 export const DEFAULT_SETTINGS: ChatSettings = {
@@ -32,7 +46,45 @@ export const DEFAULT_SETTINGS: ChatSettings = {
   think: true,
   compute: "npu",
   powerMode: "burst",
+  topP: null,
+  topK: null,
+  minP: null,
+  repetitionPenalty: null,
+  presencePenalty: null,
+  frequencyPenalty: null,
+  seed: null,
+  stop: [],
+  gpuLayers: null,
 };
+
+/** Sampling presets, from focused to inventive. */
+export const PRESETS = {
+  precise: { temperature: 0.2, topP: 0.9, topK: null, minP: null },
+  balanced: { temperature: 0.7, topP: null, topK: null, minP: null },
+  creative: { temperature: 1.1, topP: 0.98, topK: null, minP: null },
+} as const satisfies Record<string, Pick<ChatSettings, "temperature" | "topP" | "topK" | "minP">>;
+
+export type Preset = keyof typeof PRESETS;
+
+/** The preset these settings match, if any. */
+export function activePreset(settings: ChatSettings): Preset | null {
+  for (const [name, values] of Object.entries(PRESETS) as [Preset, (typeof PRESETS)[Preset]][]) {
+    if (
+      settings.temperature === values.temperature &&
+      settings.topP === values.topP &&
+      settings.topK === values.topK &&
+      settings.minP === values.minP
+    ) {
+      return name;
+    }
+  }
+  return null;
+}
+
+/** Settings saved before a field existed get its default. */
+export function withDefaults(settings: Partial<ChatSettings> | undefined): ChatSettings {
+  return { ...DEFAULT_SETTINGS, ...settings };
+}
 
 /** An image or a recording sent with a message. */
 export type MediaPart = { kind: "image"; dataUrl: string } | { kind: "audio"; base64: string };
@@ -65,9 +117,21 @@ function toApiMessage({ role, content, media }: ChatTurn) {
   };
 }
 
+/** Where the first stop sequence starts in `text`, if any. */
+export function stopIndex(text: string, stops: readonly string[]): number | null {
+  let first: number | null = null;
+  for (const stop of stops) {
+    if (!stop) continue;
+    const index = text.indexOf(stop);
+    if (index !== -1 && (first === null || index < first)) first = index;
+  }
+  return first;
+}
+
 /**
- * The `/v1/chat/completions` body for these settings. GenieX extensions
- * (`enable_think`, `compute`, `power_mode`) are only sent when they apply.
+ * The `/v1/chat/completions` body for these settings. Optional samplers are
+ * only sent when set, and llama.cpp options (`compute`, `seed`, `ngl`) only
+ * to llama.cpp models.
  */
 export function buildChatRequest(
   model: LocalModel | undefined,
@@ -76,6 +140,8 @@ export function buildChatRequest(
   history: readonly ChatTurn[],
 ) {
   const turns = history.map(toApiMessage);
+  const llamaCpp = supportsComputeChoice(model);
+  const stop = settings.stop.filter((sequence) => sequence !== "");
   const messages = settings.systemPrompt.trim()
     ? [{ role: "system" as const, content: settings.systemPrompt.trim() }, ...turns]
     : turns;
@@ -89,10 +155,28 @@ export function buildChatRequest(
     enable_think: settings.think,
     temperature: settings.temperature,
     max_tokens: settings.maxTokens,
-    ...(supportsComputeChoice(model) ? { compute: settings.compute } : {}),
+    ...optional({
+      top_p: settings.topP,
+      top_k: settings.topK,
+      min_p: settings.minP,
+      repetition_penalty: settings.repetitionPenalty,
+      presence_penalty: settings.presencePenalty,
+      frequency_penalty: settings.frequencyPenalty,
+    }),
+    ...(stop.length ? { stop } : {}),
+    ...(llamaCpp
+      ? { compute: settings.compute, ...optional({ seed: settings.seed, ngl: settings.gpuLayers }) }
+      : {}),
     ...(settings.powerMode !== DEFAULT_SETTINGS.powerMode
       ? { power_mode: settings.powerMode }
       : {}),
+  };
+}
+
+/** The entries that have a value. */
+function optional<T extends Record<string, number | null>>(values: T) {
+  return Object.fromEntries(Object.entries(values).filter(([, value]) => value !== null)) as {
+    [K in keyof T]?: number;
   };
 }
 
