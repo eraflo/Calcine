@@ -35,6 +35,7 @@ impl ModelStore for MockBackend {
                 done_bytes: PULL_BYTES * step / PULL_STEPS,
                 total_bytes: Some(PULL_BYTES),
                 bytes_per_second: Some(speed),
+                phase: None,
             });
             tokio::select! {
                 () = tokio::time::sleep(tick) => {}

@@ -11,6 +11,11 @@ export const commands = {
 	appInfo: () => __TAURI_INVOKE<AppInfo>("app_info"),
 	/**  The UI language, for the tray menu and notifications. */
 	setLanguage: (language: Language) => __TAURI_INVOKE<void>("set_language", { language }),
+	/**
+	 *  Open a release notes or model page in the default browser. Only HTTPS
+	 *  links to the sites Calcine itself links to are opened.
+	 */
+	openUrl: (url: string) => typedError<null, ApiError>(__TAURI_INVOKE("open_url", { url })),
 	/**  Models in the local GenieX cache (`geniex list`). */
 	listModels: () => typedError<LocalModel[], ApiError>(__TAURI_INVOKE("list_models")),
 	/**  Delete whole models or single precisions (`geniex remove`). */
@@ -55,6 +60,16 @@ export const commands = {
 	hardwareInfo: () => typedError<HardwareInfo, ApiError>(__TAURI_INVOKE("hardware_info")),
 	/**  Live CPU, GPU, NPU and memory load. Poll about once a second. */
 	hardwareUsage: () => typedError<HardwareUsage, ApiError>(__TAURI_INVOKE("hardware_usage")),
+	/**  The newest GenieX on `channel`, compared with the installed one. */
+	checkRuntimeUpdate: (channel: ReleaseChannel) => typedError<RuntimeUpdateCheck, ApiError>(__TAURI_INVOKE("check_runtime_update", { channel })),
+	/**
+	 *  Install a GenieX release or a cached installer (update, roll back,
+	 *  repair). Progress arrives as `JobUpdated` events. Async so the job is
+	 *  spawned on the Tokio runtime.
+	 */
+	installRuntime: (source: InstallSource) => typedError<number, ApiError>(__TAURI_INVOKE("install_runtime", { source })),
+	/**  GenieX installers kept on this PC, newest first. */
+	cachedRuntimes: () => __TAURI_INVOKE<CachedInstaller[]>("cached_runtimes"),
 	/**  Every known job, newest first. */
 	listJobs: () => __TAURI_INVOKE<Job[]>("list_jobs"),
 	/**  Ask a running job to stop. Returns `false` if it already finished. */
@@ -124,6 +139,14 @@ export type BackendKind =
 "geniex" | 
 /**  In-memory fake data (`CALCINE_BACKEND=mock`). */
 "mock";
+
+/**  An installer kept on disk, to reinstall without downloading. */
+export type CachedInstaller = {
+	version: string,
+	/**  Shipped inside Calcine's installer (used to repair GenieX offline). */
+	bundled: boolean,
+	sizeBytes: number,
+};
 
 /**  A chipset Qualcomm AI Hub compiles models for. */
 export type Chipset = {
@@ -240,6 +263,25 @@ export type ImportSource =
 /**  An AI Hub `.zip`. */
 "archive";
 
+/**  What to install. */
+export type InstallSource = 
+/**  Download a release, verifying its SHA-256. */
+{ source: "release"; release: RuntimeRelease } | 
+/**  Reinstall an installer already on disk (roll back, repair). */
+{ source: "cached"; version: string };
+
+/**
+ *  The installer for this OS and architecture, as listed in the official
+ *  release manifest.
+ */
+export type InstallerAsset = {
+	name: string,
+	url: string,
+	size: number,
+	/**  Lowercase hex SHA-256 the download must match. */
+	sha256: string,
+};
+
 /**  A snapshot of one job, as sent to the UI. */
 export type Job = {
 	id: number,
@@ -255,12 +297,19 @@ export type JobKind =
 /**  Downloading a model (`geniex pull`). */
 { type: "pull"; model: string } | 
 /**  Copying a model from this PC into the cache (`geniex pull --model-hub localfs`). */
-{ type: "import"; model: string; path: string };
+{ type: "import"; model: string; path: string } | 
+/**  Installing, updating or rolling back GenieX itself. */
+{ type: "install_runtime"; version: string };
+
+/**  What a multi-step job is doing right now. */
+export type JobPhase = "downloading" | "verifying" | "installing";
 
 export type JobProgress = {
 	doneBytes: number,
 	totalBytes: number | null,
 	bytesPerSecond: number | null,
+	/**  Set by jobs with several steps (installing GenieX). */
+	phase: JobPhase | null,
 };
 
 export type JobState = { state: "running" } | { state: "succeeded" } | { state: "cancelled" } | { state: "failed"; message: string };
@@ -350,6 +399,13 @@ export type PullRequest = {
 	localPath: string | null,
 };
 
+/**  Which GenieX releases to follow. */
+export type ReleaseChannel = 
+/**  Stable releases only (what `geniex update` installs). */
+"stable" | 
+/**  Release candidates and alphas too. */
+"prerelease";
+
 /**  A model found on a hub (Hugging Face search). */
 export type RemoteModel = {
 	/**  Repository, ready to pull: `unsloth/Qwen3-0.6B-GGUF`. */
@@ -427,6 +483,34 @@ export type RuntimeInfo = {
 	llamaCppHash: string | null,
 	/**  Absolute path of the `geniex` executable. */
 	binaryPath: string,
+};
+
+/**  A GenieX version that can be installed on this machine. */
+export type RuntimeRelease = {
+	/**  Tag, e.g. `v0.8.1-rc.1`. */
+	version: string,
+	prerelease: boolean,
+	/**  ISO 8601 date. */
+	releasedAt: string | null,
+	installer: InstallerAsset,
+	/**  Release notes page. */
+	notesUrl: string | null,
+};
+
+/**  Whether a newer GenieX is available. */
+export type RuntimeUpdateCheck = {
+	channel: ReleaseChannel,
+	/**  Installed version (`None` when GenieX is missing). */
+	current: string | null,
+	/**  Newest release on the channel. */
+	latest: RuntimeRelease | null,
+	/**  `latest` is newer than `current`, or GenieX is missing. */
+	updateAvailable: boolean,
+	/**
+	 *  Qualcomm marks its Windows installers as code-signed
+	 *  (`windows-signed.txt`). `geniex update` refuses to install otherwise.
+	 */
+	publisherSigned: boolean,
 };
 
 /**  Lifecycle of the inference server process. */

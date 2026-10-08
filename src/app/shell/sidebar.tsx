@@ -1,14 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
+import { ArrowUpCircle } from "lucide-react";
 import { LogoMark } from "@/components/calcine/brand/logo";
 import { StatusDot } from "@/components/calcine/feedback/status-dot";
 import { Badge } from "@/components/ui/badge";
 import { useLiveReply } from "@/features/chat/store";
-import { runtimeQuery } from "@/features/hardware/api";
+import { runtimeQuery, runtimeUpdateQuery } from "@/features/hardware/api";
 import { gatewayQuery } from "@/features/server/api";
 import { appInfoQuery } from "@/features/settings/api";
 import { useT } from "@/i18n";
 import { CalcineError } from "@/lib/api";
+import { useUpdates } from "@/stores/updates";
 import { messages } from "../messages";
 import { mainNavigation, settingsNavigation } from "../navigation";
 import { LiveGauges } from "./live-gauges";
@@ -70,6 +72,8 @@ function BackendBadge() {
 function RuntimeStatus() {
   const t = useT(messages);
   const { data, error, isPending } = useQuery(runtimeQuery);
+  const channel = useUpdates((state) => state.geniexChannel);
+  const { data: update } = useQuery({ ...runtimeUpdateQuery(channel), enabled: Boolean(data) });
   const kind = error instanceof CalcineError ? error.kind : undefined;
 
   const [tone, label] = isPending
@@ -89,6 +93,14 @@ function RuntimeStatus() {
     >
       <StatusDot tone={tone} />
       <span className="truncate">{label}</span>
+      {update?.updateAvailable && update.latest && (
+        <ArrowUpCircle
+          className="ml-auto size-3.5 shrink-0 text-info"
+          aria-label={t("geniexUpdate", { version: update.latest.version })}
+        >
+          <title>{t("geniexUpdate", { version: update.latest.version })}</title>
+        </ArrowUpCircle>
+      )}
     </Link>
   );
 }

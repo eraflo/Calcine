@@ -25,9 +25,6 @@ pub fn run() {
     init_tracing();
     desktop::process::kill_children_on_exit();
 
-    let services = setup::services_from_env();
-    tracing::info!(backend = ?services.backend, "starting Calcine");
-
     let specta = ipc::builder();
     #[cfg(debug_assertions)]
     if let Err(err) = ipc::export(&specta) {
@@ -42,12 +39,11 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_opener::init())
-        .manage(services.clone())
         .manage(desktop::locale::Locale::default())
         .invoke_handler(specta.invoke_handler())
         .setup(move |app| {
             specta.mount_events(app);
-            setup::start(app, &services)?;
+            let services = setup::start(app)?;
             desktop::notifications::notify_finished_jobs(app.handle(), &services.jobs);
             desktop::tray::install(app)?;
             Ok(())

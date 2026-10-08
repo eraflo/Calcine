@@ -7,9 +7,11 @@ type TasksT = Translate<(typeof messages)["en"]>;
 
 export const isRunning = (job: Job) => job.state.state === "running";
 
-/** The model a job is about (`owner/model[:precision]`). */
-export function jobTitle(job: Job): string {
-  return job.kind.model;
+/** What a job is about: `owner/model[:precision]`, or `GenieX v0.8.1`. */
+export function jobTitle(job: Job, t: TasksT): string {
+  return job.kind.type === "install_runtime"
+    ? t("geniexVersion", { version: job.kind.version })
+    : job.kind.model;
 }
 
 /** 0–100, or `null` while the total is unknown. */
@@ -39,6 +41,9 @@ export function formatDuration(seconds: number): string {
 export function progressLabel(job: Job, t: TasksT): string {
   const progress = job.progress;
   if (!progress) return t("starting");
+  if (progress.phase === "verifying" || progress.phase === "installing") {
+    return t(`phase_${progress.phase}`);
+  }
   const parts = [
     progress.totalBytes
       ? t("progressOf", {

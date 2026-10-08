@@ -253,6 +253,7 @@ mod tests {
                 done_bytes: 5,
                 total_bytes: Some(10),
                 bytes_per_second: None,
+                phase: None,
             });
             Ok(())
         });

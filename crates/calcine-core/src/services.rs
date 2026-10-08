@@ -8,7 +8,9 @@ use crate::Result;
 use crate::hardware::HardwareProbe;
 use crate::jobs::{JobId, JobKind, JobManager, JobState};
 use crate::models::{ModelCatalog, ModelDirectory, ModelKey, ModelStore, PullRequest};
-use crate::runtime::{InferenceServer, RuntimeManager};
+use crate::runtime::{
+    InferenceServer, InstallSource, RuntimeInstaller, RuntimeManager, ServerState,
+};
 
 /// Which implementation backs the services.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]
@@ -32,6 +34,8 @@ pub struct Services {
     /// `geniex serve`, started on demand by the gateway.
     pub server: Arc<dyn InferenceServer>,
     pub hardware: Arc<dyn HardwareProbe>,
+    /// Installs and updates GenieX itself.
+    pub installer: Arc<dyn RuntimeInstaller>,
     pub jobs: JobManager,
 }
 
@@ -64,6 +68,35 @@ impl Services {
 }
 
 impl Services {
+    /// Install, update or roll back GenieX in the background, or return the
+    /// install already running. `geniex serve` is stopped first (the
+    /// installer kills it anyway) and started again afterwards if it was
+    /// running.
+    pub fn start_runtime_install(&self, source: InstallSource) -> JobId {
+        if let Some(job) = self.jobs.list().into_iter().find(|job| {
+            matches!(job.kind, JobKind::InstallRuntime { .. }) && job.state == JobState::Running
+        }) {
+            return job.id;
+        }
+        let kind = JobKind::InstallRuntime {
+            version: source.version().to_owned(),
+        };
+        let installer = self.installer.clone();
+        let server = self.server.clone();
+        self.jobs.spawn(kind, move |ctx| async move {
+            let was_running = matches!(
+                *server.state().borrow(),
+                ServerState::Ready { .. } | ServerState::Starting
+            );
+            server.stop().await?;
+            let result = installer.install(source, ctx).await;
+            if was_running && result.is_ok() {
+                let _ = server.ensure_running().await;
+            }
+            result
+        })
+    }
+
     /// Delete models or precisions. Stops `geniex serve` first: Windows
     /// can't delete the files of a loaded model.
     pub async fn remove_models(&self, keys: &[ModelKey]) -> Result<()> {

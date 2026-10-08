@@ -22,6 +22,11 @@ export const messages = defineMessages({
     progressOf: "{done} of {total}",
     perSecond: "{speed}/s",
     left: "{duration} left",
+    geniexVersion: "GenieX {version}",
+    installingGeniex: "Installing GenieX {version}",
+    geniexInstalled: "Installed. GenieX restarts on the next request.",
+    phase_verifying: "Checking the installer…",
+    phase_installing: "Installing… GenieX is unavailable for a moment.",
   },
   fr: {
     title: "Tâches",
@@ -45,5 +50,10 @@ export const messages = defineMessages({
     progressOf: "{done} sur {total}",
     perSecond: "{speed}/s",
     left: "{duration} restantes",
+    geniexVersion: "GenieX {version}",
+    installingGeniex: "Installation de GenieX {version}",
+    geniexInstalled: "Installé. GenieX redémarre à la prochaine requête.",
+    phase_verifying: "Vérification de l'installeur…",
+    phase_installing: "Installation… GenieX est indisponible un instant.",
   },
 });

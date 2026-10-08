@@ -6,11 +6,14 @@
 //! - [`cli`]: finding the executable and running commands
 //! - `backend`: the service trait implementations (models, pull, runtime)
 //! - [`parse`]: output parsers, tested against captures from a real install
+//! - [`update`]: installing and updating GenieX with its official installer
 
 mod backend;
 pub use backend::{GeniexServer, ServeOptions};
 pub mod cli;
 pub mod parse;
+pub mod update;
+pub use update::{BundledInstaller, GeniexInstaller, InstallerConfig};
 
 use std::path::PathBuf;
 

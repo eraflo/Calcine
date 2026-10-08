@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { translator } from "@/i18n";
 import type { Job } from "@/lib/api";
 import { messages } from "../messages";
-import { formatDuration, percent, progressLabel, secondsLeft, upsertJob } from "./format";
+import { formatDuration, jobTitle, percent, progressLabel, secondsLeft, upsertJob } from "./format";
 
 const t = translator(messages, "en");
 
@@ -10,7 +10,12 @@ const job = (overrides: Partial<Job> = {}): Job => ({
   id: 1,
   kind: { type: "pull", model: "qualcomm/Qwen3-0.6B" },
   state: { state: "running" },
-  progress: { doneBytes: 190_000_000, totalBytes: 760_000_000, bytesPerSecond: 19_000_000 },
+  progress: {
+    doneBytes: 190_000_000,
+    totalBytes: 760_000_000,
+    bytesPerSecond: 19_000_000,
+    phase: null,
+  },
   startedAtMs: 0,
   finishedAtMs: null,
   ...overrides,
@@ -23,7 +28,9 @@ describe("job progress", () => {
   });
 
   it("handles unknown totals", () => {
-    const unknown = job({ progress: { doneBytes: 10, totalBytes: null, bytesPerSecond: null } });
+    const unknown = job({
+      progress: { doneBytes: 10, totalBytes: null, bytesPerSecond: null, phase: null },
+    });
     expect(percent(unknown)).toBeNull();
     expect(secondsLeft(unknown)).toBeNull();
     expect(progressLabel(unknown, t)).toBe("10 B");
@@ -50,5 +57,16 @@ describe("upsertJob", () => {
     expect(upsertJob([first], second).map((j) => j.id)).toEqual([2, 1]);
     const done = job({ id: 1, state: { state: "succeeded" } });
     expect(upsertJob([second, first], done)[1]?.state).toEqual({ state: "succeeded" });
+  });
+});
+
+describe("GenieX installs", () => {
+  it("are titled by version and describe their phase", () => {
+    const install = job({
+      kind: { type: "install_runtime", version: "v0.8.1" },
+      progress: { doneBytes: 0, totalBytes: null, bytesPerSecond: null, phase: "installing" },
+    });
+    expect(jobTitle(install, t)).toBe("GenieX v0.8.1");
+    expect(progressLabel(install, t)).toBe("Installing… GenieX is unavailable for a moment.");
   });
 });

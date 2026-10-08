@@ -63,6 +63,7 @@ pub fn parse_frame(frame: &str) -> Option<JobProgress> {
         done_bytes: done.bytes.min(total.bytes),
         total_bytes: (total.bytes > 0).then_some(total.bytes),
         bytes_per_second,
+        phase: None,
     })
 }
 

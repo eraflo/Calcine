@@ -11,6 +11,7 @@
 mod data;
 mod directory;
 mod hardware;
+mod installer;
 mod models;
 mod runtime;
 mod server;
@@ -31,6 +32,8 @@ pub struct MockBackend {
     pull_duration: Duration,
     /// Set with `config set chipset`; `None` means detected.
     chipset: Mutex<Option<String>>,
+    /// "Installed" GenieX version, changed by simulated updates.
+    version: Mutex<String>,
     /// Drives the simulated hardware load.
     started: Instant,
 }
@@ -41,6 +44,7 @@ impl Default for MockBackend {
             models: Mutex::new(data::sample_models()),
             pull_duration: Duration::from_secs(6),
             chipset: Mutex::new(None),
+            version: Mutex::new(data::runtime_info().cli_version),
             started: Instant::now(),
         }
     }
@@ -66,7 +70,8 @@ impl MockBackend {
             catalog: backend.clone(),
             directory: backend.clone(),
             runtime: backend.clone(),
-            hardware: backend,
+            hardware: backend.clone(),
+            installer: backend,
             server: Arc::new(MockServer::default()),
             jobs: JobManager::new(),
         }
@@ -78,6 +83,14 @@ impl MockBackend {
 
     fn pinned_chipset(&self) -> MutexGuard<'_, Option<String>> {
         self.chipset.lock().unwrap_or_else(PoisonError::into_inner)
+    }
+
+    fn version(&self) -> MutexGuard<'_, String> {
+        self.version.lock().unwrap_or_else(PoisonError::into_inner)
+    }
+
+    fn cli_version(&self) -> String {
+        self.version().clone()
     }
 }
 
@@ -178,6 +191,41 @@ mod tests {
 
         services.models.clean().await.unwrap();
         assert_eq!(services.models.list().await.unwrap().len(), 0);
+    }
+
+    #[tokio::test]
+    async fn updates_geniex_and_reports_the_new_version() {
+        use calcine_core::runtime::{InstallSource, ReleaseChannel};
+
+        let services = MockBackend::default()
+            .with_pull_duration(Duration::ZERO)
+            .into_services();
+        let check = services
+            .installer
+            .check(ReleaseChannel::Stable)
+            .await
+            .unwrap();
+        assert!(check.update_available);
+        let release = check.latest.unwrap();
+        let id = services.start_runtime_install(InstallSource::Release { release });
+        let mut events = services.jobs.subscribe();
+        while services
+            .jobs
+            .get(id)
+            .is_some_and(|job| job.state == JobState::Running)
+        {
+            let _ = tokio::time::timeout(Duration::from_secs(1), events.recv()).await;
+        }
+        assert_eq!(services.jobs.get(id).unwrap().state, JobState::Succeeded);
+        assert_eq!(services.runtime.info().await.unwrap().cli_version, "v0.8.1");
+        assert!(
+            !services
+                .installer
+                .check(ReleaseChannel::Stable)
+                .await
+                .unwrap()
+                .update_available
+        );
     }
 
     #[tokio::test]

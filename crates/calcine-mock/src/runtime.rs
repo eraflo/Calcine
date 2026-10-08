@@ -9,7 +9,10 @@ use crate::{MockBackend, data};
 #[async_trait]
 impl RuntimeManager for MockBackend {
     async fn info(&self) -> Result<RuntimeInfo> {
-        Ok(data::runtime_info())
+        Ok(RuntimeInfo {
+            cli_version: self.cli_version(),
+            ..data::runtime_info()
+        })
     }
 
     async fn chipset(&self) -> Result<Option<String>> {

@@ -18,7 +18,7 @@ command or flag becomes available in the app. Reference: GenieX v0.8.0.
 | `model set-type <name> <llm\|vlm>` | — | ✅ `ModelStore::set_type` | ✅ Library (Text / Vision on each model) | Always passes the type, so the interactive picker never opens |
 | `serve --host 127.0.0.1:<random> --origins --keepalive` | — | ✅ `InferenceServer` (`GeniexServer`, supervised) | ✅ Server page (start/stop, output), on demand from the gateway | Never exposed directly; see security-model.md |
 | `infer` / `run` | — | via `/v1/chat/completions` | ✅ Chat (streaming, reasoning, temperature, max tokens, think, compute, power mode, images and microphone for VLMs), Hardware › Self-test | The REPL itself isn't wrapped; the HTTP API takes the same options |
-| `update` | — | — | — | M4, orchestrated by Calcine |
+| `update` | — | ✅ `RuntimeInstaller` (`calcine-geniex::update`), `Services::start_runtime_install` | ✅ Hardware › GenieX runtime › Updates (stable / pre-releases, roll back, repair), sidebar badge | Not wrapped: Calcine reads the same `index.json` and manifests, downloads the installer with progress, checks its SHA-256 and Authenticode signature, stops `geniex serve`, runs the installer silently, checks `geniex version`, restarts the server. Installers are cached to roll back |
 | `completion` | — | — | — | M5 |
 
 Global flags Calcine always passes: `--skip-update`, plus `--data-dir` when

@@ -21,15 +21,19 @@ export function JobRow({ job }: { job: Job }) {
   const dismiss = useDismissJob();
   const retryPull = usePullByName();
   const retryImport = useImportModel();
-  const title = jobTitle(job);
+  const title = jobTitle(job, t);
   const importing = job.kind.type === "import";
+  const installing = job.kind.type === "install_runtime";
+  const running = job.state.state === "running";
+  // The GenieX installer can't be stopped halfway.
+  const cancellable = running && job.progress?.phase !== "installing";
 
   // The new job replaces this one in the list.
   const retry = () => {
     const started =
       job.kind.type === "import"
         ? retryImport.mutateAsync({ name: job.kind.model, path: job.kind.path, modelType: null })
-        : retryPull.pull(title);
+        : retryPull.pull(job.kind.type === "pull" ? job.kind.model : title);
     return started.then(() => dismiss.mutate(job.id));
   };
 
@@ -38,15 +42,17 @@ export function JobRow({ job }: { job: Job }) {
       <div className="flex items-center gap-2">
         <StateIcon job={job} />
         <span className="min-w-0 flex-1 truncate font-mono text-[13px]">{title}</span>
-        {job.state.state === "running" ? (
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => cancel.mutate(job.id)}
-            disabled={cancel.isPending}
-          >
-            {t("cancel")}
-          </Button>
+        {running ? (
+          cancellable && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => cancel.mutate(job.id)}
+              disabled={cancel.isPending}
+            >
+              {t("cancel")}
+            </Button>
+          )
         ) : (
           <Button
             size="icon"
@@ -69,13 +75,19 @@ export function JobRow({ job }: { job: Job }) {
         <>
           <Progress
             value={percent(job)}
-            label={t(importing ? "importing" : "downloading", { model: title })}
+            label={
+              job.kind.type === "install_runtime"
+                ? t("installingGeniex", { version: job.kind.version })
+                : t(importing ? "importing" : "downloading", { model: title })
+            }
           />
           <p className="text-xs text-muted-foreground tabular-nums">{progressLabel(job, t)}</p>
         </>
       )}
       {job.state.state === "succeeded" && (
-        <p className="text-xs text-muted-foreground">{t(importing ? "imported" : "downloaded")}</p>
+        <p className="text-xs text-muted-foreground">
+          {t(installing ? "geniexInstalled" : importing ? "imported" : "downloaded")}
+        </p>
       )}
       {(job.state.state === "cancelled" || job.state.state === "failed") && (
         <div className="flex items-start gap-2">
@@ -84,15 +96,18 @@ export function JobRow({ job }: { job: Job }) {
               ? t(importing ? "importCancelled" : "cancelled")
               : job.state.message}
           </p>
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={retry}
-            disabled={retryPull.isPending || retryImport.isPending}
-          >
-            <RotateCw />
-            {job.state.state === "cancelled" && !importing ? t("resume") : t("retry")}
-          </Button>
+          {/* GenieX installs are started again from the Hardware page. */}
+          {!installing && (
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={retry}
+              disabled={retryPull.isPending || retryImport.isPending}
+            >
+              <RotateCw />
+              {job.state.state === "cancelled" && !importing ? t("resume") : t("retry")}
+            </Button>
+          )}
         </div>
       )}
     </li>

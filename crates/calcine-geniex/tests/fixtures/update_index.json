@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "updated_at": "2026-10-08T03:13:37Z",
+  "latest_stable": "v0.8.0",
+  "latest_prerelease": "v0.8.1-rc.1",
+  "versions": [
+    {
+      "tag": "v0.8.1-rc.1",
+      "is_prerelease": true,
+      "released_at": "2026-10-06T19:36:37Z",
+      "manifest": "manifest-v0.8.1-rc.1.json"
+    },
+    {
+      "tag": "v0.8.1-alpha.2",
+      "is_prerelease": true,
+      "released_at": "2026-10-08T03:13:37Z",
+      "manifest": "manifest-v0.8.1-alpha.2.json"
+    },
+    {
+      "tag": "v0.8.0",
+      "is_prerelease": false,
+      "released_at": "2026-10-02T20:24:25Z",
+      "manifest": "manifest-v0.8.0.json"
+    },
+    {
+      "tag": "v0.7.2-rc.1",
+      "is_prerelease": true,
+      "released_at": "2026-10-02T19:21:11Z",
+      "manifest": "manifest-v0.7.2-rc.1.json"
+    },
+    {
+      "tag": "v0.7.1",
+      "is_prerelease": false,
+      "released_at": "2026-09-28T22:06:54Z",
+      "manifest": "manifest-v0.7.1.json"
+    },
+    {
+      "tag": "v0.7.1-rc.1",
+      "is_prerelease": true,
+      "released_at": "2026-09-28T17:35:59Z",
+      "manifest": "manifest-v0.7.1-rc.1.json"
+    }
+  ]
+}

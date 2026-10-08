@@ -13,6 +13,17 @@ pub enum JobKind {
     Pull { model: String },
     /// Copying a model from this PC into the cache (`geniex pull --model-hub localfs`).
     Import { model: String, path: String },
+    /// Installing, updating or rolling back GenieX itself.
+    InstallRuntime { version: String },
+}
+
+/// What a multi-step job is doing right now.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum JobPhase {
+    Downloading,
+    Verifying,
+    Installing,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
@@ -30,6 +41,8 @@ pub struct JobProgress {
     pub done_bytes: u64,
     pub total_bytes: Option<u64>,
     pub bytes_per_second: Option<u64>,
+    /// Set by jobs with several steps (installing GenieX).
+    pub phase: Option<JobPhase>,
 }
 
 /// A snapshot of one job, as sent to the UI.

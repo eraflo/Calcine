@@ -38,19 +38,18 @@ fn window_focused(app: &AppHandle) -> bool {
 
 /// Cancelled jobs were the user's own doing: no notification.
 fn message(job: &Job, strings: &Strings) -> Option<(String, String)> {
-    let (model, verb) = match &job.kind {
-        JobKind::Pull { model } => (model, strings.download),
-        JobKind::Import { model, .. } => (model, strings.import),
+    let (subject, messages, success) = match &job.kind {
+        JobKind::Pull { model } => (model, &strings.download, strings.model_ready),
+        JobKind::Import { model, .. } => (model, &strings.import, strings.model_ready),
+        JobKind::InstallRuntime { version } => {
+            (version, &strings.geniex_update, strings.version_installed)
+        }
     };
     match &job.state {
-        JobState::Succeeded => Some((
-            format!("{verb} {}", strings.finished),
-            format!("{model} {}", strings.ready),
-        )),
-        JobState::Failed { message } => Some((
-            format!("{verb} {}", strings.failed),
-            format!("{model}: {message}"),
-        )),
+        JobState::Succeeded => Some((messages.done.to_owned(), format!("{subject} {success}"))),
+        JobState::Failed { message } => {
+            Some((messages.failed.to_owned(), format!("{subject}: {message}")))
+        }
         JobState::Running | JobState::Cancelled => None,
     }
 }

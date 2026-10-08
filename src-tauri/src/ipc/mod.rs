@@ -22,6 +22,7 @@ pub fn builder() -> Builder<Wry> {
         .commands(collect_commands![
             commands::app::app_info,
             commands::app::set_language,
+            commands::app::open_url,
             commands::models::list_models,
             commands::models::remove_models,
             commands::models::clean_models,
@@ -40,6 +41,9 @@ pub fn builder() -> Builder<Wry> {
             commands::runtime::list_chipsets,
             commands::runtime::hardware_info,
             commands::runtime::hardware_usage,
+            commands::runtime::check_runtime_update,
+            commands::runtime::install_runtime,
+            commands::runtime::cached_runtimes,
             commands::jobs::list_jobs,
             commands::jobs::cancel_job,
             commands::jobs::dismiss_job,

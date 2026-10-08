@@ -37,7 +37,13 @@ export function useJobEvents() {
       .listen(({ payload: job }) => {
         queryClient.setQueryData<Job[]>(jobsQuery.queryKey, (jobs = []) => upsertJob(jobs, job));
         if (job.state.state === "succeeded") {
-          void queryClient.invalidateQueries({ queryKey: modelsQuery.queryKey });
+          if (job.kind.type === "install_runtime") {
+            for (const key of ["runtime", "runtime-update", "cached-runtimes", "models"]) {
+              void queryClient.invalidateQueries({ queryKey: [key] });
+            }
+          } else {
+            void queryClient.invalidateQueries({ queryKey: modelsQuery.queryKey });
+          }
         }
       })
       .then((stop) => {

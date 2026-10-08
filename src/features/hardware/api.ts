@@ -1,5 +1,6 @@
 import { queryOptions, useMutation, useQueryClient } from "@tanstack/react-query";
-import { commands, unwrap } from "@/lib/api";
+import { call, commands, type InstallSource, type ReleaseChannel, unwrap } from "@/lib/api";
+import { useUi } from "@/stores/ui";
 import { recordUsage } from "./lib/usage-history";
 
 export const runtimeQuery = queryOptions({
@@ -55,5 +56,30 @@ export function useSetChipset() {
       await queryClient.invalidateQueries({ queryKey: chipsetQuery.queryKey });
       await queryClient.invalidateQueries({ queryKey: ["catalog"] });
     },
+  });
+}
+
+/** The newest GenieX on `channel`. Checked over the network, hourly. */
+export const runtimeUpdateQuery = (channel: ReleaseChannel) =>
+  queryOptions({
+    queryKey: ["runtime-update", channel],
+    queryFn: () => unwrap(() => commands.checkRuntimeUpdate(channel)),
+    staleTime: 60 * 60_000,
+    refetchInterval: 6 * 60 * 60_000,
+    retry: 1,
+  });
+
+/** GenieX installers kept on this PC (for rolling back and repairing). */
+export const cachedRuntimesQuery = queryOptions({
+  queryKey: ["cached-runtimes"],
+  queryFn: () => call(commands.cachedRuntimes),
+});
+
+/** Install, update or roll back GenieX; progress shows in the task drawer. */
+export function useInstallRuntime() {
+  const setTasksOpen = useUi((state) => state.setTasksOpen);
+  return useMutation({
+    mutationFn: (source: InstallSource) => unwrap(() => commands.installRuntime(source)),
+    onSuccess: () => setTasksOpen(true),
   });
 }
