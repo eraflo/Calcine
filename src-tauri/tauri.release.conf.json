@@ -1,0 +1,13 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "bundle": {
+    "resources": {
+      "resources/geniex/geniex-cli-setup.exe": "geniex/geniex-cli-setup.exe"
+    },
+    "windows": {
+      "nsis": {
+        "installerHooks": "./nsis/hooks.nsh"
+      }
+    }
+  }
+}

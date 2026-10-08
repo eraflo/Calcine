@@ -1,0 +1,3 @@
+GenieX CLI Version:     v0.8.0
+QAIRT Runtime Version:  2.45
+LlamaCPP Runtime Hash:  9425611

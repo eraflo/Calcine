@@ -1,0 +1,55 @@
+[workspace]
+resolver = "3"
+members = ["crates/*", "src-tauri"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.99"
+license = "MIT"
+repository = "https://github.com/eraflo/calcine"
+homepage = "https://github.com/eraflo/calcine"
+authors = ["The Calcine Authors"]
+
+[workspace.dependencies]
+# Internal crates
+calcine-core = { path = "crates/calcine-core" }
+calcine-geniex = { path = "crates/calcine-geniex" }
+calcine-mock = { path = "crates/calcine-mock" }
+
+# Tauri
+tauri = { version = "2.12", features = [] }
+tauri-build = { version = "2.7", features = [] }
+tauri-specta = { version = "=2.0.0-rc.25", features = ["derive", "typescript"] }
+specta = { version = "=2.0.0-rc.25", features = ["derive"] }
+specta-typescript = "0.0.12"
+
+# Async & utilities
+async-trait = "0.1"
+tokio = { version = "1.53", features = ["macros", "process", "rt-multi-thread", "time", "io-util"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+which = "8"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+missing_debug_implementations = "warn"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+module_name_repetitions = "allow"
+# Product names (GenieX, llama.cpp, Hexagon…) aren't code identifiers.
+doc_markdown = "allow"
+missing_errors_doc = "allow"
+must_use_candidate = "allow"
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = 3
+panic = "abort"
+strip = true

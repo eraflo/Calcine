@@ -23,8 +23,15 @@ expose them to any app through a secured, OpenAI-compatible endpoint on
 
 ## Development
 
-Tauri v2 · Rust (tokio, axum) · React + TypeScript + Vite · bun.
-See [CONTRIBUTING.md](CONTRIBUTING.md).
+Tauri v2 · Rust · React + TypeScript + Vite · Tailwind CSS · bun.
+
+```bash
+bun install
+bun run app:mock   # runs anywhere, with fake data
+bun run app        # on a Snapdragon device with GenieX installed
+```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/architecture.md](docs/architecture.md).
 
 ## License
 

@@ -1,0 +1,12 @@
+{
+  "$comment": "GenieX version bundled in Calcine installers. Bumped by CI (geniex-bump workflow); values come from the official manifest at https://qaihub-public-assets.s3.us-west-2.amazonaws.com/qai-hub-geniex/manifest-<version>.json",
+  "version": "v0.8.0",
+  "assets": {
+    "windows-arm64": {
+      "name": "geniex-cli-setup-windows-arm64-v0.8.0.exe",
+      "url": "https://qaihub-public-assets.s3.us-west-2.amazonaws.com/qai-hub-geniex/geniex-cli-setup-windows-arm64-v0.8.0.exe",
+      "size": 65196910,
+      "sha256": "fcc4d932f371a9b3ad3d08a1b34912fe21a7fdf7c54d47c869250b50d81ec734"
+    }
+  }
+}

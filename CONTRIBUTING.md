@@ -32,17 +32,28 @@ Common scopes: `app`, `ui`, `chat`, `models`, `discover`, `server`, `gateway`,
 ## Local setup
 
 Requirements: Windows 11 ARM64 on a Snapdragon device (for real inference),
-Rust stable (`aarch64-pc-windows-msvc`), Node.js ≥ 22 and [bun](https://bun.sh).
+[rustup](https://rustup.rs) (the pinned toolchain in `rust-toolchain.toml` is
+installed automatically), the Visual Studio C++ build tools, and
+[bun](https://bun.sh).
 
-The UI can also be developed on any machine with the mock backend
-(`CALCINE_BACKEND=mock`), which does not need GenieX or a Snapdragon NPU.
+```bash
+bun install
+bun run app        # desktop app against your local GenieX install
+bun run app:mock   # same UI with fake data, no GenieX or Snapdragon needed
+```
 
 Before opening a pull request:
 
 ```bash
-cargo fmt --all && cargo clippy --all-targets -- -D warnings && cargo test
+cargo fmt --all && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace
 bun run lint && bun run typecheck && bun run test
 ```
+
+`cargo test` also regenerates `src/lib/bindings.ts`; commit it with your change.
+Tests against the real GenieX are opt-in:
+`cargo test -p calcine-geniex -- --ignored`.
+
+See [docs/architecture.md](docs/architecture.md) for the code layout.
 
 ## Adding a feature
 
