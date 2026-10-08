@@ -61,6 +61,13 @@ calcine-gateway/src/
 
 calcine-hw/src/     system.rs (sysinfo) · windows.rs (WMI)
 calcine-mock/src/   data.rs (sample data) · models.rs · runtime.rs · hardware.rs · server.rs
+
+src-tauri/
+├─ src/ipc/      mod.rs (bindings builder) · commands/ (one file per domain) · events.rs · error.rs
+├─ src/setup/    services.rs (pick the backend) · gateway.rs · start and shutdown
+├─ src/desktop/  tray.rs · window behaviour · process.rs (Job Object)
+├─ windows/      installer-hooks.nsh (installs GenieX) · test-manifest.xml
+└─ tests/        tests that link Tauri (bindings export)
 ```
 
 Rule of thumb: one folder per domain, data types in `types.rs`, the service
@@ -104,8 +111,8 @@ src/
 
 1. Add the domain method to a trait in `calcine-core` and implement it in
    `calcine-geniex` and `calcine-mock` (with a parser test on real output).
-2. Add a thin command in `src-tauri/src/commands/` and register it in
-   `src-tauri/src/bindings.rs`.
+2. Add a thin command in `src-tauri/src/ipc/commands/` and register it in
+   `src-tauri/src/ipc/mod.rs`.
 3. Run `cargo test -p calcine` to regenerate `src/lib/bindings.ts` (CI fails if
    it's stale).
 4. Build the UI in `src/features/<feature>/` and, for a new page, add its route

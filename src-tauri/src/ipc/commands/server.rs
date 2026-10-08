@@ -8,7 +8,7 @@ use serde::Serialize;
 use specta::Type;
 use tauri::State;
 
-use crate::error::{ApiError, ApiResult};
+use crate::ipc::error::{ApiError, ApiResult};
 
 /// How Calcine's own UI talks to the gateway.
 #[derive(Debug, Serialize, Type)]

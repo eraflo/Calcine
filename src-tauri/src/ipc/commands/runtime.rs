@@ -3,7 +3,7 @@ use calcine_core::hardware::HardwareInfo;
 use calcine_core::runtime::RuntimeInfo;
 use tauri::State;
 
-use crate::error::ApiResult;
+use crate::ipc::error::ApiResult;
 
 /// The installed GenieX runtime (`geniex version`).
 #[tauri::command]

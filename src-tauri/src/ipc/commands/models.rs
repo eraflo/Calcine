@@ -4,7 +4,7 @@ use calcine_core::models::{HubCatalog, LocalModel, ModelKey};
 use calcine_core::models::{ModelReference, PullRequest};
 use tauri::State;
 
-use crate::error::ApiResult;
+use crate::ipc::error::ApiResult;
 
 /// Models in the local GenieX cache (`geniex list`).
 #[tauri::command]

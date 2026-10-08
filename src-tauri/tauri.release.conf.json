@@ -6,7 +6,7 @@
     },
     "windows": {
       "nsis": {
-        "installerHooks": "./nsis/hooks.nsh"
+        "installerHooks": "./windows/installer-hooks.nsh"
       }
     }
   }

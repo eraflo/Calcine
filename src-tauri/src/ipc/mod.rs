@@ -1,10 +1,17 @@
-//! Typed frontend bindings (tauri-specta).
+//! Everything the webview can reach: commands, events and their error type,
+//! exported as typed TypeScript bindings (tauri-specta).
+//!
+//! To add a command: write it in `commands/` with `#[tauri::command]` and
+//! `#[specta::specta]`, register it in [`builder`], then run
+//! `cargo test -p calcine` to regenerate `src/lib/bindings.ts`.
+
+pub mod commands;
+pub mod error;
+pub mod events;
 
 use specta_typescript::Typescript;
 use tauri::Wry;
 use tauri_specta::{Builder, collect_commands, collect_events};
-
-use crate::{commands, events};
 
 /// Generated file consumed by the frontend. CI fails if it is out of date.
 const BINDINGS_PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../src/lib/bindings.ts");
