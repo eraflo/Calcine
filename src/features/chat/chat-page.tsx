@@ -10,6 +10,7 @@ import { Composer } from "./components/composer";
 import { ConversationList } from "./components/conversation-list";
 import { ExportButton } from "./components/export-button";
 import { ModelPicker } from "./components/model-picker";
+import { PreloadButton } from "./components/preload-button";
 import { SettingsPanel } from "./components/settings-panel";
 import { Thread } from "./components/thread";
 import { supportsMedia } from "./lib/request";
@@ -64,6 +65,7 @@ export function ChatPage() {
           />
           {missingModel && <span className="text-xs text-warning">{t("missingModel")}</span>}
           <div className="ml-auto" />
+          <PreloadButton model={model} modelId={modelId} disabled={streaming || !ready} />
           <ExportButton conversation={active} />
           <Tooltip content={showSettings ? t("hideSettings") : t("showSettings")}>
             <Button
