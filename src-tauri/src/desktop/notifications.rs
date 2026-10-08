@@ -44,6 +44,8 @@ fn message(job: &Job, strings: &Strings) -> Option<(String, String)> {
         JobKind::InstallRuntime { version } => {
             (version, &strings.geniex_update, strings.version_installed)
         }
+        // Calcine restarts into the new version: nothing to announce.
+        JobKind::UpdateApp { .. } => return None,
     };
     match &job.state {
         JobState::Succeeded => Some((messages.done.to_owned(), format!("{subject} {success}"))),

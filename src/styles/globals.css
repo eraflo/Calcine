@@ -138,6 +138,18 @@
     -webkit-font-smoothing: antialiased;
   }
 
+  /*
+   * Mica (Settings › Appearance): Windows 11's material shows through the
+   * page and sidebar backgrounds; cards and dialogs stay opaque.
+   */
+  :root[data-material="mica"] body {
+    background-color: color-mix(in srgb, var(--background) 70%, transparent);
+  }
+
+  :root[data-material="mica"] .bg-sidebar {
+    background-color: color-mix(in srgb, var(--sidebar) 45%, transparent);
+  }
+
   /* Thin, theme-aware scrollbars instead of the light Windows default. */
   * {
     scrollbar-width: thin;

@@ -89,6 +89,37 @@ pub async fn guard(State(app): State<Arc<AppState>>, mut request: Request, next:
     with_cors(next.run(request).await, origin.as_deref())
 }
 
+/// A browser origin: `http(s)://host[:port]`, nothing after.
+pub(crate) fn is_origin(value: &str) -> bool {
+    let Some(rest) = value
+        .strip_prefix("http://")
+        .or_else(|| value.strip_prefix("https://"))
+    else {
+        return false;
+    };
+    // IPv6 hosts are bracketed: `[::1]:5173`.
+    let (host, port) = if let Some(end) = rest.find(']').filter(|_| rest.starts_with('[')) {
+        let (host, after) = rest.split_at(end + 1);
+        match after.strip_prefix(':') {
+            Some(port) => (host, Some(port)),
+            None if after.is_empty() => (host, None),
+            None => return false,
+        }
+    } else {
+        match rest.split_once(':') {
+            Some((host, port)) => (host, Some(port)),
+            None => (rest, None),
+        }
+    };
+    let host_ok = host == "[::1]"
+        || (!host.is_empty()
+            && host
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '-'));
+    let port_ok = port.is_none_or(|port| port.parse::<u16>().is_ok_and(|port| port > 0));
+    host_ok && port_ok
+}
+
 /// `Host` must name the loopback interface on our port.
 fn host_allowed(headers: &HeaderMap, port: u16) -> bool {
     let Some(host) = headers
@@ -168,6 +199,28 @@ mod tests {
             18181
         ));
         assert!(!host_allowed(&HeaderMap::new(), 18181));
+    }
+
+    #[test]
+    fn recognises_origins() {
+        for origin in [
+            "http://localhost:3000",
+            "https://example.com",
+            "http://127.0.0.1:8080",
+            "http://[::1]:5173",
+        ] {
+            assert!(is_origin(origin), "{origin}");
+        }
+        for value in [
+            "localhost:3000",
+            "http://localhost:3000/app",
+            "http://",
+            "ftp://example.com",
+            "http://exa mple.com",
+            "http://localhost:99999",
+        ] {
+            assert!(!is_origin(value), "{value}");
+        }
     }
 
     #[test]

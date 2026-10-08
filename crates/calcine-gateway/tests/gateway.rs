@@ -318,3 +318,64 @@ async fn a_taken_port_is_reported() {
     assert!(status.error.unwrap().contains(&port.to_string()));
     let _ = std::fs::remove_dir_all(dir);
 }
+
+#[tokio::test]
+async fn moves_to_another_port_and_keeps_the_old_one_when_taken() {
+    let harness = start(any_port()).await;
+    let free = std::net::TcpListener::bind("127.0.0.1:0")
+        .unwrap()
+        .local_addr()
+        .unwrap()
+        .port();
+
+    harness.gateway.set_port(free).await.unwrap();
+    let status = harness.gateway.status();
+    assert!(status.listening);
+    assert_eq!(status.base_url, format!("http://127.0.0.1:{free}/v1"));
+    let reply = harness
+        .http
+        .get(format!("http://127.0.0.1:{free}/v1/"))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(reply.status(), StatusCode::OK);
+
+    let taken = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let taken_port = taken.local_addr().unwrap().port();
+    let err = harness.gateway.set_port(taken_port).await.unwrap_err();
+    assert!(err.contains("already used"), "{err}");
+    let status = harness.gateway.status();
+    assert!(status.listening);
+    assert_eq!(status.base_url, format!("http://127.0.0.1:{free}/v1"));
+    assert_eq!(harness.gateway.settings().port, free);
+
+    assert!(harness.gateway.set_port(80).await.is_err());
+}
+
+#[tokio::test]
+async fn allowed_origins_are_validated_and_take_effect() {
+    let harness = start(any_port()).await;
+    assert!(
+        harness
+            .gateway
+            .set_allowed_origins(vec!["localhost:3000".into()])
+            .is_err()
+    );
+    harness
+        .gateway
+        .set_allowed_origins(vec![" HTTP://localhost:3000/ ".into()])
+        .unwrap();
+    assert_eq!(
+        harness.gateway.settings().allowed_origins,
+        ["http://localhost:3000"]
+    );
+    let reply = harness
+        .http
+        .get(format!("{}/v1/models", harness.base))
+        .header(header::ORIGIN, "http://localhost:3000")
+        .send()
+        .await
+        .unwrap();
+    // Allowed origin: past the Origin check, stopped by the missing key.
+    assert_eq!(reply.status(), StatusCode::UNAUTHORIZED);
+}

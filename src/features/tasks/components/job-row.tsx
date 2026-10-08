@@ -23,7 +23,7 @@ export function JobRow({ job }: { job: Job }) {
   const retryImport = useImportModel();
   const title = jobTitle(job, t);
   const importing = job.kind.type === "import";
-  const installing = job.kind.type === "install_runtime";
+  const installing = job.kind.type === "install_runtime" || job.kind.type === "update_app";
   const running = job.state.state === "running";
   // The GenieX installer can't be stopped halfway.
   const cancellable = running && job.progress?.phase !== "installing";

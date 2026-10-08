@@ -15,6 +15,8 @@ pub enum JobKind {
     Import { model: String, path: String },
     /// Installing, updating or rolling back GenieX itself.
     InstallRuntime { version: String },
+    /// Downloading and installing a newer Calcine.
+    UpdateApp { version: String },
 }
 
 /// What a multi-step job is doing right now.

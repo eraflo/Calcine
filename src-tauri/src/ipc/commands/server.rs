@@ -2,7 +2,8 @@ use std::sync::Arc;
 
 use calcine_core::Services;
 use calcine_gateway::{
-    ApiKeyInfo, CreatedApiKey, Gateway, GatewayStatus, KeyError, NewApiKey, RequestEntry,
+    ApiKeyInfo, CreatedApiKey, Gateway, GatewaySettings, GatewayStatus, KeyError, NewApiKey,
+    RequestEntry,
 };
 use serde::Serialize;
 use specta::Type;
@@ -98,4 +99,33 @@ fn key_error(err: KeyError) -> ApiError {
         KeyError::MissingName | KeyError::NoScope => ApiError::invalid_input(err.to_string()),
         KeyError::Io(_) | KeyError::Corrupted(_) => ApiError::io(err),
     }
+}
+
+/// The port and allowed browser origins of the local API.
+#[tauri::command]
+#[specta::specta]
+pub fn gateway_settings(gateway: State<'_, Arc<Gateway>>) -> GatewaySettings {
+    gateway.settings()
+}
+
+/// Move the local API to another port. Apps must use the new address.
+#[tauri::command]
+#[specta::specta]
+pub async fn set_gateway_port(gateway: State<'_, Arc<Gateway>>, port: u16) -> ApiResult<()> {
+    gateway
+        .set_port(port)
+        .await
+        .map_err(ApiError::invalid_input)
+}
+
+/// Browser origins allowed to call the local API (local web apps).
+#[tauri::command]
+#[specta::specta]
+pub fn set_allowed_origins(
+    gateway: State<'_, Arc<Gateway>>,
+    origins: Vec<String>,
+) -> ApiResult<()> {
+    gateway
+        .set_allowed_origins(origins)
+        .map_err(ApiError::invalid_input)
 }

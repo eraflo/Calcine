@@ -1,7 +1,8 @@
 # Security model
 
 Calcine exposes your local models to other apps through an HTTP API on
-`127.0.0.1:18181` (GenieX's default port, so existing GenieX clients work).
+`127.0.0.1:18181` (GenieX's default port, so existing GenieX clients work;
+it can be changed in Settings › Local API).
 This page explains what that API trusts and what it defends against.
 
 ## Architecture
@@ -22,7 +23,7 @@ outside request goes through the gateway.
 |---|---|
 | Listens on `127.0.0.1` only | Other machines on the network |
 | `Host` must be `127.0.0.1:<port>`, `localhost:<port>` or `[::1]:<port>` | DNS rebinding: a web page resolving its own domain to 127.0.0.1 to read the API |
-| A browser `Origin`, when present, must be allowed (Calcine's webview by default) | Web pages calling the API from your browser (CSRF), even with simple requests that skip CORS preflight |
+| A browser `Origin`, when present, must be allowed (Calcine's webview, plus the origins listed in Settings › Local API) | Web pages calling the API from your browser (CSRF), even with simple requests that skip CORS preflight |
 | `Authorization: Bearer calcine_…` must be a known key (on by default) | Other local programs using your models without your consent |
 | Key scopes: `inference` (`/v1/*`) and `manage` (`/calcine/v1/*`) | An app meant to chat downloading or deleting models |
 | Request bodies: local paths and URLs refused in `image_url`, `grammar_path`, `spec_draft_model` unless the key allows local files (`input_audio` is always decoded as base64 by GenieX, so it needs no check) | GenieX reading arbitrary files (`C:/Users/…`) or fetching internal URLs (SSRF) on an app's behalf |
@@ -53,6 +54,20 @@ Chat conversations are stored in the app's local storage on this PC only.
 Calcine runs inside a Windows Job Object that kills its child processes
 (`geniex serve`, downloads) when Calcine exits, including after a crash, so no
 unauthenticated server or loaded model is left behind.
+
+## Updates
+
+- **GenieX**: Calcine reads Qualcomm's release index over HTTPS, downloads the
+  installer, and refuses it unless its SHA-256 matches the official manifest.
+  An Authenticode signature, when present, must be valid and from Qualcomm
+  (GenieX installers aren't signed yet; `windows-signed.txt` is reported in
+  the UI). `geniex serve` is stopped before the installer runs.
+- **Calcine**: updates are signed with Calcine's updater key (minisign) and
+  verified by the app before installing; the public key ships in the app.
+  Release installers also carry SHA-256 checksums, a CycloneDX SBOM and a
+  GitHub build provenance attestation.
+- Links Calcine opens in the browser are limited to HTTPS pages on GitHub,
+  Hugging Face and Qualcomm AI Hub.
 
 ## Not in scope (yet)
 

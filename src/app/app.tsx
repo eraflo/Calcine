@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider } from "@tanstack/react-router";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { CalcineError } from "@/lib/api";
-import { useApplyTheme } from "@/stores/theme";
+import { useApplyMaterial, useApplyTheme } from "@/stores/theme";
 import { router } from "./router";
 
 /** Errors that retrying can't fix. */
@@ -20,6 +20,7 @@ const queryClient = new QueryClient({
 
 export function App() {
   useApplyTheme();
+  useApplyMaterial();
 
   return (
     <QueryClientProvider client={queryClient}>

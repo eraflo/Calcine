@@ -64,6 +64,15 @@ pub struct Gateway {
 struct Running {
     app: Arc<AppState>,
     shutdown: oneshot::Sender<()>,
+    /// Mirrors inference-server state into the status for this port.
+    watcher: tokio::task::AbortHandle,
+}
+
+impl Running {
+    fn shut_down(self) {
+        self.watcher.abort();
+        let _ = self.shutdown.send(());
+    }
 }
 
 impl Gateway {
@@ -100,18 +109,9 @@ impl Gateway {
         if running.is_some() {
             return Ok(());
         }
-        let port = self.settings().port;
-        let listener = match tokio::net::TcpListener::bind(("127.0.0.1", port)).await {
+        let listener = match bind(self.settings().port).await {
             Ok(listener) => listener,
-            Err(err) => {
-                let message = if err.kind() == std::io::ErrorKind::AddrInUse {
-                    format!(
-                        "Port {port} is already used by another program, possibly `geniex serve` \
-                         started from a terminal. Stop it, or change the port in Settings."
-                    )
-                } else {
-                    format!("Couldn't listen on 127.0.0.1:{port}: {err}")
-                };
+            Err(message) => {
                 self.status.send_modify(|status| {
                     status.listening = false;
                     status.error = Some(message.clone());
@@ -119,6 +119,12 @@ impl Gateway {
                 return Err(message);
             }
         };
+        *running = Some(self.serve(listener)?);
+        Ok(())
+    }
+
+    /// Serve the API on `listener`.
+    fn serve(&self, listener: tokio::net::TcpListener) -> Result<Running, String> {
         let port = listener.local_addr().map_err(|err| err.to_string())?.port();
 
         let app = Arc::new(AppState::new(
@@ -133,6 +139,7 @@ impl Gateway {
         self.status.send_modify(|status| {
             status.listening = true;
             status.error = None;
+            status.base_url = format!("http://127.0.0.1:{port}/v1");
         });
         app.refresh_status();
 
@@ -152,20 +159,24 @@ impl Gateway {
         // Mirror inference-server transitions into the gateway status.
         let watcher = app.clone();
         let mut server_state = self.services.server.state();
-        tokio::spawn(async move {
+        let watcher = tokio::spawn(async move {
             while server_state.changed().await.is_ok() {
                 watcher.refresh_status();
             }
-        });
+        })
+        .abort_handle();
 
         tracing::info!(port, "gateway listening");
-        *running = Some(Running { app, shutdown });
-        Ok(())
+        Ok(Running {
+            app,
+            shutdown,
+            watcher,
+        })
     }
 
     pub async fn stop(&self) {
         if let Some(running) = self.running.lock().await.take() {
-            let _ = running.shutdown.send(());
+            running.shut_down();
         }
         self.status.send_modify(|status| status.listening = false);
     }
@@ -197,6 +208,67 @@ impl Gateway {
             .clone()
     }
 
+    /// Listen on another loopback port. The gateway restarts; if the new
+    /// port can't be used, the previous one is restored and the error is
+    /// returned.
+    pub async fn set_port(&self, port: u16) -> Result<(), String> {
+        if port < 1024 {
+            return Err("choose a port between 1024 and 65535".into());
+        }
+        let mut running = self.running.lock().await;
+        if self.settings().port == port && running.is_some() {
+            return Ok(());
+        }
+        // Take the new port before letting go of the old one, so a taken
+        // port leaves the API where it was.
+        let listener = bind(port).await?;
+        if let Some(previous) = running.take() {
+            previous.shut_down();
+        }
+        self.update_settings(|settings| settings.port = port)
+            .map_err(|err| err.to_string())?;
+        *running = Some(self.serve(listener)?);
+        Ok(())
+    }
+
+    /// Browser origins allowed to call the API besides Calcine's own UI,
+    /// e.g. `http://localhost:3000` for a local web app. Takes effect
+    /// immediately.
+    pub fn set_allowed_origins(&self, origins: Vec<String>) -> Result<(), String> {
+        let mut cleaned = Vec::with_capacity(origins.len());
+        for origin in origins {
+            let origin = origin.trim().trim_end_matches('/').to_ascii_lowercase();
+            if origin.is_empty() {
+                continue;
+            }
+            if !security::is_origin(&origin) {
+                return Err(format!(
+                    "{origin} isn't an origin: use the form http://host:port, without a path"
+                ));
+            }
+            if !cleaned.contains(&origin) {
+                cleaned.push(origin);
+            }
+        }
+        self.update_settings(|settings| settings.allowed_origins = cleaned)
+            .map_err(|err| err.to_string())
+    }
+
+    fn update_settings(&self, change: impl FnOnce(&mut GatewaySettings)) -> std::io::Result<()> {
+        let settings = {
+            let mut settings = self
+                .settings
+                .write()
+                .unwrap_or_else(PoisonError::into_inner);
+            change(&mut settings);
+            settings.clone()
+        };
+        if let Some(path) = &self.settings_path {
+            settings.save(path)?;
+        }
+        Ok(())
+    }
+
     /// Require (or stop requiring) API keys. Takes effect immediately.
     pub async fn set_require_api_key(&self, require: bool) -> std::io::Result<()> {
         let settings = {
@@ -218,6 +290,21 @@ impl Gateway {
         }
         Ok(())
     }
+}
+
+async fn bind(port: u16) -> Result<tokio::net::TcpListener, String> {
+    tokio::net::TcpListener::bind(("127.0.0.1", port))
+        .await
+        .map_err(|err| {
+            if err.kind() == std::io::ErrorKind::AddrInUse {
+                format!(
+                    "Port {port} is already used by another program, possibly `geniex serve` \
+                     started from a terminal. Stop it, or change the port in Settings."
+                )
+            } else {
+                format!("Couldn't listen on 127.0.0.1:{port}: {err}")
+            }
+        })
 }
 
 pub(crate) fn now_ms() -> u64 {

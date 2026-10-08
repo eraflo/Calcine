@@ -20,7 +20,9 @@
         "minHeight": 620,
         "center": true,
         "theme": "Dark",
-        "backgroundColor": "#0C0C10"
+        "backgroundColor": "#0C0C10",
+        "visible": false,
+        "transparent": true
       }
     ],
     "security": {
@@ -30,7 +32,7 @@
         "style-src": "'self' 'unsafe-inline'",
         "img-src": "'self' data: asset: http://asset.localhost",
         "font-src": "'self' data:",
-        "connect-src": "'self' ipc: http://ipc.localhost http://127.0.0.1:18181"
+        "connect-src": "'self' ipc: http://ipc.localhost http://127.0.0.1:*"
       }
     }
   },
@@ -55,6 +57,15 @@
     "windows": {
       "nsis": {
         "installMode": "currentUser"
+      }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEJCQjE3QkJFRUZGMkZGOTUKUldTVi8vTHZ2bnV4dTF2aVJ3VjBnYmRzdU9pM1FjeHJxTDVvTnhEanZ4YXpob3YvdDdnSHlaSlYK",
+      "endpoints": ["https://github.com/eraflo/calcine/releases/latest/download/latest.json"],
+      "windows": {
+        "installMode": "passive"
       }
     }
   }

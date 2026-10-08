@@ -3,6 +3,7 @@ use serde::Serialize;
 use specta::Type;
 use tauri::{AppHandle, State};
 
+use tauri_plugin_autostart::ManagerExt;
 use tauri_plugin_opener::OpenerExt;
 
 use crate::desktop::locale::{Language, Locale};
@@ -54,4 +55,23 @@ pub fn open_url(app: AppHandle, url: String) -> ApiResult<()> {
     app.opener()
         .open_url(url, None::<&str>)
         .map_err(ApiError::io)
+}
+
+/// Whether Calcine starts with Windows (in the tray).
+#[tauri::command]
+#[specta::specta]
+pub fn autostart_enabled(app: AppHandle) -> ApiResult<bool> {
+    app.autolaunch().is_enabled().map_err(ApiError::io)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn set_autostart(app: AppHandle, enabled: bool) -> ApiResult<()> {
+    let launcher = app.autolaunch();
+    if enabled {
+        launcher.enable()
+    } else {
+        launcher.disable()
+    }
+    .map_err(ApiError::io)
 }

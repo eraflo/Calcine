@@ -12,8 +12,9 @@ and local setup.
 | `feat/*`, `fix/*`, `chore/*`, `docs/*` | Work in progress | — |
 
 - Branch off **`dev`** and open your pull request against **`dev`**.
-- `main` only receives release pull requests from `dev` (and automated release commits).
-- Pull requests are **squash-merged**; both protected branches keep a linear history.
+- `main` only receives release pull requests from `dev`, merged with a merge
+  commit so both branches share history. See [docs/RELEASING.md](docs/RELEASING.md).
+- Pull requests to `dev` are **squash-merged**, keeping its history linear.
 
 ## Commit and PR titles
 

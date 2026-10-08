@@ -9,3 +9,4 @@ pub mod jobs;
 pub mod models;
 pub mod runtime;
 pub mod server;
+pub mod updates;

@@ -1,7 +1,8 @@
 name: Prerelease
 
 # Every push to `dev` publishes an installable beta: Windows ARM64 NSIS
-# installer with GenieX bundled, as a GitHub pre-release.
+# installer with GenieX bundled, as a GitHub pre-release, and points the
+# Beta update channel at it.
 
 on:
   push:
@@ -44,13 +45,20 @@ jobs:
         id: version
         run: echo "version=$(bun scripts/version.ts beta ${{ github.run_number }})" >> "$GITHUB_OUTPUT"
 
-      - name: Build installer (GenieX bundled)
+      - name: Build installer (GenieX bundled, update signature)
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: bun run build:release
 
       - name: Collect artifacts
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
           mkdir -p dist-release
-          cp target/release/bundle/nsis/*.exe dist-release/
+          cp target/release/bundle/nsis/*-setup.exe dist-release/
+          printf 'Beta from `dev` (%s).\n' "${GITHUB_SHA::7}" > notes.md
+          bun scripts/updater-manifest.ts "$VERSION" latest-beta.json notes.md
           cd dist-release && sha256sum -- * > SHA256SUMS
 
       - name: Publish pre-release
@@ -66,3 +74,14 @@ jobs:
             --notes "Automated beta from \`dev\` (${GITHUB_SHA::7}), bundling GenieX $geniex.
 
           This build isn't code-signed yet, so Windows SmartScreen will warn before installing."
+
+      # The Beta channel (Settings > Calcine updates) reads latest-beta.json
+      # from a fixed release. It's a pre-release so it never becomes "latest".
+      - name: Point the Beta update channel at this build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view beta-channel >/dev/null 2>&1 || gh release create beta-channel \
+            --prerelease --target "$GITHUB_SHA" --title "Beta update channel" \
+            --notes "Holds latest-beta.json for Calcine's Beta update channel. Not an installer."
+          gh release upload beta-channel latest-beta.json --clobber

@@ -5,16 +5,19 @@ download, manage and run LLMs and VLMs on the Snapdragon NPU / GPU / CPU, and
 expose them to any app through a secured, OpenAI-compatible endpoint on
 `127.0.0.1:18181`.
 
-> Status: early development — not yet released.
+> Status: beta. Download the latest installer from
+> [Releases](https://github.com/eraflo/Calcine/releases) (Windows 11 ARM64).
+> Builds aren't code-signed yet, so SmartScreen warns before installing.
 
-## Features (planned)
+## Features
 
-- One-click access to every GenieX command: pull, remove, list, catalog, serve, config, update
-- Model library and discovery (Qualcomm AI Hub, Hugging Face, ModelScope, Docker Hub, local import)
-- Chat playground with every inference option, adapted to the model's runtime
-- Live hardware view: Hexagon NPU, Adreno GPU, Oryon CPU, memory
-- Local API with per-app keys, origin checks and request log
-- GenieX bundled in the installer and updatable from the app
+- Every GenieX command in the UI: pull, import, remove, clean, list, catalog, set-type, serve, config, update
+- Discover models on Qualcomm AI Hub and Hugging Face, with precisions, sizes and memory/disk checks
+- Chat with every inference option, adapted to the model's runtime, with images and voice for vision models
+- Live hardware view (Hexagon NPU, Adreno GPU, Oryon CPU, memory) and a per-unit speed self-test
+- Local OpenAI-compatible API with per-app keys, origin checks and a request log
+- GenieX bundled in the installer, updatable (or rolled back) from the app; Calcine updates itself
+- English and French
 
 ## Requirements
 

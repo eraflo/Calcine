@@ -22,14 +22,14 @@ export function nextBeta(version: string, build: number): string {
   return `${major}.${Number(minor) + 1}.0-beta.${build}`;
 }
 
-async function currentVersion(): Promise<string> {
+export async function currentVersion(): Promise<string> {
   const cargo = await Bun.file(CARGO).text();
   const version = WORKSPACE_VERSION.exec(cargo)?.[2];
   if (!version) throw new Error("no [workspace.package] version in Cargo.toml");
   return version;
 }
 
-async function stamp(version: string) {
+export async function stamp(version: string) {
   const cargo = await Bun.file(CARGO).text();
   await Bun.write(CARGO, cargo.replace(WORKSPACE_VERSION, `$1${version}$3`));
   const pkg = await Bun.file(PACKAGE).json();

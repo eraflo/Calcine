@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/field";
 import { SegmentedControl } from "@/components/ui/segmented-control";
+import { Switch } from "@/components/ui/switch";
 import { hardwareQuery } from "@/features/hardware/api";
 import { modelsQuery, useCleanModels } from "@/features/library/api";
 import { type LanguagePreference, useLanguage, useT } from "@/i18n";
@@ -15,6 +16,8 @@ import { commands, unwrap } from "@/lib/api";
 import { formatBytes, totalBytes } from "@/lib/format";
 import { useTheme } from "@/stores/theme";
 import { appInfoQuery } from "./api";
+import { LocalApiCard, StartupCard } from "./components/system-cards";
+import { UpdatesCard } from "./components/updates-card";
 import { messages } from "./messages";
 
 export function SettingsPage() {
@@ -22,7 +25,10 @@ export function SettingsPage() {
   return (
     <Page title={t("title")}>
       <AppearanceCard />
+      <StartupCard />
+      <LocalApiCard />
       <StorageCard />
+      <UpdatesCard />
       <AboutCard />
     </Page>
   );
@@ -30,7 +36,7 @@ export function SettingsPage() {
 
 function AppearanceCard() {
   const t = useT(messages);
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, mica, setMica } = useTheme();
   const { preference, setPreference } = useLanguage();
   return (
     <Card>
@@ -51,6 +57,9 @@ function AppearanceCard() {
               { value: "system", label: t("system"), icon: Monitor },
             ]}
           />
+        </Row>
+        <Row label={t("mica")} hint={t("micaHint")}>
+          <Switch checked={mica} onCheckedChange={setMica} aria-label={t("mica")} />
         </Row>
         <Row label={t("language")} hint={t("languageHint")}>
           <SegmentedControl<LanguagePreference>

@@ -1,0 +1,63 @@
+name: GenieX bump
+
+# Daily: when Qualcomm publishes a new stable GenieX, verify the installer
+# (SHA-256, then install it and run `geniex version`) and open a PR to `dev`
+# that bundles it in Calcine's installer.
+
+on:
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bump:
+    name: Check for a new GenieX
+    runs-on: windows-11-arm
+    permissions:
+      contents: write
+      pull-requests: write
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: dev
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
+
+      - name: Pin the latest stable GenieX
+        id: bump
+        run: echo "version=$(bun scripts/geniex-bump.ts)" >> "$GITHUB_OUTPUT"
+
+      - name: Install it and check the version
+        if: steps.bump.outputs.version != ''
+        shell: pwsh
+        run: |
+          Start-Process -Wait -FilePath .\geniex-cli-setup.exe -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART"
+          $version = & "$env:LOCALAPPDATA\GenieX CLI\geniex.exe" --skip-update version
+          $version
+          if (-not ($version -match [regex]::Escape("${{ steps.bump.outputs.version }}"))) { throw "unexpected version" }
+          Remove-Item .\geniex-cli-setup.exe
+
+      # PRs opened with the workflow token don't start CI: close and reopen
+      # the PR (or push to its branch) to run the checks.
+      - name: Open the pull request
+        if: steps.bump.outputs.version != ''
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          base: dev
+          branch: chore/geniex-${{ steps.bump.outputs.version }}
+          add-paths: runtime/geniex.json
+          commit-message: "chore(runtime): bundle GenieX ${{ steps.bump.outputs.version }}"
+          title: "chore(runtime): bundle GenieX ${{ steps.bump.outputs.version }}"
+          body: |
+            Qualcomm published GenieX ${{ steps.bump.outputs.version }}. This pins it in `runtime/geniex.json`, so the next Calcine installers bundle it.
+
+            Checked by this workflow: the installer matches the official manifest (size and SHA-256), installs silently on Windows ARM64, and `geniex version` reports ${{ steps.bump.outputs.version }}.
+
+            Before merging: run the manual checklist in docs/RELEASING.md on a Snapdragon PC (download, chat on the NPU, server).

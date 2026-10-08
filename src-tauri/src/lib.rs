@@ -36,9 +36,14 @@ pub fn run() {
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
             desktop::show_main_window(app);
         }))
+        .plugin(tauri_plugin_autostart::init(
+            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+            Some(vec![desktop::MINIMIZED_ARG]),
+        ))
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(desktop::locale::Locale::default())
         .invoke_handler(specta.invoke_handler())
         .setup(move |app| {
@@ -46,6 +51,10 @@ pub fn run() {
             let services = setup::start(app)?;
             desktop::notifications::notify_finished_jobs(app.handle(), &services.jobs);
             desktop::tray::install(app)?;
+            // Started with Windows: stay in the tray until opened.
+            if !std::env::args().any(|arg| arg == desktop::MINIMIZED_ARG) {
+                desktop::show_main_window(app.handle());
+            }
             Ok(())
         })
         .on_window_event(desktop::on_window_event)

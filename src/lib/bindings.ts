@@ -16,6 +16,23 @@ export const commands = {
 	 *  links to the sites Calcine itself links to are opened.
 	 */
 	openUrl: (url: string) => typedError<null, ApiError>(__TAURI_INVOKE("open_url", { url })),
+	/**  Whether Calcine starts with Windows (in the tray). */
+	autostartEnabled: () => typedError<boolean, ApiError>(__TAURI_INVOKE("autostart_enabled")),
+	setAutostart: (enabled: boolean) => typedError<null, ApiError>(__TAURI_INVOKE("set_autostart", { enabled })),
+	/**  The newest Calcine on `channel`, or `None` when up to date. */
+	checkAppUpdate: (channel: AppChannel) => typedError<{
+	version: string,
+	currentVersion: string,
+	/**  Release notes (Markdown). */
+	notes: string | null,
+	/**  RFC 3339 date. */
+	date: string | null,
+} | null, ApiError>(__TAURI_INVOKE("check_app_update", { channel })),
+	/**
+	 *  Download the update with progress (a job in the task drawer), verify its
+	 *  signature, then run the installer, which closes Calcine and reopens it.
+	 */
+	installAppUpdate: (channel: AppChannel) => typedError<number, ApiError>(__TAURI_INVOKE("install_app_update", { channel })),
 	/**  Models in the local GenieX cache (`geniex list`). */
 	listModels: () => typedError<LocalModel[], ApiError>(__TAURI_INVOKE("list_models")),
 	/**  Delete whole models or single precisions (`geniex remove`). */
@@ -84,6 +101,12 @@ export const commands = {
 	/**  Recent output of `geniex serve`. */
 	serverLogs: () => __TAURI_INVOKE<string[]>("server_logs"),
 	setRequireApiKey: (require: boolean) => typedError<null, ApiError>(__TAURI_INVOKE("set_require_api_key", { require })),
+	/**  The port and allowed browser origins of the local API. */
+	gatewaySettings: () => __TAURI_INVOKE<GatewaySettings>("gateway_settings"),
+	/**  Move the local API to another port. Apps must use the new address. */
+	setGatewayPort: (port: number) => typedError<null, ApiError>(__TAURI_INVOKE("set_gateway_port", { port })),
+	/**  Browser origins allowed to call the local API (local web apps). */
+	setAllowedOrigins: (origins: string[]) => typedError<null, ApiError>(__TAURI_INVOKE("set_allowed_origins", { origins })),
 	/**  Recent API requests, newest first. */
 	listRequests: () => __TAURI_INVOKE<RequestEntry[]>("list_requests"),
 	listApiKeys: () => __TAURI_INVOKE<ApiKeyInfo[]>("list_api_keys"),
@@ -128,9 +151,26 @@ export type ApiKeyInfo = {
 	lastUsedAtMs: number | null,
 };
 
+/**  Which Calcine releases to follow. */
+export type AppChannel = 
+/**  Releases from `main`. */
+"stable" | 
+/**  Pre-releases from `dev` (or the latest stable when it's newer). */
+"beta";
+
 export type AppInfo = {
 	version: string,
 	backend: BackendKind,
+};
+
+/**  A newer Calcine, ready to install. */
+export type AppUpdate = {
+	version: string,
+	currentVersion: string,
+	/**  Release notes (Markdown). */
+	notes: string | null,
+	/**  RFC 3339 date. */
+	date: string | null,
 };
 
 /**  Which implementation backs the services. */
@@ -198,6 +238,18 @@ export type GatewayConnection = {
 	baseUrl: string,
 	/**  Per-launch token with full rights. Only given to the app's webview. */
 	token: string,
+};
+
+export type GatewaySettings = {
+	/**  Loopback port apps connect to. GenieX's default, so existing clients work. */
+	port?: number,
+	/**
+	 *  Reject requests without a valid API key. Turning this off lets any
+	 *  local program use the models (inference only).
+	 */
+	requireApiKey?: boolean,
+	/**  Extra browser origins allowed to call the API (e.g. a local web UI). */
+	allowedOrigins?: string[],
 };
 
 /**  What the Server page shows. */
@@ -299,7 +351,9 @@ export type JobKind =
 /**  Copying a model from this PC into the cache (`geniex pull --model-hub localfs`). */
 { type: "import"; model: string; path: string } | 
 /**  Installing, updating or rolling back GenieX itself. */
-{ type: "install_runtime"; version: string };
+{ type: "install_runtime"; version: string } | 
+/**  Downloading and installing a newer Calcine. */
+{ type: "update_app"; version: string };
 
 /**  What a multi-step job is doing right now. */
 export type JobPhase = "downloading" | "verifying" | "installing";

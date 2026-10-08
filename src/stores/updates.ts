@@ -1,8 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { ReleaseChannel } from "@/lib/api";
-
-export type AppChannel = "stable" | "beta";
+import type { AppChannel, ReleaseChannel } from "@/lib/api";
 
 type UpdatesState = {
   /** GenieX releases to follow. */

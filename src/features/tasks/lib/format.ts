@@ -9,9 +9,14 @@ export const isRunning = (job: Job) => job.state.state === "running";
 
 /** What a job is about: `owner/model[:precision]`, or `GenieX v0.8.1`. */
 export function jobTitle(job: Job, t: TasksT): string {
-  return job.kind.type === "install_runtime"
-    ? t("geniexVersion", { version: job.kind.version })
-    : job.kind.model;
+  switch (job.kind.type) {
+    case "install_runtime":
+      return t("geniexVersion", { version: job.kind.version });
+    case "update_app":
+      return t("calcineVersion", { version: job.kind.version });
+    default:
+      return job.kind.model;
+  }
 }
 
 /** 0–100, or `null` while the total is unknown. */

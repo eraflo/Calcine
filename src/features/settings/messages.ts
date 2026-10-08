@@ -9,6 +9,8 @@ export const messages = defineMessages({
     dark: "Dark",
     light: "Light",
     system: "System",
+    mica: "Mica material",
+    micaHint: "Windows 11's translucent material behind the window. Uses a little more power.",
     language: "Language",
     languageHint: "System follows Windows' display language.",
     storage: "Storage",
@@ -43,6 +45,9 @@ export const messages = defineMessages({
     dark: "Sombre",
     light: "Clair",
     system: "Système",
+    mica: "Matière Mica",
+    micaHint:
+      "La matière translucide de Windows 11 derrière la fenêtre. Consomme un peu plus d'énergie.",
     language: "Langue",
     languageHint: "Système suit la langue d'affichage de Windows.",
     storage: "Stockage",

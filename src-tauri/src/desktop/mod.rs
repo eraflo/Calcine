@@ -9,6 +9,9 @@ pub mod tray;
 use tauri::webview::{PermissionKind, PermissionResponse};
 use tauri::{AppHandle, Manager, Webview, Window, WindowEvent};
 
+/// Passed when Calcine starts with Windows: it stays in the tray.
+pub const MINIMIZED_ARG: &str = "--minimized";
+
 /// Bring the main window back (from the tray or a second launch).
 pub fn show_main_window(app: &AppHandle) {
     if let Some(window) = app.get_webview_window("main") {

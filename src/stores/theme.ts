@@ -1,5 +1,5 @@
 import { isTauri } from "@tauri-apps/api/core";
-import { getCurrentWindow } from "@tauri-apps/api/window";
+import { Effect, getCurrentWindow } from "@tauri-apps/api/window";
 import { useEffect } from "react";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
@@ -8,14 +8,23 @@ export type ThemePreference = "dark" | "light" | "system";
 
 type ThemeState = {
   theme: ThemePreference;
+  /** Let Windows 11's Mica material show through the window background. */
+  mica: boolean;
   setTheme: (theme: ThemePreference) => void;
+  setMica: (mica: boolean) => void;
 };
 
-/** Theme preference, persisted per user. Dark is Calcine's default. */
+/** Theme preference, persisted per user. Dark and opaque by default. */
 export const useTheme = create<ThemeState>()(
-  persist((set) => ({ theme: "dark", setTheme: (theme) => set({ theme }) }), {
-    name: "calcine.theme",
-  }),
+  persist(
+    (set) => ({
+      theme: "dark",
+      mica: false,
+      setTheme: (theme) => set({ theme }),
+      setMica: (mica) => set({ mica }),
+    }),
+    { name: "calcine.theme" },
+  ),
 );
 
 const prefersLight = () => window.matchMedia("(prefers-color-scheme: light)");
@@ -45,4 +54,16 @@ export function useApplyTheme() {
     media.addEventListener("change", apply);
     return () => media.removeEventListener("change", apply);
   }, [theme]);
+}
+
+/** Turn the Mica material on or off (`<html data-material>` and the window effect). */
+export function useApplyMaterial() {
+  const mica = useTheme((state) => state.mica);
+
+  useEffect(() => {
+    document.documentElement.dataset.material = mica ? "mica" : "solid";
+    if (!isTauri()) return;
+    const window = getCurrentWindow();
+    (mica ? window.setEffects({ effects: [Effect.Mica] }) : window.clearEffects()).catch(() => {});
+  }, [mica]);
 }
