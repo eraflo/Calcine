@@ -92,6 +92,21 @@ describe("optional settings", () => {
   });
 });
 
+describe("vision encoder", () => {
+  it("is sent to llama.cpp vision models only, as a GenieX device name", () => {
+    const settings = { ...DEFAULT_SETTINGS, visionCompute: "npu" as const };
+    const vlm = { ...model("llama_cpp"), modelType: "vlm" as const };
+    expect(buildChatRequest(vlm, "m/x", settings, hello)).toHaveProperty("vit_compute", "HTP0");
+    expect(
+      buildChatRequest(vlm, "m/x", { ...settings, visionCompute: "cpu" }, hello),
+    ).toHaveProperty("vit_compute", "CPU");
+    expect(buildChatRequest(model("llama_cpp"), "m/x", settings, hello)).not.toHaveProperty(
+      "vit_compute",
+    );
+    expect(buildChatRequest(vlm, "m/x", DEFAULT_SETTINGS, hello)).not.toHaveProperty("vit_compute");
+  });
+});
+
 describe("stopIndex", () => {
   it("finds the earliest stop sequence", () => {
     expect(stopIndex("one. two\n\nthree", ["\n\n", "."])).toBe(3);

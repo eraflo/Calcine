@@ -25,7 +25,9 @@ import {
   PRESETS,
   type Preset,
   supportsComputeChoice,
+  supportsMedia,
   toCurl,
+  type VisionCompute,
 } from "../lib/request";
 import { messages } from "../messages";
 import { useChat } from "../store";
@@ -48,7 +50,10 @@ const ADVANCED_SAMPLING = [
   "stop",
 ] as const satisfies readonly (keyof ChatSettings)[];
 
-const MODEL_LOADING = ["gpuLayers"] as const satisfies readonly (keyof ChatSettings)[];
+const MODEL_LOADING = [
+  "gpuLayers",
+  "visionCompute",
+] as const satisfies readonly (keyof ChatSettings)[];
 
 /** Generation options, adapted to what the selected model supports. */
 export function SettingsPanel({
@@ -261,7 +266,24 @@ export function SettingsPanel({
             integer
             onChange={(gpuLayers) => setSettings({ gpuLayers })}
           />
-        ) : (
+        ) : null}
+        {llamaCpp && supportsMedia(model) ? (
+          <Field label={t("visionEncoder")} hint={t("visionEncoderHint")}>
+            <SegmentedControl<VisionCompute | "auto">
+              name="vision-compute"
+              label={t("visionEncoder")}
+              value={settings.visionCompute ?? "auto"}
+              onChange={(value) => setSettings({ visionCompute: value === "auto" ? null : value })}
+              options={[
+                { value: "auto", label: t("auto") },
+                { value: "cpu", label: tc("cpu"), activeClassName: "text-cpu" },
+                { value: "npu", label: tc("npu"), activeClassName: "text-npu" },
+              ]}
+              className="w-full"
+            />
+          </Field>
+        ) : null}
+        {llamaCpp ? null : (
           <p className="text-[11px] leading-snug text-muted-foreground">{t("loadingQairt")}</p>
         )}
         <p className="text-[11px] leading-snug text-muted-foreground">{t("contextOnServer")}</p>

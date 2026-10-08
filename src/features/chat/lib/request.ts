@@ -37,7 +37,15 @@ export type ChatSettings = {
   stop: string[];
   /** Layers offloaded to the GPU or NPU, -1 for all (llama.cpp only). */
   gpuLayers: number | null;
+  /** Where llama.cpp vision models encode images. GenieX 0.8 accepts the
+   * CPU or an NPU device, not the GPU. */
+  visionCompute: VisionCompute | null;
 };
+
+export type VisionCompute = "cpu" | "npu";
+
+/** GenieX device names for `vit_compute`. */
+const VISION_DEVICES: Record<VisionCompute, string> = { cpu: "CPU", npu: "HTP0" };
 
 export const DEFAULT_SETTINGS: ChatSettings = {
   systemPrompt: "",
@@ -55,6 +63,7 @@ export const DEFAULT_SETTINGS: ChatSettings = {
   seed: null,
   stop: [],
   gpuLayers: null,
+  visionCompute: null,
 };
 
 /** Sampling presets, from focused to inventive. */
@@ -166,6 +175,9 @@ export function buildChatRequest(
     ...(stop.length ? { stop } : {}),
     ...(llamaCpp
       ? { compute: settings.compute, ...optional({ seed: settings.seed, ngl: settings.gpuLayers }) }
+      : {}),
+    ...(llamaCpp && supportsMedia(model) && settings.visionCompute
+      ? { vit_compute: VISION_DEVICES[settings.visionCompute] }
       : {}),
     ...(settings.powerMode !== DEFAULT_SETTINGS.powerMode
       ? { power_mode: settings.powerMode }
