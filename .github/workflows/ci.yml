@@ -85,8 +85,11 @@ jobs:
       - name: Pinned GenieX installer is published
         run: bun scripts/fetch-geniex.ts --check
 
+  # The real target, built only for `main` and pull requests to it (release
+  # PRs); `dev` relies on the checks above.
   build-windows-arm64:
     name: Build (Windows ARM64)
+    if: github.ref == 'refs/heads/main' || github.base_ref == 'main'
     runs-on: windows-11-arm
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

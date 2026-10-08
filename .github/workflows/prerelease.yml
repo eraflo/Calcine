@@ -1,12 +1,11 @@
 name: Prerelease
 
-# Every push to `dev` publishes an installable beta: Windows ARM64 NSIS
-# installer with GenieX bundled, as a GitHub pre-release, and points the
-# Beta update channel at it.
+# On demand (Actions > Prerelease > Run workflow, on `dev`): publish an
+# installable beta, Windows ARM64 NSIS installer with GenieX bundled, as a
+# GitHub pre-release, and point the Beta update channel at it. Pushes to
+# `dev` don't build installers; only `main` releases do.
 
 on:
-  push:
-    branches: [dev]
   workflow_dispatch:
 
 permissions:

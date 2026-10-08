@@ -5,7 +5,7 @@ Two channels, both installed and updated in place by Calcine itself
 
 | Channel | Comes from | Version | Published by |
 |---|---|---|---|
-| **Beta** | every push to `dev` | `X.(Y+1).0-beta.<run>` | `.github/workflows/prerelease.yml` |
+| **Beta** | `dev`, on demand | `X.(Y+1).0-beta.<run>` | `.github/workflows/prerelease.yml` (run manually) |
 | **Stable** | `main`, after a release PR | `X.Y.Z` | `.github/workflows/release.yml` |
 
 Updates are signed with the updater key (minisign): the public key is in
@@ -29,7 +29,8 @@ manager.
    `chore(release): v1.0.0`. Edit the changelog wording if needed (amend).
 
 2. Push `dev`, open a pull request `dev → main`, and run the manual checklist
-   below on a Snapdragon PC with the beta built from that commit.
+   below on a Snapdragon PC (with a beta from that commit, run on demand, or a
+   local `bun run build:release`).
 
 3. Merge with a **merge commit** (not squash), so `dev` and `main` keep the
    same history.
@@ -49,9 +50,12 @@ Pushes to `main` that don't change the version publish nothing.
 
 ## Beta builds
 
-Automatic on every push to `dev`. Each beta is a GitHub pre-release with the
-installer and `SHA256SUMS`; the fixed pre-release `beta-channel` holds
-`latest-beta.json`, which the Beta channel reads.
+Pushes to `dev` only run the checks (no installer). To publish a beta, run
+**Actions › Prerelease › Run workflow** on `dev`. Each beta is a GitHub
+pre-release with the installer and `SHA256SUMS`; the fixed pre-release
+`beta-channel` holds `latest-beta.json`, which the Beta channel reads.
+
+The Windows ARM64 build runs in CI only for `main` and pull requests to it.
 
 ## GenieX bundled in the installer
 

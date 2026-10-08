@@ -29,7 +29,7 @@ Security of the gateway is described in [security-model.md](security-model.md).
 | Crate | Role | Depends on Tauri? |
 |---|---|---|
 | `crates/calcine-core` | Domain types, model references (pasted names and links), service traits (`ModelStore`, `ModelCatalog`, `RuntimeManager`, `HardwareProbe`), the `JobManager` for long-running work, errors, `Services` | No |
-| `crates/calcine-geniex` | GenieX CLI adapter: discovery, command runner, `pull` with live progress, `geniex serve` supervisor, output parsers tested on real captures (`tests/fixtures/`) | No |
+| `crates/calcine-geniex` | GenieX CLI adapter: discovery, command runner, `pull` with live progress, `geniex serve` supervisor, output parsers tested on real captures (`tests/fixtures/`), installing and updating GenieX (`update/`: release index, verified download, signature, silent installer, cache for rolling back) | No |
 | `crates/calcine-gateway` | Local HTTP API (axum): Host/Origin/API-key checks, body sanitizing, OpenAI-compatible proxy with streaming and a one-at-a-time queue, request log, `/calcine/v1` management API | No |
 | `crates/calcine-hub` | Hub lookups over HTTPS: Hugging Face search, precisions with sizes (named like GenieX), AI Hub chipsets (`ModelDirectory`) | No |
 | `crates/calcine-hw` | Hardware probe: CPU, memory and disk (sysinfo), NPU/GPU and drivers (Windows WMI), live NPU/GPU load (performance counters) | No |

@@ -8,7 +8,7 @@ and local setup.
 | Branch | Purpose | Releases |
 |---|---|---|
 | `main` | Stable | Tagged `vX.Y.Z` releases, "Stable" update channel |
-| `dev` | Integration | Automatic `-beta.N` pre-releases, "Beta" update channel |
+| `dev` | Integration | `-beta.N` pre-releases on demand, "Beta" update channel |
 | `feat/*`, `fix/*`, `chore/*`, `docs/*` | Work in progress | — |
 
 - Branch off **`dev`** and open your pull request against **`dev`**.
