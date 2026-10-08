@@ -16,6 +16,11 @@ export const commands = {
 	 *  links to the sites Calcine itself links to are opened.
 	 */
 	openUrl: (url: string) => typedError<null, ApiError>(__TAURI_INVOKE("open_url", { url })),
+	/**
+	 *  Save a Markdown export where the user picks in the system dialog.
+	 *  Returns the saved path, or `None` when the user cancels.
+	 */
+	saveMarkdown: (fileName: string, contents: string) => typedError<string | null, ApiError>(__TAURI_INVOKE("save_markdown", { fileName, contents })),
 	/**  Whether Calcine starts with Windows (in the tray). */
 	autostartEnabled: () => typedError<boolean, ApiError>(__TAURI_INVOKE("autostart_enabled")),
 	setAutostart: (enabled: boolean) => typedError<null, ApiError>(__TAURI_INVOKE("set_autostart", { enabled })),

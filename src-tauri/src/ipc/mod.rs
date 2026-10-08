@@ -23,6 +23,7 @@ pub fn builder() -> Builder<Wry> {
             commands::app::app_info,
             commands::app::set_language,
             commands::app::open_url,
+            commands::app::save_markdown,
             commands::app::autostart_enabled,
             commands::app::set_autostart,
             commands::updates::check_app_update,

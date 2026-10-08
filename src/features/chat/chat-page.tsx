@@ -8,6 +8,7 @@ import { modelsQuery } from "@/features/library/api";
 import { useT } from "@/i18n";
 import { Composer } from "./components/composer";
 import { ConversationList } from "./components/conversation-list";
+import { ExportButton } from "./components/export-button";
 import { ModelPicker } from "./components/model-picker";
 import { SettingsPanel } from "./components/settings-panel";
 import { Thread } from "./components/thread";
@@ -62,11 +63,12 @@ export function ChatPage() {
             }
           />
           {missingModel && <span className="text-xs text-warning">{t("missingModel")}</span>}
+          <div className="ml-auto" />
+          <ExportButton conversation={active} />
           <Tooltip content={showSettings ? t("hideSettings") : t("showSettings")}>
             <Button
               variant="ghost"
               size="icon"
-              className="ml-auto"
               onClick={() => setShowSettings((shown) => !shown)}
               aria-label={t("toggleSettings")}
               aria-pressed={showSettings}
