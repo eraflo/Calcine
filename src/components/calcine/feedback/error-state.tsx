@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { MonitorSmartphone, PackageX, TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useT } from "@/i18n";
@@ -24,7 +25,15 @@ export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () =>
 
   if (kind === "runtime_not_found") {
     return (
-      <EmptyState icon={PackageX} title={t("geniexMissing")}>
+      <EmptyState
+        icon={PackageX}
+        title={t("geniexMissing")}
+        action={
+          <Button size="sm" variant="default" asChild>
+            <Link to="/welcome">{t("setUpGeniex")}</Link>
+          </Button>
+        }
+      >
         {t.rich("geniexMissingHint", {
           strong: (text) => <span className="text-foreground">{text}</span>,
         })}

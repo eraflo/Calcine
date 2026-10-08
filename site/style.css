@@ -812,6 +812,13 @@ details[open] summary::after {
   transform: rotate(45deg);
 }
 
+.sub a,
+.faq a,
+.checks a,
+.fine a {
+  color: var(--primary);
+}
+
 .faq p {
   margin: 0 4px 22px;
   color: var(--muted);

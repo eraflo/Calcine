@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use calcine_core::jobs::JobManager;
-use calcine_core::runtime::ServerOptions;
+use calcine_core::runtime::{InstallerAsset, RuntimeRelease, ServerOptions};
 use calcine_core::{BackendKind, Services};
 use calcine_geniex::update::RELEASE_ENDPOINT;
 use calcine_geniex::{
@@ -19,7 +19,8 @@ use serde::Deserialize;
 /// Environment variable selecting the backend: `mock` or `geniex` (default).
 const BACKEND_ENV: &str = "CALCINE_BACKEND";
 
-/// The GenieX version bundled in release installers (`runtime/geniex.json`).
+/// The GenieX version Calcine was tested with and installs on first launch
+/// (`runtime/geniex.json`), with its official download and checksum.
 const PINNED_GENIEX: &str = include_str!("../../../runtime/geniex.json");
 
 /// Where Calcine keeps files the services need.
@@ -59,7 +60,7 @@ fn geniex_services(paths: &AppPaths) -> Services {
             cache_dir: paths.runtime_cache.clone(),
             bundled: paths.bundled_geniex.clone().map(|path| BundledInstaller {
                 path,
-                version: pinned_geniex_version(),
+                version: pinned_release().version,
             }),
         },
     )
@@ -89,20 +90,53 @@ fn geniex_services(paths: &AppPaths) -> Services {
     }
 }
 
-fn pinned_geniex_version() -> String {
+/// The pinned GenieX release. Its SHA-256 ships inside Calcine, so the
+/// download is checked against a value from the signed app itself.
+pub fn pinned_release() -> RuntimeRelease {
     #[derive(Deserialize)]
     struct Pin {
         version: String,
+        assets: Assets,
     }
-    serde_json::from_str::<Pin>(PINNED_GENIEX)
-        .map(|pin| pin.version)
-        .expect("runtime/geniex.json has a version")
+    #[derive(Deserialize)]
+    struct Assets {
+        #[serde(rename = "windows-arm64")]
+        windows_arm64: Asset,
+    }
+    #[derive(Deserialize)]
+    struct Asset {
+        name: String,
+        url: String,
+        size: u64,
+        sha256: String,
+    }
+    let pin: Pin = serde_json::from_str(PINNED_GENIEX).expect("runtime/geniex.json is valid");
+    let asset = pin.assets.windows_arm64;
+    RuntimeRelease {
+        notes_url: Some(format!(
+            "https://github.com/qualcomm/GenieX/releases/tag/{}",
+            pin.version
+        )),
+        version: pin.version,
+        prerelease: false,
+        released_at: None,
+        installer: InstallerAsset {
+            name: asset.name,
+            url: asset.url,
+            size: asset.size,
+            sha256: asset.sha256.to_ascii_lowercase(),
+        },
+    }
 }
 
 #[cfg(test)]
 mod tests {
     #[test]
-    fn reads_the_pinned_version() {
-        assert!(super::pinned_geniex_version().starts_with('v'));
+    fn reads_the_pinned_release() {
+        let release = super::pinned_release();
+        assert!(release.version.starts_with('v'));
+        assert!(release.installer.url.starts_with("https://"));
+        assert_eq!(release.installer.sha256.len(), 64);
+        assert!(release.installer.name.contains(&release.version));
     }
 }

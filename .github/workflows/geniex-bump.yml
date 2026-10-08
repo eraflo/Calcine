@@ -2,7 +2,7 @@ name: GenieX bump
 
 # Daily: when Qualcomm publishes a new stable GenieX, verify the installer
 # (SHA-256, then install it and run `geniex version`) and open a PR to `dev`
-# that bundles it in Calcine's installer.
+# that pins it: Calcine installs that version on first launch.
 
 on:
   schedule:
@@ -53,10 +53,10 @@ jobs:
           base: dev
           branch: chore/geniex-${{ steps.bump.outputs.version }}
           add-paths: runtime/geniex.json
-          commit-message: "chore(runtime): bundle GenieX ${{ steps.bump.outputs.version }}"
-          title: "chore(runtime): bundle GenieX ${{ steps.bump.outputs.version }}"
+          commit-message: "chore(runtime): pin GenieX ${{ steps.bump.outputs.version }}"
+          title: "chore(runtime): pin GenieX ${{ steps.bump.outputs.version }}"
           body: |
-            Qualcomm published GenieX ${{ steps.bump.outputs.version }}. This pins it in `runtime/geniex.json`, so the next Calcine installers bundle it.
+            Qualcomm published GenieX ${{ steps.bump.outputs.version }}. This pins it in `runtime/geniex.json`, so the next Calcine release installs it on first launch.
 
             Checked by this workflow: the installer matches the official manifest (size and SHA-256), installs silently on Windows ARM64, and `geniex version` reports ${{ steps.bump.outputs.version }}.
 

@@ -48,6 +48,7 @@ pub fn builder() -> Builder<Wry> {
             commands::runtime::hardware_usage,
             commands::runtime::check_runtime_update,
             commands::runtime::install_runtime,
+            commands::runtime::recommended_runtime,
             commands::runtime::cached_runtimes,
             commands::jobs::list_jobs,
             commands::bench::bench_tool,

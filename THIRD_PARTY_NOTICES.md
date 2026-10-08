@@ -1,7 +1,6 @@
 # Third-party notices
 
-Calcine is licensed under the MIT License (see [LICENSE](LICENSE)). Calcine installers
-redistribute the following third-party software, unmodified.
+Calcine is licensed under the MIT License (see [LICENSE](LICENSE)).
 
 `crates/calcine-hub/src/quant.rs` follows the precision naming rules of
 GenieX's model manager (`sdk/model-manager/crates/core/src/manifest_builder.rs`,
@@ -11,14 +10,17 @@ BSD 3-Clause, license below) so that Calcine names precisions exactly like
 ## GenieX CLI
 
 - **Project**: https://github.com/qualcomm/GenieX
-- **Distributed as**: the official `geniex-cli-setup-windows-arm64-<version>.exe`
-  installer, downloaded from Qualcomm's release bucket and verified by SHA-256
-  at build time. The bundled version is pinned in `runtime/geniex.json`.
+- **Not redistributed**: Calcine's installer doesn't contain GenieX. On first
+  launch, and when you update it, Calcine downloads Qualcomm's official
+  `geniex-cli-setup-windows-arm64-<version>.exe` from Qualcomm's release bucket,
+  checks it against the SHA-256 pinned in `runtime/geniex.json` (or the release
+  manifest, for updates), and runs it. GenieX includes its own runtimes
+  (Qualcomm AI Engine Direct / QAIRT and llama.cpp); see the
+  [GenieX NOTICE](https://github.com/qualcomm/GenieX/blob/main/NOTICE) for their
+  licenses.
+- **geniex-bench**: downloaded on demand from GenieX's GitHub release, not
+  redistributed either.
 - **License**: BSD 3-Clause
-- **Bundled components**: the GenieX installer includes its own runtimes
-  (Qualcomm AI Engine Direct / QAIRT and llama.cpp) and their dependencies. See
-  the [GenieX NOTICE](https://github.com/qualcomm/GenieX/blob/main/NOTICE) for
-  their respective licenses.
 
 ```
 BSD 3-Clause License

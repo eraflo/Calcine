@@ -71,7 +71,7 @@ src-tauri/
 ├─ src/ipc/      mod.rs (bindings builder) · commands/ (one file per domain) · events.rs · error.rs
 ├─ src/setup/    services.rs (pick the backend) · gateway.rs · start and shutdown
 ├─ src/desktop/  tray.rs · window behaviour · notifications.rs · locale.rs · process.rs (Job Object)
-├─ windows/      installer-hooks.nsh (installs GenieX) · test-manifest.xml
+├─ windows/      license-and-privacy.txt (installer license page) · test-manifest.xml
 └─ tests/        tests that link Tauri (bindings export)
 ```
 

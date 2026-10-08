@@ -1,6 +1,6 @@
 /**
- * Pin the latest stable GenieX in `runtime/geniex.json` (the version bundled
- * in Calcine's installer), from Qualcomm's release index.
+ * Pin the latest stable GenieX in `runtime/geniex.json` (the version Calcine
+ * installs on first launch), from Qualcomm's release index.
  *
  *   bun scripts/geniex-bump.ts            # update the pin if a newer stable exists
  *

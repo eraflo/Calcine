@@ -2,7 +2,7 @@ name: Release
 
 # When `main` carries a version without a tag yet (after merging the release
 # PR prepared by `bun scripts/release.ts`), build and publish it:
-# signed installer with GenieX bundled, updater manifest, checksums, SBOM and
+# signed installer (Calcine only), updater manifest, checksums, SBOM and
 # build provenance. See docs/RELEASING.md.
 
 on:
@@ -79,7 +79,7 @@ jobs:
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
       - run: bun install --frozen-lockfile
 
-      - name: Build installer (GenieX bundled, update signature)
+      - name: Build installer (update signature)
         run: bun run build:release
 
       - name: Collect the installer

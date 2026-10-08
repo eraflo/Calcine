@@ -27,6 +27,8 @@ const strings = defineMessages({
     prerelease: "Pre-releases",
     prereleaseBadge: "Pre-release",
     checking: "Checking for updates…",
+    checksOff: "Automatic update checks are off.",
+    checkNow: "Check now",
     upToDate: "GenieX is up to date.",
     available: "GenieX {version} is available",
     released: "released {when}",
@@ -57,6 +59,8 @@ const strings = defineMessages({
     prerelease: "Préversions",
     prereleaseBadge: "Préversion",
     checking: "Recherche de mises à jour…",
+    checksOff: "La vérification automatique des mises à jour est désactivée.",
+    checkNow: "Vérifier maintenant",
     upToDate: "GenieX est à jour.",
     available: "GenieX {version} est disponible",
     released: "publiée {when}",
@@ -124,7 +128,8 @@ function UpdateSection() {
   const t = useT(strings);
   const channel = useUpdates((state) => state.geniexChannel);
   const setChannel = useUpdates((state) => state.setGeniexChannel);
-  const check = useQuery(runtimeUpdateQuery(channel));
+  const autoCheck = useUpdates((state) => state.autoCheck);
+  const check = useQuery({ ...runtimeUpdateQuery(channel), enabled: autoCheck });
   const cached = useQuery(cachedRuntimesQuery);
   const { data: jobs = [] } = useQuery(jobsQuery);
   const install = useInstallRuntime();
@@ -156,6 +161,13 @@ function UpdateSection() {
         <p className="text-sm text-muted-foreground">
           {t("installing", { version: installing.kind.version })}
         </p>
+      ) : check.isPending && !check.isFetching && !autoCheck ? (
+        <div className="flex items-center gap-3">
+          <p className="text-sm text-muted-foreground">{t("checksOff")}</p>
+          <Button size="sm" variant="ghost" className="ml-auto" onClick={() => check.refetch()}>
+            {t("checkNow")}
+          </Button>
+        </div>
       ) : check.isPending ? (
         <p className="text-sm text-muted-foreground">{t("checking")}</p>
       ) : check.isError ? (

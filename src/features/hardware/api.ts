@@ -9,6 +9,13 @@ export const runtimeQuery = queryOptions({
   staleTime: 60_000,
 });
 
+/** The GenieX version Calcine was tested with, installed on first launch. */
+export const recommendedRuntimeQuery = queryOptions({
+  queryKey: ["recommended-runtime"],
+  queryFn: () => call(commands.recommendedRuntime),
+  staleTime: Number.POSITIVE_INFINITY,
+});
+
 export const chipsetQuery = queryOptions({
   queryKey: ["chipset"],
   queryFn: () => unwrap(commands.chipset),

@@ -42,7 +42,7 @@
     "publisher": "The Calcine Authors",
     "copyright": "Copyright (c) 2026 The Calcine Authors",
     "license": "MIT",
-    "licenseFile": "../LICENSE",
+    "licenseFile": "windows/license-and-privacy.txt",
     "homepage": "https://github.com/eraflo/calcine",
     "category": "DeveloperTool",
     "shortDescription": "Run LLMs on the Snapdragon NPU",

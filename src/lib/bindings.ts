@@ -90,6 +90,8 @@ export const commands = {
 	 *  spawned on the Tokio runtime.
 	 */
 	installRuntime: (source: InstallSource) => typedError<number, ApiError>(__TAURI_INVOKE("install_runtime", { source })),
+	/**  The GenieX version Calcine was tested with, installed on first launch. */
+	recommendedRuntime: () => __TAURI_INVOKE<RuntimeRelease>("recommended_runtime"),
 	/**  GenieX installers kept on this PC, newest first. */
 	cachedRuntimes: () => __TAURI_INVOKE<CachedInstaller[]>("cached_runtimes"),
 	/**  Every known job, newest first. */

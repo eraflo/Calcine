@@ -84,7 +84,7 @@ if ("IntersectionObserver" in window) {
       label.textContent = `Download Calcine ${version}`;
     }
     for (const meta of document.querySelectorAll("[data-download-meta]")) {
-      meta.textContent = `${release.prerelease ? "Beta · " : ""}Windows 11 ARM64 · ${size} · GenieX included`;
+      meta.textContent = `${release.prerelease ? "Beta · " : ""}Windows 11 ARM64 · ${size}`;
     }
   } catch {
     // Keep the releases page link.

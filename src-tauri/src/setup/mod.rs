@@ -12,6 +12,7 @@ use tauri::path::BaseDirectory;
 use tauri::{App, AppHandle, Manager};
 
 pub use self::server_options::ServerOptionsFile;
+pub use self::services::pinned_release;
 use self::services::{AppPaths, services_from_env};
 
 /// Build the services, start the gateway, and forward state changes to the

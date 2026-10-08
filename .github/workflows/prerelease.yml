@@ -1,7 +1,7 @@
 name: Prerelease
 
 # On demand (Actions > Prerelease > Run workflow, on `dev`): publish an
-# installable beta, Windows ARM64 NSIS installer with GenieX bundled, as a
+# installable beta, Windows ARM64 NSIS installer (Calcine only), as a
 # GitHub pre-release, and point the Beta update channel at it. Pushes to
 # `dev` don't build installers; only `main` releases do.
 
@@ -44,7 +44,7 @@ jobs:
         id: version
         run: echo "version=$(bun scripts/version.ts beta ${{ github.run_number }})" >> "$GITHUB_OUTPUT"
 
-      - name: Build installer (GenieX bundled, update signature)
+      - name: Build installer (update signature)
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
@@ -70,7 +70,7 @@ jobs:
             --prerelease \
             --target "$GITHUB_SHA" \
             --title "Calcine $VERSION" \
-            --notes "Automated beta from \`dev\` (${GITHUB_SHA::7}), bundling GenieX $geniex.
+            --notes "Automated beta from \`dev\` (${GITHUB_SHA::7}). Installs GenieX $geniex on first launch.
 
           This build isn't code-signed yet, so Windows SmartScreen will warn before installing."
 

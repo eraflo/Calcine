@@ -93,7 +93,7 @@
               View on GitHub
             </a>
           </div>
-          <p class="fine" data-download-meta>Windows 11 ARM64 · GenieX included</p>
+          <p class="fine" data-download-meta>Windows 11 ARM64</p>
         </div>
         <div class="container shot-wrap">
           <picture>
@@ -163,7 +163,7 @@
           <article class="card">
             <svg aria-hidden="true" class="icon card-icon"><use href="#i-refresh" /></svg>
             <h3>Always up to date</h3>
-            <p>GenieX ships in the installer and updates, or rolls back, from the app. Calcine updates itself with signed packages.</p>
+            <p>Calcine installs GenieX on first launch and updates, or rolls back, from the app. Calcine updates itself with signed packages.</p>
           </article>
         </div>
       </section>
@@ -312,7 +312,7 @@ stream = client.chat.completions.create(
           <img src="calcine.svg" alt="" width="72" height="72" />
           <h2>Get started in three steps</h2>
           <ol class="steps">
-            <li><strong>Install Calcine.</strong> The installer also sets up GenieX, the Qualcomm runtime.</li>
+            <li><strong>Install Calcine.</strong> On first launch it downloads GenieX, Qualcomm's runtime, and checks it.</li>
             <li><strong>Download a model.</strong> The welcome screen suggests a few that fit your PC.</li>
             <li><strong>Chat, or connect an app.</strong> Create an API key and use any OpenAI client.</li>
           </ol>
@@ -322,10 +322,12 @@ stream = client.chat.completions.create(
               <span data-download-label>Download for Windows</span>
             </a>
           </div>
-          <p class="fine" data-download-meta>Windows 11 ARM64 · GenieX included</p>
+          <p class="fine" data-download-meta>Windows 11 ARM64</p>
           <p class="fine">
             Calcine isn't code-signed yet: Windows SmartScreen asks for confirmation
-            before installing (More info › Run anyway).
+            before installing (More info › Run anyway). Calcine has applied to the
+            SignPath Foundation for free code signing: see the
+            <a href="#code-signing">code signing policy</a>.
           </p>
         </div>
       </section>
@@ -342,7 +344,7 @@ stream = client.chat.completions.create(
         </details>
         <details>
           <summary>Do I need to install GenieX first?</summary>
-          <p>No. GenieX is bundled in the installer. You can update it, switch to pre-releases, or roll back from Hardware › GenieX runtime.</p>
+          <p>No. On first launch, Calcine downloads Qualcomm's official GenieX installer, checks it against the checksum built into Calcine, and installs it. You can update it, switch to pre-releases, or roll back from Hardware › GenieX runtime.</p>
         </details>
         <details>
           <summary>Which models can I run?</summary>
@@ -354,8 +356,28 @@ stream = client.chat.completions.create(
         </details>
         <details>
           <summary>Is Calcine made by Qualcomm?</summary>
-          <p>No. Calcine is an independent open-source project under the MIT license. It redistributes GenieX under its BSD 3-Clause license.</p>
+          <p>No. Calcine is an independent open-source project under the MIT license. It doesn't redistribute GenieX: it downloads Qualcomm's official installer on your PC.</p>
         </details>
+        <details>
+          <summary>What does Calcine send over the internet?</summary>
+          <p>No prompts, conversations or telemetry. Calcine checks for updates at startup (you can turn that off), and downloads GenieX, models and tools when you ask. The <a href="https://github.com/eraflo/Calcine/blob/main/PRIVACY.md">privacy policy</a> lists every connection.</p>
+        </details>
+      </section>
+
+      <section id="code-signing" class="section container faq">
+        <h2>Code signing policy</h2>
+        <p class="sub">
+          Calcine has applied to the SignPath Foundation's free code signing program for
+          open-source projects. Once accepted: Free code signing provided by
+          <a href="https://about.signpath.io/">SignPath.io</a>, certificate by
+          <a href="https://signpath.org/">SignPath Foundation</a>.
+        </p>
+        <ul class="checks">
+          <li>Committers and reviewers: <a href="https://github.com/eraflo">eraflo</a></li>
+          <li>Approvers: <a href="https://github.com/eraflo">eraflo</a></li>
+          <li>Installers are built by GitHub Actions from the public repository and signed only after a manual approval. They contain Calcine only.</li>
+          <li>Privacy policy: <a href="https://github.com/eraflo/Calcine/blob/main/PRIVACY.md">PRIVACY.md</a></li>
+        </ul>
       </section>
     </main>
 
@@ -371,6 +393,8 @@ stream = client.chat.completions.create(
           <a href="https://github.com/eraflo/Calcine/releases">Releases</a>
           <a href="https://github.com/eraflo/Calcine/blob/main/CHANGELOG.md">Changelog</a>
           <a href="https://github.com/eraflo/Calcine/blob/main/CONTRIBUTING.md">Contribute</a>
+          <a href="#code-signing">Code signing policy</a>
+          <a href="https://github.com/eraflo/Calcine/blob/main/PRIVACY.md">Privacy</a>
         </nav>
       </div>
     </footer>

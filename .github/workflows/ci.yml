@@ -83,7 +83,7 @@ jobs:
         with:
           bun-version-file: package.json
       - name: Pinned GenieX installer is published
-        run: bun scripts/fetch-geniex.ts --check
+        run: bun scripts/check-geniex.ts
 
   # The real target, built only for `main` and pull requests to it (release
   # PRs); `dev` relies on the checks above.

@@ -7,8 +7,6 @@
 # --- Tauri ---
 src-tauri/gen/schemas/
 src-tauri/WixTools/
-# GenieX installer fetched at build time (pinned in runtime/geniex.json)
-src-tauri/resources/geniex/
 # Downloaded by scripts/geniex-bump.ts to test a new GenieX
 /geniex-cli-setup.exe
 

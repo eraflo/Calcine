@@ -37,8 +37,8 @@ manager.
 
 4. `release.yml` sees a version on `main` without a release and a changelog
    section for it, then:
-   - builds the NSIS installer on `windows-11-arm` with GenieX bundled
-     (`runtime/geniex.json`),
+   - builds the NSIS installer on `windows-11-arm` (Calcine only: GenieX is
+     downloaded on first launch, see below),
    - signs it with Authenticode through SignPath (once configured, below),
    - signs the update and writes `latest.json` for the Stable channel,
    - attaches `SHA256SUMS`, a CycloneDX SBOM and a build provenance
@@ -57,12 +57,19 @@ pre-release with the installer and `SHA256SUMS`; the fixed pre-release
 
 The Windows ARM64 build runs in CI only for `main` and pull requests to it.
 
-## GenieX bundled in the installer
+## GenieX installed on first launch
+
+Installers contain Calcine only. GenieX includes Qualcomm's proprietary
+runtimes (QAIRT), which can't be signed or redistributed under SignPath
+Foundation's terms, so the welcome screen downloads the official installer
+from Qualcomm and checks it against the SHA-256 pinned in
+`runtime/geniex.json`, built into Calcine.
 
 `geniex-bump.yml` checks Qualcomm's release index daily. For a new stable
 GenieX it verifies the installer (size and SHA-256 from the manifest),
 installs it on a Windows ARM64 runner, checks `geniex version`, and opens a
-PR to `dev` updating `runtime/geniex.json`. PRs opened by workflows don't
+PR to `dev` updating `runtime/geniex.json`. CI checks that the pinned
+installer is still published (`scripts/check-geniex.ts`). PRs opened by workflows don't
 start CI: close and reopen the PR to run the checks.
 
 Users can also update GenieX from the app (Hardware › GenieX runtime), on the
