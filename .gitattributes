@@ -1,0 +1,25 @@
+# Normalize line endings to LF in the repo
+* text=auto eol=lf
+
+# Windows scripts keep CRLF
+*.bat   text eol=crlf
+*.cmd   text eol=crlf
+*.ps1   text eol=crlf
+
+# Binaries
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.icns  binary
+*.webp  binary
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
+
+# Lockfiles: don't show diffs, treat as generated
+Cargo.lock      linguist-generated=true -diff
+bun.lock        linguist-generated=true -diff
+bun.lockb       binary
+src/lib/bindings.ts linguist-generated=true
