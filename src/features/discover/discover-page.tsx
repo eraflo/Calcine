@@ -1,6 +1,6 @@
-import { Page } from "@/components/calcine/page";
-import { AddModelCard } from "./add-model-card";
-import { AiHubCatalog } from "./catalog";
+import { Page } from "@/components/calcine/layout/page";
+import { AddModelCard } from "./components/add-model-card";
+import { AiHubCatalog } from "./components/catalog";
 
 export function DiscoverPage() {
   return (

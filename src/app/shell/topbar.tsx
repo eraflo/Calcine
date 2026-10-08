@@ -1,12 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { ListChecks, Search } from "lucide-react";
-import { StatusDot } from "@/components/calcine/status-dot";
+import { StatusDot } from "@/components/calcine/feedback/status-dot";
 import { Button } from "@/components/ui/button";
 import { Kbd } from "@/components/ui/kbd";
 import { Tooltip } from "@/components/ui/tooltip";
 import { jobsQuery } from "@/features/tasks/api";
-import { isRunning } from "@/features/tasks/format";
+import { isRunning } from "@/features/tasks/lib/format";
 import { useUi } from "@/stores/ui";
 
 export function Topbar() {

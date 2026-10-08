@@ -1,5 +1,6 @@
 import { Server } from "lucide-react";
-import { EmptyState, Page } from "@/components/calcine/page";
+import { EmptyState } from "@/components/calcine/feedback/empty-state";
+import { Page } from "@/components/calcine/layout/page";
 import { API_BASE_URL } from "@/lib/api";
 
 export function ServerPage() {

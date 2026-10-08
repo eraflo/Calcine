@@ -3,13 +3,12 @@
 use std::collections::VecDeque;
 
 use calcine_core::jobs::JobCtx;
-use calcine_core::model::ModelType;
-use calcine_core::reference::PullRequest;
+use calcine_core::models::{ModelType, PullRequest};
 use calcine_core::{Error, Result};
 use tokio::io::{AsyncRead, AsyncReadExt};
 
+use crate::cli::Cli;
 use crate::parse::progress::{FrameSplitter, parse_frame};
-use crate::runner::Cli;
 
 /// Non-progress lines kept to explain a failure.
 const KEPT_LINES: usize = 12;

@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { LogoMark } from "@/components/calcine/logo";
-import { StatusDot } from "@/components/calcine/status-dot";
+import { LogoMark } from "@/components/calcine/brand/logo";
+import { StatusDot } from "@/components/calcine/feedback/status-dot";
 import { Badge } from "@/components/ui/badge";
 import { runtimeQuery } from "@/features/hardware/api";
 import { appInfoQuery } from "@/features/settings/api";

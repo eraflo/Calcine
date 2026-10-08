@@ -32,6 +32,29 @@
 
 Backend selection: `CALCINE_BACKEND=mock` uses the mock, anything else uses GenieX.
 
+### Inside the crates
+
+```
+calcine-core/src/
+├─ models/     types.rs · reference.rs (pasted names/links) · store.rs (ModelStore, ModelCatalog)
+├─ runtime/    types.rs · manager.rs (RuntimeManager)
+├─ hardware/   types.rs · probe.rs (HardwareProbe)
+├─ jobs/       types.rs · manager.rs (JobManager, JobCtx)
+├─ services.rs Services: the set of trait objects every front door uses
+└─ error.rs
+
+calcine-geniex/src/
+├─ cli/        discovery.rs (find geniex.exe) · runner.rs (spawn with fixed flags)
+├─ backend/    models.rs · pull.rs · runtime.rs  (trait implementations)
+└─ parse/      one parser per command output, tested on tests/fixtures/
+
+calcine-hw/src/     system.rs (sysinfo) · windows.rs (WMI)
+calcine-mock/src/   data.rs (sample data) · models.rs · runtime.rs · hardware.rs
+```
+
+Rule of thumb: one folder per domain, data types in `types.rs`, the service
+trait next to them, and one implementation file per trait in each backend.
+
 ## Jobs
 
 Downloads (and later updates and benchmarks) run as jobs:
@@ -51,9 +74,16 @@ TanStack Query cache (`src/features/tasks/api.ts`).
 ```
 src/
 ├─ app/            router, navigation, shell (sidebar, topbar, ⌘K palette, task drawer)
-├─ features/<x>/   one folder per page: api.ts (TanStack Query) + components
+├─ features/<x>/   one folder per feature:
+│    ├─ <x>-page.tsx      the route's page
+│    ├─ api.ts            TanStack Query options, mutations and hooks
+│    ├─ components/       pieces of the page
+│    └─ lib/              pure logic (formatting, reducers) with its tests
 ├─ components/ui/  shadcn/ui-style primitives, themed with Ember tokens
-├─ components/calcine/  app-specific building blocks (badges, page frame, states)
+├─ components/calcine/  app-specific building blocks:
+│    brand/ (logo) · layout/ (page frame) · feedback/ (empty, error, confirm,
+│    status dot) · badges/ (runtime, model type)
+├─ hooks/          generic React hooks
 ├─ stores/         Zustand stores (UI state, persisted theme)
 ├─ styles/         globals.css: Ember design tokens (dark default, light variant)
 └─ lib/            bindings.ts (generated), api.ts (unwrap, errors), utils

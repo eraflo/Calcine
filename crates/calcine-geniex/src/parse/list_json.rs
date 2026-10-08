@@ -1,6 +1,6 @@
 //! `geniex list --format json` (stable schema documented by GenieX).
 
-use calcine_core::model::LocalModel;
+use calcine_core::models::LocalModel;
 use calcine_core::{Error, Result};
 use serde::Deserialize;
 
@@ -36,7 +36,7 @@ pub fn parse(output: &str) -> Result<Vec<LocalModel>> {
 mod tests {
     use super::*;
     use crate::parse::fixture;
-    use calcine_core::model::{ModelType, Runtime};
+    use calcine_core::models::{ModelType, Runtime};
 
     #[test]
     fn parses_real_output() {

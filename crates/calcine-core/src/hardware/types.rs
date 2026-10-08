@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
-use crate::model::ComputeUnit;
+use crate::models::ComputeUnit;
 
 /// What this device offers for inference.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]

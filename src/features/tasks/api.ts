@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { modelsQuery } from "@/features/library/api";
 import { call, commands, events, type Job, type PullRequest, unwrap } from "@/lib/api";
 import { useUi } from "@/stores/ui";
-import { upsertJob } from "./format";
+import { upsertJob } from "./lib/format";
 
 export const jobsQuery = queryOptions({
   queryKey: ["jobs"],

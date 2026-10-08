@@ -1,5 +1,6 @@
 import { MessagesSquare } from "lucide-react";
-import { EmptyState, Page } from "@/components/calcine/page";
+import { EmptyState } from "@/components/calcine/feedback/empty-state";
+import { Page } from "@/components/calcine/layout/page";
 
 export function ChatPage() {
   return (

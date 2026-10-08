@@ -3,7 +3,8 @@
 //! Ignored by default (CI runners have no GenieX). Run them on a Snapdragon
 //! device with `cargo test -p calcine-geniex -- --ignored`.
 
-use calcine_core::traits::{ModelCatalog, ModelStore, RuntimeManager};
+use calcine_core::models::{ModelCatalog, ModelStore};
+use calcine_core::runtime::RuntimeManager;
 use calcine_geniex::Geniex;
 
 #[tokio::test]

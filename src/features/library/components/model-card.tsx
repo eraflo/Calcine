@@ -1,15 +1,15 @@
 import { Link } from "@tanstack/react-router";
 import { Check, Copy, MessagesSquare, Trash2, X } from "lucide-react";
 import { useState } from "react";
-import { ConfirmDialog } from "@/components/calcine/confirm-dialog";
-import { ModelTypeBadge, RuntimeBadge } from "@/components/calcine/runtime-badge";
+import { ModelTypeBadge, RuntimeBadge } from "@/components/calcine/badges/runtime-badge";
+import { ConfirmDialog } from "@/components/calcine/feedback/confirm-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tooltip } from "@/components/ui/tooltip";
 import type { LocalModel, ModelKey } from "@/lib/api";
 import { formatBytes } from "@/lib/format";
-import { useRemoveModels } from "./api";
+import { useRemoveModels } from "../api";
 
 export function ModelCard({ model }: { model: LocalModel }) {
   const [pendingRemoval, setPendingRemoval] = useState<ModelKey | null>(null);

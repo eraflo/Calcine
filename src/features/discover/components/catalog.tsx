@@ -2,8 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Check, Download, Search } from "lucide-react";
 import { useMemo, useState } from "react";
-import { ErrorState } from "@/components/calcine/error-state";
-import { ModelTypeBadge, RuntimeBadge } from "@/components/calcine/runtime-badge";
+import { ModelTypeBadge, RuntimeBadge } from "@/components/calcine/badges/runtime-badge";
+import { ErrorState } from "@/components/calcine/feedback/error-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -11,10 +11,10 @@ import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { type Availability, useAvailability } from "@/features/library/availability";
 import { usePullByName } from "@/features/tasks/api";
-import { percent } from "@/features/tasks/format";
+import { percent } from "@/features/tasks/lib/format";
 import type { HubModel } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import { catalogQuery } from "./api";
+import { catalogQuery } from "../api";
 
 /** Qualcomm AI Hub models with a pre-compiled NPU build. */
 export function AiHubCatalog() {

@@ -1,7 +1,7 @@
 import { Outlet } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useJobEvents } from "@/features/tasks/api";
-import { TaskDrawer } from "@/features/tasks/task-drawer";
+import { TaskDrawer } from "@/features/tasks/components/task-drawer";
 import { useUi } from "@/stores/ui";
 import { CommandPalette } from "./command-palette";
 import { Sidebar } from "./sidebar";
@@ -16,7 +16,7 @@ export function AppShell() {
       <Sidebar />
       <div className="flex min-h-0 flex-col">
         <Topbar />
-        <main className="min-h-0 flex-1 overflow-y-auto">
+        <main className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
           <Outlet />
         </main>
       </div>

@@ -2,8 +2,8 @@ import { CircleAlert, CircleCheck, CirclePause, Download, RotateCw, X } from "lu
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import type { Job } from "@/lib/api";
-import { useCancelJob, useDismissJob, usePullByName } from "./api";
-import { jobTitle, percent, progressLabel } from "./format";
+import { useCancelJob, useDismissJob, usePullByName } from "../api";
+import { jobTitle, percent, progressLabel } from "../lib/format";
 
 export function JobRow({ job }: { job: Job }) {
   const cancel = useCancelJob();

@@ -10,7 +10,7 @@ pub mod list_json;
 pub mod progress;
 pub mod version;
 
-use calcine_core::model::{ModelType, Runtime};
+use calcine_core::models::{ModelType, Runtime};
 
 /// Map a CLI runtime id (`qairt`, `llama_cpp`) to [`Runtime`].
 pub(crate) fn runtime(value: &str) -> Runtime {

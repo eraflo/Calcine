@@ -1,5 +1,4 @@
-//! Long-running work (downloads, updates, benchmarks) with progress and
-//! cancellation, observable by any front door through [`JobManager::subscribe`].
+//! Runs jobs on Tokio and tracks their state, progress and cancellation.
 
 use std::collections::HashMap;
 use std::future::Future;
@@ -7,54 +6,14 @@ use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
-use serde::{Deserialize, Serialize};
-use specta::Type;
 use tokio::sync::broadcast;
 use tokio_util::sync::CancellationToken;
 
+use super::types::{Job, JobId, JobKind, JobProgress, JobState};
 use crate::{Error, Result};
-
-pub type JobId = u32;
 
 /// Minimum delay between two progress events for the same job.
 const PROGRESS_THROTTLE: Duration = Duration::from_millis(200);
-
-/// What a job does.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
-#[serde(tag = "type", rename_all = "snake_case")]
-pub enum JobKind {
-    /// Downloading a model (`geniex pull`).
-    Pull { model: String },
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
-#[serde(tag = "state", rename_all = "snake_case")]
-pub enum JobState {
-    Running,
-    Succeeded,
-    Cancelled,
-    Failed { message: String },
-}
-
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, Type)]
-#[serde(rename_all = "camelCase")]
-pub struct JobProgress {
-    pub done_bytes: u64,
-    pub total_bytes: Option<u64>,
-    pub bytes_per_second: Option<u64>,
-}
-
-/// A snapshot of one job, as sent to the UI.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
-#[serde(rename_all = "camelCase")]
-pub struct Job {
-    pub id: JobId,
-    pub kind: JobKind,
-    pub state: JobState,
-    pub progress: Option<JobProgress>,
-    pub started_at_ms: u64,
-    pub finished_at_ms: Option<u64>,
-}
 
 #[derive(Debug)]
 struct Entry {

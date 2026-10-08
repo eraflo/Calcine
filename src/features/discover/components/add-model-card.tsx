@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useStartPull } from "@/features/tasks/api";
 import { useDebounced } from "@/hooks/use-debounced";
-import { HUB_LABELS, referenceQuery } from "./api";
+import { HUB_LABELS, referenceQuery } from "../api";
 
 /** Paste any model name or link; Calcine shows what it understood before downloading. */
 export function AddModelCard() {

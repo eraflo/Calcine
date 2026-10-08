@@ -1,14 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Compass, Library, Plus, RefreshCw } from "lucide-react";
-import { ErrorState } from "@/components/calcine/error-state";
-import { EmptyState, Page } from "@/components/calcine/page";
+import { EmptyState } from "@/components/calcine/feedback/empty-state";
+import { ErrorState } from "@/components/calcine/feedback/error-state";
+import { Page } from "@/components/calcine/layout/page";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatBytes, totalBytes } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { modelsQuery } from "./api";
-import { ModelCard } from "./model-card";
+import { ModelCard } from "./components/model-card";
 
 export function LibraryPage() {
   const { data: models, error, isPending, isFetching, refetch } = useQuery(modelsQuery);

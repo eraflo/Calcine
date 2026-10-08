@@ -122,6 +122,16 @@
     height: 100%;
   }
 
+  /*
+   * A desktop app, not a page: the document itself never scrolls and WebView2's
+   * elastic overscroll is off. Only explicit regions (main content, drawers) scroll.
+   */
+  html,
+  body {
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
   body {
     @apply bg-background text-foreground font-sans antialiased;
     font-size: 14px;

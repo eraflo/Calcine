@@ -12,7 +12,7 @@
 //!
 //! `--all` adds a `CHIPSETS` column with comma-separated chipset slugs.
 
-use calcine_core::model::{HubCatalog, HubModel};
+use calcine_core::models::{HubCatalog, HubModel};
 use calcine_core::{Error, Result};
 
 const CELL_SEPARATOR: char = '│';
@@ -73,7 +73,7 @@ pub fn parse(output: &str) -> Result<HubCatalog> {
 mod tests {
     use super::*;
     use crate::parse::fixture;
-    use calcine_core::model::ModelType;
+    use calcine_core::models::ModelType;
 
     #[test]
     fn parses_device_filtered_catalog() {

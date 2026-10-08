@@ -4,9 +4,10 @@ use std::sync::Arc;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
+use crate::hardware::HardwareProbe;
 use crate::jobs::{JobId, JobKind, JobManager, JobState};
-use crate::reference::PullRequest;
-use crate::traits::{HardwareProbe, ModelCatalog, ModelStore, RuntimeManager};
+use crate::models::{ModelCatalog, ModelStore, PullRequest};
+use crate::runtime::RuntimeManager;
 
 /// Which implementation backs the services.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]

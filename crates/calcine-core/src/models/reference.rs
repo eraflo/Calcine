@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
-use crate::model::ModelType;
+use super::types::ModelType;
 use crate::{Error, Result};
 
 /// Where GenieX downloads a model from (`--model-hub`).

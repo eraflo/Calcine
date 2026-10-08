@@ -1,7 +1,7 @@
 use calcine_core::Services;
 use calcine_core::jobs::JobId;
-use calcine_core::model::{HubCatalog, LocalModel, ModelKey};
-use calcine_core::reference::{ModelReference, PullRequest};
+use calcine_core::models::{HubCatalog, LocalModel, ModelKey};
+use calcine_core::models::{ModelReference, PullRequest};
 use tauri::State;
 
 use crate::error::ApiResult;

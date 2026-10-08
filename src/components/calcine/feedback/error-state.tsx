@@ -1,7 +1,7 @@
 import { MonitorSmartphone, PackageX, TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CalcineError } from "@/lib/api";
-import { EmptyState } from "./page";
+import { EmptyState } from "./empty-state";
 
 /** Friendly rendering of a failed backend call, with a retry when it can help. */
 export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () => void }) {
