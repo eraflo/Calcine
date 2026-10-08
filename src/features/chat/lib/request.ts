@@ -50,7 +50,29 @@ export type ChatSettings = {
   draftMin: number | null;
   /** Lowest probability a guessed token may have (`spec_p_min`). */
   draftPMin: number | null;
+  /** Free text, any JSON object, or JSON matching `jsonSchema`. Calcine's
+   * gateway checks the reply, on every model. */
+  outputFormat: OutputFormat;
+  /** JSON Schema text, used when `outputFormat` is `schema`. */
+  jsonSchema: string;
 };
+
+export type OutputFormat = "text" | "json" | "schema";
+
+/** The schema typed in the settings, or why it can't be used. */
+export function parseSchema(
+  text: string,
+): { schema: object } | { error: "not-json" | "not-object" } {
+  try {
+    const schema: unknown = JSON.parse(text);
+    if (typeof schema !== "object" || schema === null || Array.isArray(schema)) {
+      return { error: "not-object" };
+    }
+    return { schema };
+  } catch {
+    return { error: "not-json" };
+  }
+}
 
 /** GenieX's speculative decoding methods, simplest first. */
 export const SPEC_TYPES = [
@@ -98,6 +120,8 @@ export const DEFAULT_SETTINGS: ChatSettings = {
   draftMax: null,
   draftMin: null,
   draftPMin: null,
+  outputFormat: "text",
+  jsonSchema: "",
 };
 
 /** Sampling presets, from focused to inventive. */
@@ -158,6 +182,31 @@ function toApiMessage({ role, content, media }: ChatTurn) {
       ...(content ? [{ type: "text" as const, text: content }] : []),
     ],
   };
+}
+
+/** `response_format`, enforced by Calcine's gateway. An invalid schema sends none. */
+function responseFormat(settings: ChatSettings) {
+  if (settings.outputFormat === "json") return { response_format: { type: "json_object" } };
+  if (settings.outputFormat !== "schema") return {};
+  const parsed = parseSchema(settings.jsonSchema);
+  if (!("schema" in parsed)) return {};
+  return {
+    response_format: {
+      type: "json_schema",
+      json_schema: { name: "response", schema: parsed.schema },
+    },
+  };
+}
+
+/** A reply that is JSON, pretty-printed; `null` for anything else. */
+export function prettyJson(text: string): string | null {
+  const trimmed = text.trim();
+  if (!/^[[{]/.test(trimmed)) return null;
+  try {
+    return JSON.stringify(JSON.parse(trimmed), null, 2);
+  } catch {
+    return null;
+  }
 }
 
 /** Speculative decoding fields. A `draft-*` method without its draft model is left out. */
@@ -230,6 +279,7 @@ export function buildChatRequest(
       ? { vit_compute: VISION_DEVICES[settings.visionCompute] }
       : {}),
     ...(llamaCpp ? speculative(settings) : {}),
+    ...responseFormat(settings),
     ...(settings.powerMode !== DEFAULT_SETTINGS.powerMode
       ? { power_mode: settings.powerMode }
       : {}),

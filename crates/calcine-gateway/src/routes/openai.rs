@@ -13,8 +13,8 @@ use serde_json::{Value, json};
 
 use crate::caller::Caller;
 use crate::error::api_error;
-use crate::proxy;
 use crate::state::AppState;
+use crate::{proxy, structured};
 
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
@@ -37,6 +37,12 @@ async fn chat_completions(
     Extension(caller): Extension<Caller>,
     body: Bytes,
 ) -> Response {
+    // GenieX ignores `response_format`: Calcine enforces it.
+    if let Ok(json) = serde_json::from_slice::<Value>(&body)
+        && let Some(format) = structured::requested(&json)
+    {
+        return structured::complete(app, caller, json, format).await;
+    }
     proxy::inference(app, caller, "/v1/chat/completions", body).await
 }
 

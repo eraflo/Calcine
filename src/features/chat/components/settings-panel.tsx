@@ -5,7 +5,7 @@ import { type KeyboardEvent, type ReactNode, useState } from "react";
 import { CopyButton } from "@/components/calcine/actions/copy-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Field, Input, Select } from "@/components/ui/field";
+import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Switch } from "@/components/ui/switch";
 import { modelsQuery } from "@/features/library/api";
@@ -22,10 +22,12 @@ import {
   type ChatSettings,
   DEFAULT_SETTINGS,
   needsDraftModel,
+  type OutputFormat,
   POWER_MODES,
   type PowerMode,
   PRESETS,
   type Preset,
+  parseSchema,
   SPEC_TYPES,
   type SpecType,
   supportsComputeChoice,
@@ -142,6 +144,8 @@ export function SettingsPanel({
           }
         />
       </Field>
+
+      <OutputFormatField />
 
       <Section
         title={t("moreSampling")}
@@ -315,6 +319,45 @@ export function SettingsPanel({
 
       {modelId && <RequestPreview model={model} modelId={modelId} settings={settings} />}
     </aside>
+  );
+}
+
+/** Text, any JSON object, or JSON matching a schema. */
+function OutputFormatField() {
+  const t = useT(messages);
+  const format = useChat((state) => state.settings.outputFormat);
+  const schema = useChat((state) => state.settings.jsonSchema);
+  const setSettings = useChat((state) => state.setSettings);
+  const parsed = format === "schema" && schema.trim() ? parseSchema(schema) : null;
+  return (
+    <Field label={t("outputFormat")} hint={format === "text" ? undefined : t("outputFormatHint")}>
+      <SegmentedControl<OutputFormat>
+        name="output-format"
+        label={t("outputFormat")}
+        value={format}
+        onChange={(outputFormat) => setSettings({ outputFormat })}
+        options={(["text", "json", "schema"] as const).map((value) => ({
+          value,
+          label: t(`format_${value}`),
+        }))}
+        className="w-full"
+      />
+      {format === "schema" && (
+        <>
+          <Textarea
+            value={schema}
+            onChange={(event) => setSettings({ jsonSchema: event.target.value })}
+            placeholder={t("jsonSchemaPlaceholder")}
+            aria-label={t("jsonSchema")}
+            spellCheck={false}
+            className="min-h-32 font-mono text-[11px]"
+          />
+          {parsed && "error" in parsed && (
+            <p className="text-[11px] text-destructive">{t(`schema_${parsed.error}`)}</p>
+          )}
+        </>
+      )}
+    </Field>
   );
 }
 

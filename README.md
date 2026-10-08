@@ -47,6 +47,8 @@ every web page you visit.
 - **Benchmark properly.** Qualcomm's `geniex-bench`, downloaded and verified for you:
   time to first token, prompt and generation speed per unit, with warmup, repetitions,
   history and CSV export.
+- **Structured output on the NPU.** `response_format` (JSON or a JSON Schema) works on every
+  model: Calcine asks for JSON, checks the reply and has the model fix it if needed.
 - **Works with Ollama apps.** Ollama's API is translated too, and can answer on Ollama's
   port, 11434, for apps that only speak Ollama.
 - **OpenAI-compatible API.** On `127.0.0.1:18181`, GenieX's default port, with per-app keys,

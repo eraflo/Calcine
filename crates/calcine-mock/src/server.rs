@@ -110,10 +110,18 @@ async fn chat_completions(Json(request): Json<Value>) -> Response {
     } else {
         ""
     };
-    let reply = format!(
-        "This is **Calcine's mock backend**: no model ran. You said: \"{prompt}\". Run Calcine \
-         with GenieX on a Snapdragon device to talk to a real model."
-    );
+    // Asked for JSON (Calcine's structured output): answer in JSON.
+    let wants_json = request["messages"][0]["content"]
+        .as_str()
+        .is_some_and(|system| system.contains("single valid JSON value"));
+    let reply = if wants_json {
+        json!({ "reply": "Mock answer", "said": prompt }).to_string()
+    } else {
+        format!(
+            "This is **Calcine's mock backend**: no model ran. You said: \"{prompt}\". Run \
+             Calcine with GenieX on a Snapdragon device to talk to a real model."
+        )
+    };
 
     if request["stream"].as_bool() != Some(true) {
         return Json(json!({

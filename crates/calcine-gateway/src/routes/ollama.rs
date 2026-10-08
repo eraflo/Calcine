@@ -21,6 +21,7 @@ use crate::error::upstream_message;
 use crate::ollama::{self, Answer, Mode};
 use crate::proxy::{self, Exchange, elapsed_ms};
 use crate::state::AppState;
+use crate::structured;
 
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
@@ -204,6 +205,10 @@ async fn answer(app: Arc<AppState>, caller: Caller, mode: Mode, body: &[u8]) -> 
         Mode::Chat => "/api/chat",
         Mode::Generate => "/api/generate",
     };
+    // `format` (JSON or a schema): checked by Calcine, GenieX ignores it.
+    if let Some(format) = structured::requested(&translated.body) {
+        return structured_answer(&app, &caller, &translated, format, mode, path).await;
+    }
     let upstream = Bytes::from(translated.body.to_string());
     let (exchange, response) = match proxy::send(
         &app,
@@ -234,6 +239,56 @@ async fn answer(app: Arc<AppState>, caller: Caller, mode: Mode, body: &[u8]) -> 
         stream(exchange, response, answer)
     } else {
         whole(exchange, response, answer).await
+    }
+}
+
+/// A structured answer, as Ollama would give it: the JSON is the content.
+async fn structured_answer(
+    app: &Arc<AppState>,
+    caller: &Caller,
+    translated: &ollama::Translated,
+    format: structured::Format,
+    mode: Mode,
+    path: &'static str,
+) -> Response {
+    let started = std::time::Instant::now();
+    let completion = match structured::generate(
+        app,
+        caller,
+        &translated.body,
+        &format,
+        path,
+        translated.stream,
+    )
+    .await
+    {
+        Ok(completion) => completion,
+        Err(failure) => return error(failure.status, &failure.message),
+    };
+    // Replay the completion as one event, so Ollama's shape is built once.
+    let message = completion
+        .pointer("/choices/0/message")
+        .cloned()
+        .unwrap_or_default();
+    let event = json!({
+        "choices": [{
+            "delta": { "content": message["content"], "reasoning_content": message["reasoning_content"] },
+            "finish_reason": "stop",
+        }],
+        "usage": completion["usage"],
+        "timings": completion["timings"],
+    });
+    let mut answer = Answer::new(&translated.model, mode);
+    let pieces = answer.feed(format!("data: {event}\n").as_bytes());
+    let total_ms = elapsed_ms(started);
+    if translated.stream {
+        let mut body: Vec<u8> = Vec::new();
+        for piece in pieces.iter().chain(std::iter::once(&answer.done(total_ms))) {
+            body.extend_from_slice(&line(piece));
+        }
+        ([(header::CONTENT_TYPE, "application/x-ndjson")], body).into_response()
+    } else {
+        Json(answer.whole(total_ms)).into_response()
     }
 }
 

@@ -586,3 +586,83 @@ async fn the_ollama_port_needs_no_key_but_only_runs_models() {
             .is_err()
     );
 }
+
+#[tokio::test(flavor = "multi_thread")]
+async fn enforces_structured_output() {
+    let h = start(any_port()).await;
+    let token = h.key(&[KeyScope::Inference], false);
+    let schema = |required: &str| {
+        json!({
+            "model": "qualcomm/Qwen3-0.6B",
+            "messages": [{ "role": "user", "content": "hello" }],
+            "response_format": { "type": "json_schema", "json_schema": { "name": "r", "schema": {
+                "type": "object",
+                "properties": { "reply": { "type": "string" } },
+                "required": [required],
+            } } },
+        })
+    };
+
+    let ok: Value = h
+        .chat(Some(&token), &schema("reply"))
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    let content: Value =
+        serde_json::from_str(ok["choices"][0]["message"]["content"].as_str().unwrap()).unwrap();
+    assert_eq!(content["reply"], "Mock answer");
+
+    let never = h
+        .chat(Some(&token), &schema("missing"))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(never.status(), StatusCode::UNPROCESSABLE_ENTITY);
+    let error: Value = never.json().await.unwrap();
+    assert!(
+        error["error"]["message"]
+            .as_str()
+            .unwrap()
+            .contains("$.missing is missing")
+    );
+
+    // Streamed clients get the checked JSON as server-sent events.
+    let mut streamed = schema("reply");
+    streamed["stream"] = json!(true);
+    let response = h.chat(Some(&token), &streamed).send().await.unwrap();
+    assert_eq!(
+        response.headers()[header::CONTENT_TYPE],
+        "text/event-stream"
+    );
+    let body = response.text().await.unwrap();
+    assert!(body.contains("Mock answer") && body.trim_end().ends_with("data: [DONE]"));
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn ollama_format_is_enforced_too() {
+    let h = start(any_port()).await;
+    let token = h.key(&[KeyScope::Inference], false);
+    let reply: Value = h
+        .http
+        .post(format!("{}/api/chat", h.base))
+        .bearer_auth(&token)
+        .json(&json!({
+            "model": "qualcomm/Qwen3-0.6B",
+            "stream": false,
+            "messages": [{ "role": "user", "content": "hello" }],
+            "format": { "type": "object", "required": ["reply"] },
+        }))
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    assert_eq!(reply["done"], true);
+    let content: Value =
+        serde_json::from_str(reply["message"]["content"].as_str().unwrap()).unwrap();
+    assert_eq!(content["reply"], "Mock answer");
+}

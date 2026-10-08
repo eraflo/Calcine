@@ -5,6 +5,8 @@ import {
   buildChatRequest,
   DEFAULT_SETTINGS,
   PRESETS,
+  parseSchema,
+  prettyJson,
   stopIndex,
   toCurl,
   withDefaults,
@@ -134,6 +136,39 @@ describe("speculative decoding", () => {
     expect(buildChatRequest(llama, "m/x", missing, hello)).not.toHaveProperty("spec_type");
     const ngram = { ...DEFAULT_SETTINGS, specType: "ngram-simple" as const };
     expect(buildChatRequest(model("qairt"), "m/x", ngram, hello)).not.toHaveProperty("spec_type");
+  });
+});
+
+describe("output format", () => {
+  it("asks for JSON or a schema, on every model", () => {
+    const json = { ...DEFAULT_SETTINGS, outputFormat: "json" as const };
+    expect(buildChatRequest(model("qairt"), "m/x", json, hello)).toHaveProperty("response_format", {
+      type: "json_object",
+    });
+    const schema = {
+      ...DEFAULT_SETTINGS,
+      outputFormat: "schema" as const,
+      jsonSchema: '{"type":"object"}',
+    };
+    expect(buildChatRequest(model("qairt"), "m/x", schema, hello)).toMatchObject({
+      response_format: { type: "json_schema", json_schema: { schema: { type: "object" } } },
+    });
+  });
+
+  it("sends nothing for text or an invalid schema", () => {
+    expect(buildChatRequest(model("qairt"), "m/x", DEFAULT_SETTINGS, hello)).not.toHaveProperty(
+      "response_format",
+    );
+    const broken = { ...DEFAULT_SETTINGS, outputFormat: "schema" as const, jsonSchema: "{" };
+    expect(buildChatRequest(model("qairt"), "m/x", broken, hello)).not.toHaveProperty(
+      "response_format",
+    );
+    expect(parseSchema("[1]")).toEqual({ error: "not-object" });
+  });
+
+  it("pretty-prints JSON replies only", () => {
+    expect(prettyJson('{"a":1}')).toBe('{\n  "a": 1\n}');
+    expect(prettyJson("Hello {not json}")).toBeNull();
   });
 });
 

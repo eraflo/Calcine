@@ -6,6 +6,7 @@
 //!
 //! - `/v1/*`: OpenAI-compatible API (models, chat, completions, …)
 //! - `/calcine/v1/*`: management (download, remove, jobs) for keys with `manage`
+//! - `response_format` (JSON, JSON Schema) on every model: see [`structured`]
 //! - `/api/*`: Ollama's API, translated (see [`ollama`]), also on port 11434
 //!   when turned on
 
@@ -19,6 +20,7 @@ mod routes;
 pub mod security;
 pub mod settings;
 mod state;
+pub mod structured;
 
 use std::path::PathBuf;
 use std::sync::{Arc, PoisonError, RwLock};

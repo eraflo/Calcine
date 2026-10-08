@@ -10,6 +10,7 @@ import { useT } from "@/i18n";
 import { formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { Attachment } from "../lib/attachments";
+import { prettyJson } from "../lib/request";
 import type { StreamStats } from "../lib/sse";
 import { messages } from "../messages";
 import { type ChatMessage, useMediaPayloads } from "../store";
@@ -49,7 +50,11 @@ export function Message({
   return (
     <div className="group flex flex-col gap-2">
       {reasoning && <Reasoning text={reasoning} active={thinking} />}
-      {content ? <MarkdownBody text={content} /> : live && !reasoning ? <TypingDots /> : null}
+      {content ? (
+        <MarkdownBody text={asMarkdown(content)} />
+      ) : live && !reasoning ? (
+        <TypingDots />
+      ) : null}
       {message.error && (
         <p className="flex items-start gap-1.5 text-sm text-destructive">
           <CircleAlert className="mt-0.5 size-4 shrink-0" />
@@ -125,6 +130,12 @@ function Reasoning({ text, active }: { text: string; active: boolean }) {
       </Collapsible.Content>
     </Collapsible.Root>
   );
+}
+
+/** JSON replies (structured output) show as a formatted code block. */
+function asMarkdown(content: string): string {
+  const json = prettyJson(content);
+  return json === null ? content : `\`\`\`json\n${json}\n\`\`\``;
 }
 
 const MarkdownBody = memo(function MarkdownBody({ text }: { text: string }) {
