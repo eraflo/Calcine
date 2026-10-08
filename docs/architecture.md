@@ -5,8 +5,8 @@
  (OpenAI SDKs…)     │                       │     │ typed commands (tauri-specta)
                     ▼                       │     ▼
            ┌─────────────────┐     ┌──────────────────────┐
-           │ calcine-gateway │     │ src-tauri (shell)    │
-           │ :18181 (M2)     │     │ thin commands, tray  │
+           │ calcine-gateway │◄────│ src-tauri (shell)    │  the Chat page streams
+           │ 127.0.0.1:18181 │ HTTP│ thin commands, tray  │  through the gateway too
            └────────┬────────┘     └──────────┬───────────┘
                     └──────────┬──────────────┘
                                ▼
@@ -17,15 +17,19 @@
                ┌───────────────┴───────────────┐
                ▼                               ▼
         calcine-geniex                   calcine-mock
-        spawns `geniex …`                fake data (any OS, CI)
+        spawns `geniex …`,               fake data and a fake
+        supervises `geniex serve`        OpenAI server (any OS, CI)
 ```
+
+Security of the gateway is described in [security-model.md](security-model.md).
 
 ## Crates
 
 | Crate | Role | Depends on Tauri? |
 |---|---|---|
 | `crates/calcine-core` | Domain types, model references (pasted names and links), service traits (`ModelStore`, `ModelCatalog`, `RuntimeManager`, `HardwareProbe`), the `JobManager` for long-running work, errors, `Services` | No |
-| `crates/calcine-geniex` | GenieX CLI adapter: discovery, command runner, `pull` with live progress, output parsers tested on real captures (`tests/fixtures/`) | No |
+| `crates/calcine-geniex` | GenieX CLI adapter: discovery, command runner, `pull` with live progress, `geniex serve` supervisor, output parsers tested on real captures (`tests/fixtures/`) | No |
+| `crates/calcine-gateway` | Local HTTP API (axum): Host/Origin/API-key checks, body sanitizing, OpenAI-compatible proxy with streaming and a one-at-a-time queue, request log, `/calcine/v1` management API | No |
 | `crates/calcine-hw` | Hardware probe: CPU, memory and disk (sysinfo), NPU/GPU and drivers (Windows WMI) | No |
 | `crates/calcine-mock` | In-memory backend with simulated downloads, for UI work and tests | No |
 | `src-tauri` | Desktop shell: builds `Services`, exposes commands, exports TypeScript bindings | Yes |
@@ -37,7 +41,7 @@ Backend selection: `CALCINE_BACKEND=mock` uses the mock, anything else uses Geni
 ```
 calcine-core/src/
 ├─ models/     types.rs · reference.rs (pasted names/links) · store.rs (ModelStore, ModelCatalog)
-├─ runtime/    types.rs · manager.rs (RuntimeManager)
+├─ runtime/    types.rs · manager.rs (RuntimeManager) · server.rs (InferenceServer)
 ├─ hardware/   types.rs · probe.rs (HardwareProbe)
 ├─ jobs/       types.rs · manager.rs (JobManager, JobCtx)
 ├─ services.rs Services: the set of trait objects every front door uses
@@ -45,11 +49,18 @@ calcine-core/src/
 
 calcine-geniex/src/
 ├─ cli/        discovery.rs (find geniex.exe) · runner.rs (spawn with fixed flags)
-├─ backend/    models.rs · pull.rs · runtime.rs  (trait implementations)
+├─ backend/    models.rs · pull.rs · runtime.rs · serve.rs  (trait implementations)
 └─ parse/      one parser per command output, tested on tests/fixtures/
 
+calcine-gateway/src/
+├─ security/   mod.rs (Host, Origin, auth middleware) · sanitize.rs (file paths, URLs)
+├─ routes/     openai.rs (/v1) · manage.rs (/calcine/v1)
+├─ proxy.rs    forwarding and streaming to geniex serve
+├─ keys.rs     API keys (hashed, scoped) · caller.rs (who is calling)
+└─ log.rs · settings.rs · state.rs · error.rs
+
 calcine-hw/src/     system.rs (sysinfo) · windows.rs (WMI)
-calcine-mock/src/   data.rs (sample data) · models.rs · runtime.rs · hardware.rs
+calcine-mock/src/   data.rs (sample data) · models.rs · runtime.rs · hardware.rs · server.rs
 ```
 
 Rule of thumb: one folder per domain, data types in `types.rs`, the service

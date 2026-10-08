@@ -31,11 +31,27 @@ export const commands = {
 	cancelJob: (id: number) => __TAURI_INVOKE<boolean>("cancel_job", { id }),
 	/**  Remove a finished job from the list. */
 	dismissJob: (id: number) => __TAURI_INVOKE<boolean>("dismiss_job", { id }),
+	gatewayStatus: () => __TAURI_INVOKE<GatewayStatus>("gateway_status"),
+	gatewayConnection: () => __TAURI_INVOKE<GatewayConnection>("gateway_connection"),
+	/**  Start GenieX now instead of on the first request. */
+	startServer: () => typedError<null, ApiError>(__TAURI_INVOKE("start_server")),
+	stopServer: () => typedError<null, ApiError>(__TAURI_INVOKE("stop_server")),
+	/**  Recent output of `geniex serve`. */
+	serverLogs: () => __TAURI_INVOKE<string[]>("server_logs"),
+	setRequireApiKey: (require: boolean) => typedError<null, ApiError>(__TAURI_INVOKE("set_require_api_key", { require })),
+	/**  Recent API requests, newest first. */
+	listRequests: () => __TAURI_INVOKE<RequestEntry[]>("list_requests"),
+	listApiKeys: () => __TAURI_INVOKE<ApiKeyInfo[]>("list_api_keys"),
+	/**  Create a key. The token is returned once and never stored in clear. */
+	createApiKey: (request: NewApiKey) => typedError<CreatedApiKey, ApiError>(__TAURI_INVOKE("create_api_key", { request })),
+	revokeApiKey: (id: string) => typedError<boolean, ApiError>(__TAURI_INVOKE("revoke_api_key", { id })),
 };
 
 /** Events */
 export const events = {
+	gatewayUpdated: makeEvent<GatewayUpdated>("gateway-updated"),
 	jobUpdated: makeEvent<JobUpdated>("job-updated"),
+	requestLogged: makeEvent<RequestLogged>("request-logged"),
 };
 
 /* Types */
@@ -49,6 +65,22 @@ export type Accelerator = {
 export type ApiError = {
 	kind: ErrorKind,
 	message: string,
+};
+
+/**  A key as shown in the UI (never the secret itself). */
+export type ApiKeyInfo = {
+	id: string,
+	name: string,
+	/**  The first characters, to recognize a key: `calcine_3f9a…`. */
+	preview: string,
+	scopes: KeyScope[],
+	/**
+	 *  May send local file paths and URLs (images, audio, grammars) for
+	 *  GenieX to read. Off by default: it lets the app read any file.
+	 */
+	allowLocalFiles: boolean,
+	createdAtMs: number,
+	lastUsedAtMs: number | null,
 };
 
 export type AppInfo = {
@@ -74,6 +106,12 @@ export type ComputeUnit =
 /**  Split between units. */
 "hybrid";
 
+/**  A freshly created key. `token` is only ever returned here. */
+export type CreatedApiKey = {
+	token: string,
+	key: ApiKeyInfo,
+};
+
 export type DiskSpace = {
 	/**  Directory measured (the model cache). */
 	path: string,
@@ -83,6 +121,29 @@ export type DiskSpace = {
 
 /**  Stable, machine-readable error category exposed to the frontend. */
 export type ErrorKind = "runtime_not_found" | "command" | "timeout" | "parse" | "invalid_input" | "cancelled" | "not_implemented" | "io";
+
+/**  How Calcine's own UI talks to the gateway. */
+export type GatewayConnection = {
+	baseUrl: string,
+	/**  Per-launch token with full rights. Only given to the app's webview. */
+	token: string,
+};
+
+/**  What the Server page shows. */
+export type GatewayStatus = {
+	listening: boolean,
+	/**  Base URL apps use, e.g. `http://127.0.0.1:18181/v1`. */
+	baseUrl: string,
+	/**  Why the gateway isn't listening (port taken, …). */
+	error: string | null,
+	server: ServerState,
+	activeRequests: number,
+	queuedRequests: number,
+	requireApiKey: boolean,
+};
+
+/**  The gateway or the inference server changed state. */
+export type GatewayUpdated = GatewayStatus;
 
 /**  What this device offers for inference. */
 export type HardwareInfo = {
@@ -139,6 +200,13 @@ export type JobState = { state: "running" } | { state: "succeeded" } | { state: 
 /**  A job started, progressed or finished. */
 export type JobUpdated = Job;
 
+/**  What a key may do. */
+export type KeyScope = 
+/**  Chat, completions and listing models (`/v1/*`). */
+"inference" | 
+/**  Download and remove models, read jobs (`/calcine/v1/*`). */
+"manage";
+
 /**  A model in the local GenieX cache. */
 export type LocalModel = {
 	/**  Cache name, e.g. `qualcomm/Qwen3-4B`. Also the API model id. */
@@ -186,6 +254,13 @@ export type ModelType = "llm" | "vlm" |
 /**  A type this version of Calcine doesn't know about yet. */
 "unknown";
 
+/**  What to create. */
+export type NewApiKey = {
+	name: string,
+	scopes: KeyScope[],
+	allowLocalFiles: boolean,
+};
+
 export type Processor = {
 	name: string,
 	cores: number,
@@ -197,6 +272,29 @@ export type PullRequest = {
 	/**  Override GenieX's LLM/VLM detection. */
 	modelType: ModelType | null,
 };
+
+export type RequestEntry = {
+	id: number,
+	startedAtMs: number,
+	/**  The API key's name, `Calcine`, or `No key`. */
+	client: string,
+	method: string,
+	path: string,
+	model: string | null,
+	stream: boolean,
+	/**  `None` while in flight. */
+	status: number | null,
+	durationMs: number | null,
+	/**  Time until the first streamed bytes. */
+	firstTokenMs: number | null,
+	promptTokens: number | null,
+	completionTokens: number | null,
+	tokensPerSecond: number | null,
+	error: string | null,
+};
+
+/**  An API request started or finished. */
+export type RequestLogged = RequestEntry;
 
 /**  Inference backend a cached model runs on. */
 export type Runtime = 
@@ -218,6 +316,13 @@ export type RuntimeInfo = {
 	/**  Absolute path of the `geniex` executable. */
 	binaryPath: string,
 };
+
+/**  Lifecycle of the inference server process. */
+export type ServerState = { state: "stopped" } | { state: "starting" } | 
+/**  Accepting requests at `url` (loopback, internal port). */
+{ state: "ready"; url: string; startedAtMs: number } | 
+/**  The process exited or never became ready. */
+{ state: "failed"; message: string };
 
 /* Tauri Specta runtime */
 async function typedError<T, E>(result: Promise<T>): Promise<{ status: "ok"; data: T } | { status: "error"; error: E }> {

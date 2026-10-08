@@ -1,23 +1,26 @@
 //! Calcine desktop shell.
 //!
-//! Wires the shared [`Services`] into Tauri. Commands stay thin: domain logic
-//! lives in `calcine-core` and the backend crates so it can be tested (and
-//! reused by the HTTP gateway) without Tauri.
+//! Wires the shared [`Services`] and the HTTP [`Gateway`] into Tauri. Commands
+//! stay thin: domain logic lives in `calcine-core`, the backend crates and the
+//! gateway, so it can be tested without Tauri.
 
 mod bindings;
 mod commands;
 mod error;
 mod events;
+mod process;
 mod tray;
 
+use std::path::Path;
 use std::sync::Arc;
 
 use calcine_core::jobs::JobManager;
 use calcine_core::{BackendKind, Services};
-use calcine_geniex::{Geniex, GeniexConfig};
+use calcine_gateway::{CALCINE_ORIGINS, Gateway, GatewayOptions, KeyStore};
+use calcine_geniex::{Geniex, GeniexConfig, GeniexServer, ServeOptions};
 use calcine_hw::SystemProbe;
 use calcine_mock::MockBackend;
-use tauri::{Manager, WindowEvent};
+use tauri::{Manager, RunEvent, WindowEvent};
 use tracing_subscriber::EnvFilter;
 
 /// Environment variable selecting the backend: `mock` or `geniex` (default).
@@ -31,6 +34,7 @@ const BACKEND_ENV: &str = "CALCINE_BACKEND";
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     init_tracing();
+    process::kill_children_on_exit();
 
     let services = services_from_env();
     tracing::info!(backend = ?services.backend, "starting Calcine");
@@ -41,16 +45,24 @@ pub fn run() {
         tracing::warn!(%err, "couldn't export TypeScript bindings");
     }
 
-    tauri::Builder::default()
+    let app = tauri::Builder::default()
         // Must come first: a second launch focuses the running instance.
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
             tray::show_main_window(app);
         }))
-        .manage(services)
+        .manage(services.clone())
         .invoke_handler(specta.invoke_handler())
         .setup(move |app| {
             specta.mount_events(app);
-            events::forward_jobs(app.handle().clone(), &app.state::<Services>().jobs);
+            let data_dir = app.path().app_data_dir()?;
+            let gateway = Arc::new(create_gateway(services.clone(), &data_dir));
+            app.manage(gateway.clone());
+            events::forward(app.handle(), &services.jobs, &gateway);
+            tauri::async_runtime::spawn(async move {
+                if let Err(err) = gateway.start().await {
+                    tracing::error!(%err, "gateway didn't start");
+                }
+            });
             tray::install(app)?;
             Ok(())
         })
@@ -61,14 +73,53 @@ pub fn run() {
                 let _ = window.hide();
             }
         })
-        .run(tauri::generate_context!())
-        .expect("error while running Calcine");
+        .build(tauri::generate_context!())
+        .expect("error while building Calcine");
+
+    app.run(|handle, event| {
+        if let RunEvent::Exit = event {
+            // Don't leave `geniex serve` (and a loaded model) running after quitting.
+            let services = handle.state::<Services>().inner().clone();
+            let gateway = handle
+                .try_state::<Arc<Gateway>>()
+                .map(|state| state.inner().clone());
+            tauri::async_runtime::block_on(async move {
+                if let Some(gateway) = gateway {
+                    gateway.stop().await;
+                }
+                let _ = services.server.stop().await;
+            });
+        }
+    });
 }
 
 /// Regenerate `src/lib/bindings.ts` (used by `tests/bindings.rs`).
 #[doc(hidden)]
 pub fn export_bindings() -> Result<(), specta_typescript::Error> {
     bindings::export(&bindings::builder())
+}
+
+fn create_gateway(services: Services, data_dir: &Path) -> Gateway {
+    let keys = KeyStore::load(data_dir.join("api-keys.json")).unwrap_or_else(|err| {
+        tracing::error!(%err, "couldn't read API keys; starting with none");
+        KeyStore::in_memory()
+    });
+    let mut origins: Vec<String> = CALCINE_ORIGINS
+        .iter()
+        .map(|origin| (*origin).to_owned())
+        .collect();
+    if cfg!(debug_assertions) {
+        // `tauri dev` serves the UI from Vite.
+        origins.push("http://localhost:1420".to_owned());
+    }
+    Gateway::new(
+        services,
+        GatewayOptions {
+            keys: Arc::new(keys),
+            settings_path: Some(data_dir.join("gateway.json")),
+            builtin_origins: origins,
+        },
+    )
 }
 
 fn services_from_env() -> Services {
@@ -86,12 +137,15 @@ fn services_from_env() -> Services {
 }
 
 fn geniex_services() -> Services {
-    let geniex = Arc::new(Geniex::new(GeniexConfig::default()));
+    let geniex = Geniex::new(GeniexConfig::default());
+    let server = Arc::new(GeniexServer::new(geniex.clone(), ServeOptions::default()));
+    let geniex = Arc::new(geniex);
     Services {
         backend: BackendKind::Geniex,
         models: geniex.clone(),
         catalog: geniex.clone(),
         runtime: geniex,
+        server,
         hardware: Arc::new(SystemProbe),
         jobs: JobManager::new(),
     }

@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tooltip } from "@/components/ui/tooltip";
+import { useChat } from "@/features/chat/store";
 import type { LocalModel, ModelKey } from "@/lib/api";
 import { formatBytes } from "@/lib/format";
 import { useRemoveModels } from "../api";
@@ -62,7 +63,10 @@ export function ModelCard({ model }: { model: LocalModel }) {
           </Tooltip>
           <CopyIdButton id={model.name} />
           <Button size="sm" variant="default" asChild>
-            <Link to="/chat">
+            <Link
+              to="/chat"
+              onClick={() => useChat.setState({ lastModelId: model.name, activeId: null })}
+            >
               <MessagesSquare />
               Chat
             </Link>

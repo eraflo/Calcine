@@ -53,3 +53,37 @@ async fn lists_the_ai_hub_catalog_for_this_device() {
     assert!(catalog.chipset.is_some());
     assert_ne!(catalog.models, []);
 }
+
+#[tokio::test]
+#[ignore = "needs a local GenieX install"]
+async fn serve_starts_answers_and_stops() {
+    use calcine_core::runtime::{InferenceServer, ServerState};
+    use calcine_geniex::{GeniexServer, ServeOptions};
+
+    let server = GeniexServer::new(Geniex::default(), ServeOptions::default());
+    let url = server
+        .ensure_running()
+        .await
+        .expect("geniex serve should start");
+    assert!(matches!(
+        *server.state().borrow(),
+        ServerState::Ready { .. }
+    ));
+    // A second caller reuses the running server.
+    assert_eq!(server.ensure_running().await.unwrap(), url);
+
+    let models = reqwest::get(format!("{url}/v1/models"))
+        .await
+        .unwrap()
+        .text()
+        .await
+        .unwrap();
+    assert!(models.contains("\"object\":\"list\""), "{models}");
+
+    server.stop().await.unwrap();
+    assert_eq!(*server.state().borrow(), ServerState::Stopped);
+    assert!(
+        reqwest::get(format!("{url}/v1/")).await.is_err(),
+        "the server should be gone"
+    );
+}

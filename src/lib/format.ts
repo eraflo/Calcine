@@ -22,3 +22,20 @@ export function formatBytes(bytes: number): string {
 export function totalBytes(sizes: readonly number[]): number {
   return sizes.reduce((sum, size) => sum + size, 0);
 }
+
+const MINUTE = 60_000;
+const HOUR = 60 * MINUTE;
+const DAY = 24 * HOUR;
+
+/** `just now`, `5 min ago`, `3 h ago`, `2 days ago`, then a date. */
+export function formatRelative(timestampMs: number, nowMs: number = Date.now()): string {
+  const elapsed = Math.max(0, nowMs - timestampMs);
+  if (elapsed < MINUTE) return "just now";
+  if (elapsed < HOUR) return `${Math.floor(elapsed / MINUTE)} min ago`;
+  if (elapsed < DAY) return `${Math.floor(elapsed / HOUR)} h ago`;
+  if (elapsed < 7 * DAY) {
+    const days = Math.floor(elapsed / DAY);
+    return days === 1 ? "yesterday" : `${days} days ago`;
+  }
+  return new Date(timestampMs).toLocaleDateString();
+}

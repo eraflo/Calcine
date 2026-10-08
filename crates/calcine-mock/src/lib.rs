@@ -11,6 +11,9 @@ mod data;
 mod hardware;
 mod models;
 mod runtime;
+mod server;
+
+pub use server::MockServer;
 
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use std::time::Duration;
@@ -55,6 +58,7 @@ impl MockBackend {
             catalog: backend.clone(),
             runtime: backend.clone(),
             hardware: backend,
+            server: Arc::new(MockServer::default()),
             jobs: JobManager::new(),
         }
     }
@@ -123,5 +127,40 @@ mod tests {
         services.models.remove(&[key]).await.unwrap();
         let models = services.models.list().await.unwrap();
         assert!(models.iter().all(|m| m.name != "qualcomm/Qwen3-4B"));
+    }
+}
+
+#[cfg(test)]
+mod server_tests {
+    use calcine_core::runtime::{InferenceServer, ServerState};
+
+    use super::MockServer;
+
+    #[tokio::test]
+    async fn streams_a_canned_reply() {
+        let server = MockServer::default();
+        let url = server.ensure_running().await.unwrap();
+        assert!(matches!(
+            *server.state().borrow(),
+            ServerState::Ready { .. }
+        ));
+        let body = reqwest::Client::new()
+            .post(format!("{url}/v1/chat/completions"))
+            .json(&serde_json::json!({
+                "model": "mock",
+                "stream": true,
+                "messages": [{ "role": "user", "content": "hello" }],
+            }))
+            .send()
+            .await
+            .unwrap()
+            .text()
+            .await
+            .unwrap();
+        assert!(body.contains("reasoning_content"));
+        assert!(body.contains("hello"));
+        assert!(body.trim_end().ends_with("data:[DONE]"));
+        server.stop().await.unwrap();
+        assert_eq!(*server.state().borrow(), ServerState::Stopped);
     }
 }

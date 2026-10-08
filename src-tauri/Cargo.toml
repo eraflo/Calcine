@@ -20,6 +20,7 @@ tauri-build.workspace = true
 
 [dependencies]
 calcine-core.workspace = true
+calcine-gateway.workspace = true
 calcine-geniex.workspace = true
 calcine-hw.workspace = true
 calcine-mock.workspace = true
@@ -33,6 +34,9 @@ tauri-specta.workspace = true
 tokio.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
+
+[target.'cfg(windows)'.dependencies]
+win32job.workspace = true
 
 [lints]
 workspace = true

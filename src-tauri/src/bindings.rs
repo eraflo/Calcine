@@ -25,8 +25,22 @@ pub fn builder() -> Builder<Wry> {
             commands::jobs::list_jobs,
             commands::jobs::cancel_job,
             commands::jobs::dismiss_job,
+            commands::server::gateway_status,
+            commands::server::gateway_connection,
+            commands::server::start_server,
+            commands::server::stop_server,
+            commands::server::server_logs,
+            commands::server::set_require_api_key,
+            commands::server::list_requests,
+            commands::server::list_api_keys,
+            commands::server::create_api_key,
+            commands::server::revoke_api_key,
         ])
-        .events(collect_events![events::JobUpdated])
+        .events(collect_events![
+            events::JobUpdated,
+            events::GatewayUpdated,
+            events::RequestLogged
+        ])
         // Byte sizes and timestamps are u64 but always far below 2^53.
         .dangerously_cast_bigints_to_number()
 }

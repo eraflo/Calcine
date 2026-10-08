@@ -5,6 +5,8 @@ import { StatusDot } from "@/components/calcine/feedback/status-dot";
 import { Button } from "@/components/ui/button";
 import { Kbd } from "@/components/ui/kbd";
 import { Tooltip } from "@/components/ui/tooltip";
+import { gatewayQuery } from "@/features/server/api";
+import { describeStatus } from "@/features/server/lib/status";
 import { jobsQuery } from "@/features/tasks/api";
 import { isRunning } from "@/features/tasks/lib/format";
 import { useUi } from "@/stores/ui";
@@ -14,6 +16,9 @@ export function Topbar() {
   const setTasksOpen = useUi((state) => state.setTasksOpen);
   const { data: jobs = [] } = useQuery(jobsQuery);
   const running = jobs.filter(isRunning).length;
+  const { data: gateway } = useQuery(gatewayQuery);
+  const api = describeStatus(gateway);
+  const port = gateway?.baseUrl.match(/:(\d+)\//)?.[1] ?? "18181";
 
   return (
     <header className="flex h-12 shrink-0 items-center gap-3 border-b px-4">
@@ -28,14 +33,14 @@ export function Topbar() {
       </button>
 
       <div className="ml-auto flex items-center gap-1">
-        <Tooltip content="Local API server">
+        <Tooltip content={api.detail}>
           <Link
             to="/server"
             className="flex h-8 items-center gap-2 rounded-md px-2.5 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
           >
-            <StatusDot tone="idle" />
-            API off
-            <span className="font-mono">:18181</span>
+            <StatusDot tone={api.tone} />
+            {api.label}
+            <span className="font-mono">:{port}</span>
           </Link>
         </Tooltip>
         <Tooltip content={running ? `${running} running` : "Tasks"}>

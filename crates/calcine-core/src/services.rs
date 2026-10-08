@@ -7,7 +7,7 @@ use specta::Type;
 use crate::hardware::HardwareProbe;
 use crate::jobs::{JobId, JobKind, JobManager, JobState};
 use crate::models::{ModelCatalog, ModelStore, PullRequest};
-use crate::runtime::RuntimeManager;
+use crate::runtime::{InferenceServer, RuntimeManager};
 
 /// Which implementation backs the services.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]
@@ -26,6 +26,8 @@ pub struct Services {
     pub models: Arc<dyn ModelStore>,
     pub catalog: Arc<dyn ModelCatalog>,
     pub runtime: Arc<dyn RuntimeManager>,
+    /// `geniex serve`, started on demand by the gateway.
+    pub server: Arc<dyn InferenceServer>,
     pub hardware: Arc<dyn HardwareProbe>,
     pub jobs: JobManager,
 }

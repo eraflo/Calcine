@@ -3,3 +3,6 @@
 mod models;
 mod pull;
 mod runtime;
+mod serve;
+
+pub use serve::{GeniexServer, ServeOptions};

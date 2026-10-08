@@ -1,5 +1,6 @@
 import { Outlet } from "@tanstack/react-router";
 import { useEffect } from "react";
+import { useGatewayEvents } from "@/features/server/api";
 import { useJobEvents } from "@/features/tasks/api";
 import { TaskDrawer } from "@/features/tasks/components/task-drawer";
 import { useUi } from "@/stores/ui";
@@ -10,6 +11,7 @@ import { Topbar } from "./topbar";
 export function AppShell() {
   useGlobalShortcuts();
   useJobEvents();
+  useGatewayEvents();
 
   return (
     <div className="grid h-full grid-cols-[13.5rem_minmax(0,1fr)]">

@@ -15,8 +15,8 @@ command or flag becomes available in the app. Reference: GenieX v0.8.0.
 | `remove --yes <keys…>` | — | ✅ `ModelStore::remove` | ✅ Library (model or one precision) | |
 | `clean` | — | — | — | M3 |
 | `model set-type` | — | — | — | M3 |
-| `serve` | — | — | — | M2, behind the Calcine gateway |
-| `infer` / `run` | — | — | — | Replaced by the Chat page over the HTTP API (M2) |
+| `serve --host 127.0.0.1:<random> --origins --keepalive` | — | ✅ `InferenceServer` (`GeniexServer`, supervised) | ✅ Server page (start/stop, output), on demand from the gateway | Never exposed directly; see security-model.md |
+| `infer` / `run` | — | via `/v1/chat/completions` | ✅ Chat (streaming, reasoning, temperature, max tokens, think, compute, power mode) | The REPL itself isn't wrapped; the HTTP API takes the same options |
 | `update` | — | — | — | M4, orchestrated by Calcine |
 | `completion` | — | — | — | M5 |
 

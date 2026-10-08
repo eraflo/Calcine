@@ -8,6 +8,7 @@
 //! - [`parse`]: output parsers, tested against captures from a real install
 
 mod backend;
+pub use backend::{GeniexServer, ServeOptions};
 pub mod cli;
 pub mod parse;
 
