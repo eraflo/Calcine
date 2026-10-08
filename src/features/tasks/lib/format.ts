@@ -3,7 +3,7 @@ import type { Job } from "@/lib/api";
 import { formatBytes } from "@/lib/format";
 import type { messages } from "../messages";
 
-type TasksT = Translate<(typeof messages)["en"]>;
+export type TasksT = Translate<(typeof messages)["en"]>;
 
 export const isRunning = (job: Job) => job.state.state === "running";
 
@@ -14,6 +14,8 @@ export function jobTitle(job: Job, t: TasksT): string {
       return t("geniexVersion", { version: job.kind.version });
     case "update_app":
       return t("calcineVersion", { version: job.kind.version });
+    case "install_bench":
+      return t("benchTool", { version: job.kind.version });
     default:
       return job.kind.model;
   }
@@ -22,6 +24,9 @@ export function jobTitle(job: Job, t: TasksT): string {
 /** 0–100, or `null` while the total is unknown. */
 export function percent(job: Job): number | null {
   const progress = job.progress;
+  if (progress?.step) {
+    return Math.floor(((progress.step.current - 1) / progress.step.total) * 100);
+  }
   if (!progress?.totalBytes) return null;
   return Math.min(100, Math.floor((progress.doneBytes / progress.totalBytes) * 100));
 }
@@ -46,8 +51,14 @@ export function formatDuration(seconds: number): string {
 export function progressLabel(job: Job, t: TasksT): string {
   const progress = job.progress;
   if (!progress) return t("starting");
+  if (progress.phase === "measuring" && progress.step) {
+    return t("measuring", {
+      current: String(progress.step.current),
+      total: String(progress.step.total),
+    });
+  }
   if (progress.phase === "verifying" || progress.phase === "installing") {
-    return t(`phase_${progress.phase}`);
+    return t(job.kind.type === "install_bench" ? "phase_unpacking" : `phase_${progress.phase}`);
   }
   const parts = [
     progress.totalBytes

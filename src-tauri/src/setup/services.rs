@@ -8,7 +8,8 @@ use calcine_core::runtime::ServerOptions;
 use calcine_core::{BackendKind, Services};
 use calcine_geniex::update::RELEASE_ENDPOINT;
 use calcine_geniex::{
-    BundledInstaller, Geniex, GeniexConfig, GeniexInstaller, GeniexServer, InstallerConfig,
+    BenchConfig, BundledInstaller, Geniex, GeniexBench, GeniexConfig, GeniexInstaller,
+    GeniexServer, InstallerConfig,
 };
 use calcine_hub::{HubConfig, HubDirectory};
 use calcine_hw::SystemProbe;
@@ -28,6 +29,10 @@ pub struct AppPaths {
     pub runtime_cache: PathBuf,
     /// The GenieX installer shipped in Calcine's installer, if any.
     pub bundled_geniex: Option<PathBuf>,
+    /// `geniex-bench` versions, downloaded on demand.
+    pub bench_tools: PathBuf,
+    /// Benchmark history.
+    pub bench_history: PathBuf,
 }
 
 pub fn services_from_env(paths: &AppPaths) -> Services {
@@ -59,6 +64,14 @@ fn geniex_services(paths: &AppPaths) -> Services {
         },
     )
     .expect("the system TLS stack should load");
+    let bench = GeniexBench::new(
+        geniex.clone(),
+        BenchConfig {
+            tools_dir: paths.bench_tools.clone(),
+            history_path: paths.bench_history.clone(),
+        },
+    )
+    .expect("the system TLS stack should load");
     let geniex = Arc::new(geniex);
     Services {
         backend: BackendKind::Geniex,
@@ -71,6 +84,7 @@ fn geniex_services(paths: &AppPaths) -> Services {
         server,
         hardware: Arc::new(SystemProbe::new()),
         installer: Arc::new(installer),
+        bench: Arc::new(bench),
         jobs: JobManager::new(),
     }
 }

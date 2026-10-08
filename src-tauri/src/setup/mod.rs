@@ -17,8 +17,12 @@ use self::services::{AppPaths, services_from_env};
 /// Build the services, start the gateway, and forward state changes to the
 /// webview. Returns the services, also managed as Tauri state.
 pub fn start(app: &App) -> tauri::Result<Services> {
+    let data_dir = app.path().app_data_dir()?;
+    let local_dir = app.path().app_local_data_dir()?;
     let paths = AppPaths {
-        runtime_cache: app.path().app_local_data_dir()?.join("runtime-cache"),
+        runtime_cache: local_dir.join("runtime-cache"),
+        bench_tools: local_dir.join("geniex-bench"),
+        bench_history: data_dir.join("benchmarks.json"),
         // Only release builds bundle it (`tauri.release.conf.json`).
         bundled_geniex: app
             .path()
@@ -30,7 +34,6 @@ pub fn start(app: &App) -> tauri::Result<Services> {
     tracing::info!(backend = ?services.backend, "starting Calcine");
     app.manage(services.clone());
 
-    let data_dir = app.path().app_data_dir()?;
     // The server isn't running yet: this only sets what it starts with.
     let options_file = ServerOptionsFile::new(&data_dir);
     let options = options_file.load();

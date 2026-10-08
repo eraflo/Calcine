@@ -44,6 +44,9 @@ every web page you visit.
   Hugging Face, ModelScope or Docker Hub link, or import a folder.
 - **See the NPU work.** Live NPU, GPU, CPU and memory load, drivers, and a self-test that
   compares speed on each compute unit.
+- **Benchmark properly.** Qualcomm's `geniex-bench`, downloaded and verified for you:
+  time to first token, prompt and generation speed per unit, with warmup, repetitions,
+  history and CSV export.
 - **Works with Ollama apps.** Ollama's API is translated too, and can answer on Ollama's
   port, 11434, for apps that only speak Ollama.
 - **OpenAI-compatible API.** On `127.0.0.1:18181`, GenieX's default port, with per-app keys,

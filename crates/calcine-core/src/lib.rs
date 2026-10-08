@@ -14,7 +14,9 @@
 //! | [`runtime`] | `RuntimeInfo` | `RuntimeManager` |
 //! | [`hardware`] | `HardwareInfo`, `HardwareUsage`… | `HardwareProbe` |
 //! | [`jobs`] | `Job`, `JobState`… | — (`JobManager` runs them) |
+//! | [`bench`] | `BenchRequest`, `BenchResult`… | `Benchmarker` |
 
+pub mod bench;
 pub mod error;
 pub mod hardware;
 pub mod jobs;

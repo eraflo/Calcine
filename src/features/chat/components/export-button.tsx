@@ -30,7 +30,7 @@ export function ExportButton({ conversation }: { conversation: Conversation | un
         },
         new Date(),
       );
-      return unwrap(() => commands.saveMarkdown(title, markdown));
+      return unwrap(() => commands.saveExport(title, markdown, "markdown"));
     },
     onSuccess: (path) => setSaved(path !== null),
   });

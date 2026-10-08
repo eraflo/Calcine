@@ -15,6 +15,7 @@ const job = (overrides: Partial<Job> = {}): Job => ({
     totalBytes: 760_000_000,
     bytesPerSecond: 19_000_000,
     phase: null,
+    step: null,
   },
   startedAtMs: 0,
   finishedAtMs: null,
@@ -29,7 +30,7 @@ describe("job progress", () => {
 
   it("handles unknown totals", () => {
     const unknown = job({
-      progress: { doneBytes: 10, totalBytes: null, bytesPerSecond: null, phase: null },
+      progress: { doneBytes: 10, totalBytes: null, bytesPerSecond: null, phase: null, step: null },
     });
     expect(percent(unknown)).toBeNull();
     expect(secondsLeft(unknown)).toBeNull();
@@ -64,7 +65,13 @@ describe("GenieX installs", () => {
   it("are titled by version and describe their phase", () => {
     const install = job({
       kind: { type: "install_runtime", version: "v0.8.1" },
-      progress: { doneBytes: 0, totalBytes: null, bytesPerSecond: null, phase: "installing" },
+      progress: {
+        doneBytes: 0,
+        totalBytes: null,
+        bytesPerSecond: null,
+        phase: "installing",
+        step: null,
+      },
     });
     expect(jobTitle(install, t)).toBe("GenieX v0.8.1");
     expect(progressLabel(install, t)).toBe("Installing… GenieX is unavailable for a moment.");

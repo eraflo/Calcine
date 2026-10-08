@@ -151,10 +151,15 @@ impl JobManager {
             let Some(entry) = jobs.get_mut(&id) else {
                 return;
             };
+            // A new phase or step is always sent; byte counts are throttled.
+            let moved_on = entry.job.progress.is_none_or(|previous| {
+                previous.phase != progress.phase || previous.step != progress.step
+            });
             entry.job.progress = Some(progress);
-            let due = entry
-                .last_progress_event
-                .is_none_or(|last| last.elapsed() >= PROGRESS_THROTTLE);
+            let due = moved_on
+                || entry
+                    .last_progress_event
+                    .is_none_or(|last| last.elapsed() >= PROGRESS_THROTTLE);
             if !due {
                 return;
             }
@@ -254,6 +259,7 @@ mod tests {
                 total_bytes: Some(10),
                 bytes_per_second: None,
                 phase: None,
+                step: None,
             });
             Ok(())
         });

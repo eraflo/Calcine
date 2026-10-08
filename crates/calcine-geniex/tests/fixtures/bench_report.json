@@ -1,0 +1,83 @@
+{
+  "schema_version": "6",
+  "cell_id": "test-qairt",
+  "plugin": "qairt",
+  "device": "npu",
+  "device_id": "NPU",
+  "model_path": "C:\\Users\\me\\.cache\\geniex\\models\\qualcomm/Qwen3-0.6B\\part2_of_2.bin",
+  "model_size_bytes": 437252096,
+  "geniex_version": "v0.8.0",
+  "qairt_version": "2.45",
+  "llama_cpp_version": "9425611",
+  "params": {
+    "warmup": 1,
+    "repetitions": 2,
+    "n_prompt": 128,
+    "n_gen": 32,
+    "temperature": 0.0,
+    "top_p": 0.0,
+    "seed": 42,
+    "n_ctx": 0,
+    "n_threads": 0,
+    "n_ubatch": 0,
+    "n_gpu_layers": 0
+  },
+  "runs": [
+    {
+      "run_idx": 0,
+      "ttft_us": 40397,
+      "media_us": 0,
+      "prompt_time_us": 40397,
+      "decode_time_us": 607513,
+      "prompt_tokens": 128,
+      "gen_tokens": 32,
+      "prefill_tps": 3168.55212,
+      "decode_tps": 52.67377,
+      "stop_reason": "length"
+    },
+    {
+      "run_idx": 1,
+      "ttft_us": 36461,
+      "media_us": 0,
+      "prompt_time_us": 36461,
+      "decode_time_us": 598450,
+      "prompt_tokens": 128,
+      "gen_tokens": 32,
+      "prefill_tps": 3510.600368,
+      "decode_tps": 53.471468,
+      "stop_reason": "length"
+    }
+  ],
+  "agg": {
+    "ttft_ms": {
+      "median": 38.429,
+      "min": 36.461,
+      "max": 40.397,
+      "mean": 38.429,
+      "stdev": 2.783172
+    },
+    "prefill_tps": {
+      "median": 3339.576244,
+      "min": 3168.55212,
+      "max": 3510.600368,
+      "mean": 3339.576244,
+      "stdev": 241.864635
+    },
+    "decode_tps": {
+      "median": 53.072619,
+      "min": 52.67377,
+      "max": 53.471468,
+      "mean": 53.072619,
+      "stdev": 0.564058
+    },
+    "gen_tokens": {
+      "median": 32.0
+    },
+    "prompt_tokens": {
+      "median": 128.0
+    },
+    "media_ms": {
+      "median": 0.0
+    }
+  }
+}

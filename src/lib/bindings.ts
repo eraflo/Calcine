@@ -17,10 +17,10 @@ export const commands = {
 	 */
 	openUrl: (url: string) => typedError<null, ApiError>(__TAURI_INVOKE("open_url", { url })),
 	/**
-	 *  Save a Markdown export where the user picks in the system dialog.
-	 *  Returns the saved path, or `None` when the user cancels.
+	 *  Save an export where the user picks in the system dialog. Returns the
+	 *  saved path, or `None` when the user cancels.
 	 */
-	saveMarkdown: (fileName: string, contents: string) => typedError<string | null, ApiError>(__TAURI_INVOKE("save_markdown", { fileName, contents })),
+	saveExport: (fileName: string, contents: string, format: ExportFormat) => typedError<string | null, ApiError>(__TAURI_INVOKE("save_export", { fileName, contents, format })),
 	/**  Whether Calcine starts with Windows (in the tray). */
 	autostartEnabled: () => typedError<boolean, ApiError>(__TAURI_INVOKE("autostart_enabled")),
 	setAutostart: (enabled: boolean) => typedError<null, ApiError>(__TAURI_INVOKE("set_autostart", { enabled })),
@@ -94,6 +94,15 @@ export const commands = {
 	cachedRuntimes: () => __TAURI_INVOKE<CachedInstaller[]>("cached_runtimes"),
 	/**  Every known job, newest first. */
 	listJobs: () => __TAURI_INVOKE<Job[]>("list_jobs"),
+	/**  Whether `geniex-bench` is downloaded, and for which GenieX. */
+	benchTool: () => typedError<BenchTool, ApiError>(__TAURI_INVOKE("bench_tool")),
+	/**  Download `geniex-bench` for the installed GenieX, as a job. */
+	installBenchTool: () => typedError<number, ApiError>(__TAURI_INVOKE("install_bench_tool")),
+	/**  Benchmark a model on each requested compute unit, as a job. */
+	startBenchmark: (request: BenchRequest) => typedError<number, ApiError>(__TAURI_INVOKE("start_benchmark", { request })),
+	/**  Past results, newest first. */
+	benchHistory: () => __TAURI_INVOKE<BenchResult[]>("bench_history"),
+	forgetBenchResults: (ids: string[]) => typedError<null, ApiError>(__TAURI_INVOKE("forget_bench_results", { ids })),
 	/**  Ask a running job to stop. Returns `false` if it already finished. */
 	cancelJob: (id: number) => __TAURI_INVOKE<boolean>("cancel_job", { id }),
 	/**  Remove a finished job from the list. */
@@ -191,6 +200,70 @@ export type BackendKind =
 /**  In-memory fake data (`CALCINE_BACKEND=mock`). */
 "mock";
 
+/**  What one compute unit measured. */
+export type BenchMeasure = {
+	ttftMs: BenchStat,
+	prefillTps: BenchStat,
+	decodeTps: BenchStat,
+	/**  Median tokens actually generated (a model may stop early). */
+	generatedTokens: number | null,
+	/**  Prompt tokens processed. QAIRT pads them to a multiple of 128. */
+	promptTokens: number | null,
+	geniexVersion: string,
+};
+
+/**  What to measure. One run per compute unit. */
+export type BenchRequest = {
+	/**  GenieX id, `org/model:precision`. */
+	model: string,
+	runtime: Runtime,
+	units: ComputeUnit[],
+	/**  Prompt length, in random tokens. */
+	promptTokens: number,
+	/**  Tokens generated per repetition. */
+	generatedTokens: number,
+	/**  Measured repetitions, after one warmup. */
+	repetitions: number,
+	/**  HTP power mode (`burst`, `balanced`, …). */
+	powerMode: string,
+};
+
+/**  One compute unit's result in the history. */
+export type BenchResult = {
+	id: string,
+	/**  Results measured together share a session. */
+	sessionId: string,
+	startedAtMs: number,
+	model: string,
+	runtime: Runtime,
+	unit: ComputeUnit,
+	promptTokens: number,
+	generatedTokens: number,
+	repetitions: number,
+	powerMode: string,
+	/**  `None` when the run failed. */
+	measure: BenchMeasure | null,
+	error: string | null,
+};
+
+/**  A measured value across repetitions. */
+export type BenchStat = {
+	median: number | null,
+	min: number | null,
+	max: number | null,
+	stdev: number | null,
+};
+
+/**  Whether the benchmark tool is ready. */
+export type BenchTool = {
+	/**  Version installed for Calcine, if any. */
+	installed: string | null,
+	/**  The version matching the installed GenieX, the one to install. */
+	wanted: string | null,
+	/**  Download size of `wanted`, when known. */
+	downloadBytes: number | null,
+};
+
 /**  An installer kept on disk, to reinstall without downloading. */
 export type CachedInstaller = {
 	version: string,
@@ -243,6 +316,9 @@ export type DiskSpace = {
 
 /**  Stable, machine-readable error category exposed to the frontend. */
 export type ErrorKind = "runtime_not_found" | "command" | "timeout" | "parse" | "invalid_input" | "cancelled" | "network" | "not_implemented" | "io";
+
+/**  What an export contains, for the save dialog's file type. */
+export type ExportFormat = "markdown" | "csv";
 
 /**  How Calcine's own UI talks to the gateway. */
 export type GatewayConnection = {
@@ -375,10 +451,16 @@ export type JobKind =
 /**  Installing, updating or rolling back GenieX itself. */
 { type: "install_runtime"; version: string } | 
 /**  Downloading and installing a newer Calcine. */
-{ type: "update_app"; version: string };
+{ type: "update_app"; version: string } | 
+/**  Downloading the benchmark tool (`geniex-bench`). */
+{ type: "install_bench"; version: string } | 
+/**  Benchmarking a model on one or more compute units. */
+{ type: "benchmark"; model: string };
 
 /**  What a multi-step job is doing right now. */
-export type JobPhase = "downloading" | "verifying" | "installing";
+export type JobPhase = "downloading" | "verifying" | "installing" | 
+/**  Running one benchmark measurement. */
+"measuring";
 
 export type JobProgress = {
 	doneBytes: number,
@@ -386,9 +468,18 @@ export type JobProgress = {
 	bytesPerSecond: number | null,
 	/**  Set by jobs with several steps (installing GenieX). */
 	phase: JobPhase | null,
+	/**  Set by jobs that repeat a step (one benchmark per compute unit). */
+	step: JobStep | null,
 };
 
 export type JobState = { state: "running" } | { state: "succeeded" } | { state: "cancelled" } | { state: "failed"; message: string };
+
+/**  Where a job made of several steps is. */
+export type JobStep = {
+	/**  1-based. */
+	current: number,
+	total: number,
+};
 
 /**  A job started, progressed or finished. */
 export type JobUpdated = Job;

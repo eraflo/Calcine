@@ -5,8 +5,9 @@ use serde::{Deserialize, Serialize};
 use specta::Type;
 
 use crate::Result;
+use crate::bench::{BenchRequest, BenchResult, Benchmarker};
 use crate::hardware::HardwareProbe;
-use crate::jobs::{JobId, JobKind, JobManager, JobState};
+use crate::jobs::{JobCtx, JobId, JobKind, JobManager, JobPhase, JobProgress, JobState, JobStep};
 use crate::models::{ModelCatalog, ModelDirectory, ModelKey, ModelStore, PullRequest};
 use crate::runtime::{
     InferenceServer, InstallSource, RuntimeInstaller, RuntimeManager, ServerState,
@@ -36,6 +37,8 @@ pub struct Services {
     pub hardware: Arc<dyn HardwareProbe>,
     /// Installs and updates GenieX itself.
     pub installer: Arc<dyn RuntimeInstaller>,
+    /// `geniex-bench` and the benchmark history.
+    pub bench: Arc<dyn Benchmarker>,
     pub jobs: JobManager,
 }
 
@@ -97,6 +100,69 @@ impl Services {
         })
     }
 
+    /// Download the benchmark tool, or return the download already running.
+    pub fn start_bench_install(&self, version: String) -> JobId {
+        if let Some(job) = self.running_job(|kind| matches!(kind, JobKind::InstallBench { .. })) {
+            return job;
+        }
+        let bench = self.bench.clone();
+        self.jobs
+            .spawn(JobKind::InstallBench { version }, move |ctx| async move {
+                bench.install_tool(ctx).await
+            })
+    }
+
+    /// Benchmark a model on each requested compute unit, one after the
+    /// other, then save the results. `geniex serve` is paused meanwhile so
+    /// it doesn't share the hardware; a failed unit is recorded with its
+    /// error and the others still run.
+    pub fn start_benchmark(&self, request: BenchRequest) -> Result<JobId> {
+        request.validate().map_err(crate::Error::InvalidInput)?;
+        if self
+            .running_job(|kind| matches!(kind, JobKind::Benchmark { .. }))
+            .is_some()
+        {
+            return Err(crate::Error::InvalidInput(
+                "a benchmark is already running".into(),
+            ));
+        }
+        let bench = self.bench.clone();
+        let server = self.server.clone();
+        let kind = JobKind::Benchmark {
+            model: request.model.clone(),
+        };
+        Ok(self.jobs.spawn(kind, move |ctx| async move {
+            let was_running = matches!(
+                *server.state().borrow(),
+                ServerState::Ready { .. } | ServerState::Starting
+            );
+            server.stop().await?;
+            let outcome = measure_all(bench.as_ref(), &request, &ctx).await;
+            if was_running {
+                let _ = server.ensure_running().await;
+            }
+            let results = outcome?;
+            let all_failed = results.iter().all(|result| result.measure.is_none());
+            let first_error = results.iter().find_map(|result| result.error.clone());
+            bench.record(results)?;
+            match first_error {
+                Some(message) if all_failed => Err(crate::Error::Command {
+                    command: "geniex-bench".into(),
+                    message,
+                }),
+                _ => Ok(()),
+            }
+        }))
+    }
+
+    fn running_job(&self, matches: impl Fn(&JobKind) -> bool) -> Option<JobId> {
+        self.jobs
+            .list()
+            .into_iter()
+            .find(|job| matches(&job.kind) && job.state == JobState::Running)
+            .map(|job| job.id)
+    }
+
     /// Delete models or precisions. Stops `geniex serve` first: Windows
     /// can't delete the files of a loaded model.
     pub async fn remove_models(&self, keys: &[ModelKey]) -> Result<()> {
@@ -109,6 +175,57 @@ impl Services {
         self.server.stop().await?;
         self.models.clean().await
     }
+}
+
+/// One measurement per compute unit. Stops early only when cancelled.
+async fn measure_all(
+    bench: &dyn Benchmarker,
+    request: &BenchRequest,
+    ctx: &JobCtx,
+) -> Result<Vec<BenchResult>> {
+    let session_id = format!("{:x}-{}", now_ms(), ctx.id());
+    let total = u32::try_from(request.units.len()).unwrap_or(u32::MAX);
+    let mut results = Vec::with_capacity(request.units.len());
+    for (index, unit) in request.units.iter().enumerate() {
+        let current = u32::try_from(index + 1).unwrap_or(u32::MAX);
+        ctx.report(JobProgress {
+            phase: Some(JobPhase::Measuring),
+            step: Some(JobStep { current, total }),
+            ..JobProgress::default()
+        });
+        let started_at_ms = now_ms();
+        let outcome = bench.measure(request, *unit, ctx).await;
+        if matches!(outcome, Err(crate::Error::Cancelled)) {
+            return Err(crate::Error::Cancelled);
+        }
+        let (measure, error) = match outcome {
+            Ok(measure) => (Some(measure), None),
+            Err(err) => (None, Some(err.to_string())),
+        };
+        results.push(BenchResult {
+            id: format!("{session_id}-{index}"),
+            session_id: session_id.clone(),
+            started_at_ms,
+            model: request.model.clone(),
+            runtime: request.runtime,
+            unit: *unit,
+            prompt_tokens: request.prompt_tokens,
+            generated_tokens: request.generated_tokens,
+            repetitions: request.repetitions,
+            power_mode: request.power_mode.clone(),
+            measure,
+            error,
+        });
+    }
+    Ok(results)
+}
+
+fn now_ms() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |elapsed| {
+            u64::try_from(elapsed.as_millis()).unwrap_or(u64::MAX)
+        })
 }
 
 impl fmt::Debug for Services {

@@ -9,7 +9,7 @@
 //! `%LOCALAPPDATA%\GenieX CLI`. Installers are kept in a cache to roll back
 //! or repair without downloading.
 
-mod download;
+pub(crate) mod download;
 mod index;
 mod signature;
 
