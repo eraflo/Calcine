@@ -1,0 +1,9 @@
+[
+  {
+    "name": "qualcomm/Qwen3-4B",
+    "size": 3182356037,
+    "runtime": "qairt",
+    "type": "llm",
+    "precisions": ["W4A16"]
+  }
+]

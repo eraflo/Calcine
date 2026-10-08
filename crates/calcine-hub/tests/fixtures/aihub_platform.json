@@ -1,0 +1,923 @@
+{
+  "aihm_version": "0.64.0",
+  "runtimes": [
+    {
+      "runtime": "RUNTIME_GENIE",
+      "website_runtime": "genie",
+      "file_extension": ".genie.zip",
+      "is_aot_compiled": true,
+      "display_name": "GenAI Inference Extensions",
+      "description": "Qualcomm GenAI Inference Extensions (genie) bundle.",
+      "documentation_url": "https://www.qualcomm.com/developer/software/gen-ai-inference-extensions"
+    },
+    {
+      "runtime": "RUNTIME_GENIEX_LLAMACPP",
+      "website_runtime": "geniex_llamacpp",
+      "file_extension": ".gguf",
+      "display_name": "GenieX (Llama.cpp)",
+      "description": "GenieX LLM runtime backed by llama.cpp (GGUF).",
+      "documentation_url": "https://github.com/ggml-org/llama.cpp"
+    },
+    {
+      "runtime": "RUNTIME_GENIEX_QAIRT",
+      "website_runtime": "geniex_qairt",
+      "file_extension": ".geniex.zip",
+      "is_aot_compiled": true,
+      "display_name": "GenieX (QAIRT)",
+      "description": "Qualcomm GenieX LLM runtime bundle backed by QAIRT.",
+      "documentation_url": "https://www.qualcomm.com/developer/software/qualcomm-ai-engine-direct-sdk"
+    },
+    {
+      "runtime": "RUNTIME_ONNX",
+      "website_runtime": "onnx",
+      "file_extension": ".onnx.zip",
+      "display_name": "ONNX Runtime",
+      "description": "ONNX model using the QNN execution provider.",
+      "documentation_url": "https://onnxruntime.ai/docs/execution-providers/QNN-ExecutionProvider.html"
+    },
+    {
+      "runtime": "RUNTIME_PRECOMPILED_QNN_ONNX",
+      "website_runtime": "onnx",
+      "file_extension": ".onnx.zip",
+      "is_aot_compiled": true,
+      "display_name": "Precompiled QAIRT ONNX",
+      "description": "A QAIRT context binary wrapped in an ONNX file.",
+      "documentation_url": "https://onnxruntime.ai/docs/execution-providers/QNN-ExecutionProvider.html"
+    },
+    {
+      "runtime": "RUNTIME_QNN_CONTEXT_BINARY",
+      "website_runtime": "qnn",
+      "file_extension": ".bin",
+      "is_aot_compiled": true,
+      "display_name": "QAIRT Context Binary",
+      "description": "Qualcomm AI Engine Direct context binary.",
+      "documentation_url": "https://www.qualcomm.com/developer/software/qualcomm-ai-engine-direct-sdk"
+    },
+    {
+      "runtime": "RUNTIME_QNN_DLC",
+      "website_runtime": "qnn",
+      "file_extension": ".dlc",
+      "display_name": "QAIRT DLC",
+      "description": "Qualcomm AI Engine Direct deep-learning container.",
+      "documentation_url": "https://www.qualcomm.com/developer/software/qualcomm-ai-engine-direct-sdk"
+    },
+    {
+      "runtime": "RUNTIME_TFLITE",
+      "website_runtime": "tflite",
+      "file_extension": ".tflite",
+      "display_name": "TensorFlow Lite",
+      "description": "LiteRT (TensorFlow Lite).",
+      "documentation_url": "https://ai.google.dev/edge/litert"
+    },
+    {
+      "runtime": "RUNTIME_VOICE_AI",
+      "website_runtime": "voice_ai",
+      "file_extension": ".bin",
+      "is_aot_compiled": true,
+      "display_name": "Voice AI",
+      "description": "Qualcomm Voice AI SDK bundle.",
+      "documentation_url": "https://www.qualcomm.com/developer/software/qualcomm-ai-engine-direct-sdk"
+    }
+  ],
+  "form_factors": [
+    {
+      "form_factor": "FORM_FACTOR_AUTO",
+      "display_name": "Automotive",
+      "world": "WEBSITE_WORLD_AUTOMOTIVE"
+    },
+    {
+      "form_factor": "FORM_FACTOR_COMPUTE",
+      "display_name": "Compute",
+      "world": "WEBSITE_WORLD_COMPUTE"
+    },
+    {
+      "form_factor": "FORM_FACTOR_IOT",
+      "display_name": "IoT",
+      "world": "WEBSITE_WORLD_IOT"
+    },
+    {
+      "form_factor": "FORM_FACTOR_PHONE",
+      "display_name": "Phone",
+      "world": "WEBSITE_WORLD_MOBILE"
+    },
+    {
+      "form_factor": "FORM_FACTOR_TABLET",
+      "display_name": "Tablet",
+      "world": "WEBSITE_WORLD_MOBILE"
+    },
+    {
+      "form_factor": "FORM_FACTOR_XR",
+      "display_name": "XR",
+      "world": "WEBSITE_WORLD_XR"
+    }
+  ],
+  "devices": [
+    {
+      "name": "Arduino VENTUNO Q",
+      "chipset": "qualcomm-qcs8275",
+      "npu_count": 1,
+      "os": {
+        "ostype": "OPERATING_SYSTEM_TYPE_UBUNTU",
+        "version": "24.04"
+      },
+      "form_factor": "FORM_FACTOR_IOT",
+      "vendor": "qualcomm",
+      "icon": "WEBSITE_ICON_IOT_DRONE",
+      "enabled_in_scorecard": true,
+      "available_in_workbench": true
+    },
+    {
+      "name": "Dragonwing IQ-9075 EVK",
+      "chipset": "qualcomm-qcs9075",
+      "npu_count": 2,
+      "os": {
+        "ostype": "OPERATING_SYSTEM_TYPE_QC_LINUX",
+        "version": "1.9"
+      },
+      "form_factor": "FORM_FACTOR_IOT",
+      "vendor": "qualcomm",
+      "icon": "WEBSITE_ICON_IOT_DRONE",
+      "enabled_in_scorecard": true,
+      "available_in_workbench": true
+    },
+    {
+      "name": "Dragonwing Q-6690 MTP",
+      "chipset": "qualcomm-qcm6690",
+      "npu_count": 1,
+      "os": {
+        "ostype": "OPERATING_SYSTEM_TYPE_ANDROID",
+        "version": "15"
+      },
+      "form_factor": "FORM_FACTOR_IOT",
+      "vendor": "qualcomm",
+      "icon": "WEBSITE_ICON_IOT_DRONE",
+      "enabled_in_scorecard": true,
+      "available_in_workbench": true
+    },
+    {
+      "name": "Dragonwing RB3 Gen 2 Vision Kit",
+      "chipset": "qualcomm-qcs6490",
+      "npu_count": 1,
+      "os": {
+        "ostype": "OPERATING_SYSTEM_TYPE_QC_LINUX",
+        "version": "1.6"
+      },
+      "form_factor": "FORM_FACTOR_IOT",
+      "vendor": "qualcomm",
+      "icon": "WEBSITE_ICON_IOT_DRONE",
+      "enabled_in_scorecard": true,
+      "available_in_workbench": true
+    },
+    {
+      "name": "Google Pixel 3",
+      "chipset": "qualcomm-snapdragon-845",
+      "npu_count": 1,
+      "os": {
+        "ostype": "OPERATING_SYSTEM_TYPE_ANDROID",
+        "version": "10"
+      },
+      "form_factor": "FORM_FACTOR_PHONE",
+      "vendor": "google",
+      "icon": "WEBSITE_ICON_PHONE_S21",
+      "available_in_workbench": true
+    },
+    {
+      "name": "Google Pixel 3 XL",
+      "chipset": "qualcomm-snapdragon-845",
+      "npu_count": 1,
+      "os": {
+        "ostype": "OPERATING_SYSTEM_TYPE_ANDROID",
+        "version": "10"
+      },
+      "form_factor": "FORM_FACTOR_PHONE",
+      "vendor": "google",
+      "icon": "WEBSITE_ICON_PHONE_S21",
+      "available_in_workbench": true
+    },
+    {
+      "name": "Google Pixel 3a",
+      "chipset": "qualcomm-snapdragon-670",
+      "npu_count": 1,
+      "os": {
+        "ostype": "OPERATING_SYSTEM_TYPE_ANDROID",
+        "version": "10"
+      },
+      "form_factor": "FORM_FACTOR_PHONE",
+      "vendor": "google",
+      "icon": "WEBSITE_ICON_PHONE_S21",
+      "available_in_workbench": true
+    },
+    {
+      "name": "Google Pixel 3a XL",
+      "chipset": "qualcomm-snapdragon-670",
+      "npu_count": 1,
+      "os": {
+        "ostype": "OPERATING_SYSTEM_TYPE_ANDROID",
+        "version": "12"
+      },
+      "form_factor": "FORM_FACTOR_PHONE",
+      "vendor": "google",
+      "icon": "WEBSITE_ICON_PHONE_S21",
+      "available_in_workbench": true
+    },
+    {
+      "name": "Google Pixel 4",
+      "chipset": "qualcomm-snapdragon-855",
+      "npu_count": 1,
+      "os": {
+        "ostype": "OPERATING_SYSTEM_TYPE_ANDROID",
+        "version": "10"
+      },
+      "form_factor": "FORM_FACTOR_PHONE",
+      "vendor": "google",
+      "icon": "WEBSITE_ICON_PHONE_S21",
+      "available_in_workbench": true
+    },
+    {
+      "name": "Google Pixel 5",
+      "chipset": "qualcomm-snapdragon-765g",
+      "npu_count": 1,
+      "os": {
+        "ostype": "OPERATING_SYSTEM_TYPE_ANDROID",
+        "version": "11"
+      },
+      "form_factor": "FORM_FACTOR_PHONE",
+      "vendor": "google",
+      "icon": "WEBSITE_ICON_PHONE_S21",
+      "available_in_workbench": true
+    },
+    {
+      "name": "Google Pixel 5a 5G",
+      "chipset": "qualcomm-snapdragon-765g",
+      "npu_count": 1,
+      "os": {
+        "ostype": "OPERATING_SYSTEM_TYPE_ANDROID",
+        "version": "12"
+      },
+      "form_factor": "FORM_FACTOR_PHONE",
+      "vendor": "google",
+      "icon": "WEBSITE_ICON_PHONE_S21",
+      "available_in_workbench": true
+    },
+    {
+      "name": "QCS8550 (Proxy)",
+      "chipset": "qualcomm-qcs8550-proxy",
+      "npu_count": 1,
+      "os": {
+        "ostype": "OPERATING_SYSTEM_TYPE_ANDROID",
+        "version": "12"
+      },
+      "form_factor": "FORM_FACTOR_IOT",
+      "vendor": "qualcomm",
+      "icon": "WEBSITE_ICON_IOT_DRONE",
+      "enabled_in_scorecard": true,
+      "available_in_workbench": true
+    },
+    {
+      "name": "SA7255P ADP",
+      "chipset": "qualcomm-sa7255p",
+      "npu_count": 1,
+      "os": {
+        "ostype": "OPERATING_SYSTEM_TYPE_ANDROID",
+        "version": "14"
+      },
+      "form_factor": "FORM_FACTOR_AUTO",
+      "vendor": "qualcomm",
+      "icon": "WEBSITE_ICON_CAR",
+      "enabled_in_scorecard": true,
+      "available_in_workbench": true
+    },
+    {
+      "name": "SA8295P ADP",
+      "chipset": "qualcomm-sa8295p",
+      "npu_count": 1,
+      "os": {
+        "ostype": "OPERATING_SYSTEM_TYPE_ANDROID",
+        "version": "14"
+      },
+      "form_factor": "FORM_FACTOR_AUTO",
+      "vendor": "qualcomm",
+      "icon": "WEBSITE_ICON_CAR",
+      "enabled_in_scorecard": true,
+      "available_in_workbench": true
+    },
+    {
+      "name": "SA8775P ADP",
+      "chipset": "qualcomm-sa8775p",
+      "npu_count": 2,
+      "os": {
+        "ostype": "OPERATING_SYSTEM_TYPE_ANDROID",
+        "version": "14"
+      },
+      "form_factor": "FORM_FACTOR_AUTO",
+      "vendor": "qualcomm",
+      "icon": "WEBSITE_ICON_CAR",
+      "enabled_in_scorecard": true,
+      "available_in_workbench": true
+    },
+    {
+      "name": "Samsung Galaxy A73 5G",
+      "chipset": "qualcomm-snapdragon-778g",
+      "npu_count": 1,
+      "os": {
+        "ostype": "OPERATING_SYSTEM_TYPE_ANDROID",
+        "version": "12"
+      },
+      "form_factor": "FORM_FACTOR_PHONE",
+      "vendor": "samsung",
+      "icon": "WEBSITE_ICON_PHONE_S21",
+      "available_in_workbench": true
+    },
+    {
+      "name": "Samsung Galaxy S21",
+      "chipset": "qualcomm-snapdragon-888",
+      "npu_count": 1,
+      "os": {
+        "ostype": "OPERATING_SYSTEM_TYPE_ANDROID",
+        "version": "11"
+      },
+      "form_factor": "FORM_FACTOR_PHONE",
+      "vendor": "samsung",
+      "icon": "WEBSITE_ICON_PHONE_S21",
+      "available_in_workbench": true
+    },
+    {
+      "name": "Samsung Galaxy S21 Ultra",
+      "chipset": "qualcomm-snapdragon-888",
+      "npu_count": 1,
+      "os": {
+        "ostype": "OPERATING_SYSTEM_TYPE_ANDROID",
+        "version": "11"
+      },
+      "form_factor": "FORM_FACTOR_PHONE",
+      "vendor": "samsung",
+      "icon": "WEBSITE_ICON_PHONE_S21",
+      "available_in_workbench": true
+    },
+    {
+      "name": "Samsung Galaxy S22 5G",
+      "chipset": "qualcomm-snapdragon-8gen1",
+      "npu_count": 1,
+      "os": {
+        "ostype": "OPERATING_SYSTEM_TYPE_ANDROID",
+        "version": "12"
+      },
+      "form_factor": "FORM_FACTOR_PHONE",
+      "vendor": "samsung",
+      "icon": "WEBSITE_ICON_PHONE_S22",
+      "enabled_in_scorecard": true,
+      "available_in_workbench": true
+    },
+    {
+      "name": "Samsung Galaxy S22 Ultra 5G",
+      "chipset": "qualcomm-snapdragon-8gen1",
+      "npu_count": 1,
+      "os": {
+        "ostype": "OPERATING_SYSTEM_TYPE_ANDROID",
+        "version": "12"
+      },
+      "form_factor": "FORM_FACTOR_PHONE",
+      "vendor": "samsung",
+      "icon": "WEBSITE_ICON_PHONE_S22",
+      "available_in_workbench": true
+    },
+    {
+      "name": "Samsung Galaxy S22+ 5G",
+      "chipset": "qualcomm-snapdragon-8gen1",
+      "npu_count": 1,
+      "os": {
+        "ostype": "OPERATING_SYSTEM_TYPE_ANDROID",
+        "version": "12"
+      },
+      "form_factor": "FORM_FACTOR_PHONE",
+      "vendor": "samsung",
+      "icon": "WEBSITE_ICON_PHONE_S22",
+      "available_in_workbench": true
+    },
+    {
+      "name": "Samsung Galaxy S23",
+      "chipset": "qualcomm-snapdragon-8gen2",
+      "npu_count": 1,
+      "os": {
+        "ostype": "OPERATING_SYSTEM_TYPE_ANDROID",
+        "version": "13"
+      },
+      "form_factor": "FORM_FACTOR_PHONE",
+      "vendor": "samsung",
+      "icon": "WEBSITE_ICON_PHONE_S23",
+      "enabled_in_scorecard": true,
+      "available_in_workbench": true
+    },
+    {
+      "name": "Samsung Galaxy S23 Ultra",
+      "chipset": "qualcomm-snapdragon-8gen2",
+      "npu_count": 1,
+      "os": {
+        "ostype": "OPERATING_SYSTEM_TYPE_ANDROID",
+        "version": "13"
+      },
+      "form_factor": "FORM_FACTOR_PHONE",
+      "vendor": "samsung",
+      "icon": "WEBSITE_ICON_PHONE_S23_ULTRA",
+      "available_in_workbench": true
+    },
+    {
+      "name": "Samsung Galaxy S23+",
+      "chipset": "qualcomm-snapdragon-8gen2",
+      "npu_count": 1,
+      "os": {
+        "ostype": "OPERATING_SYSTEM_TYPE_ANDROID",
+        "version": "13"
+      },
+      "form_factor": "FORM_FACTOR_PHONE",
+      "vendor": "samsung",
+      "icon": "WEBSITE_ICON_PHONE_S23",
+      "available_in_workbench": true
+    },
+    {
+      "name": "Samsung Galaxy S24",
+      "chipset": "qualcomm-snapdragon-8gen3",
+      "npu_count": 1,
+      "os": {
+        "ostype": "OPERATING_SYSTEM_TYPE_ANDROID",
+        "version": "14"
+      },
+      "form_factor": "FORM_FACTOR_PHONE",
+      "vendor": "samsung",
+      "icon": "WEBSITE_ICON_PHONE_S24",
+      "enabled_in_scorecard": true,
+      "available_in_workbench": true
+    },
+    {
+      "name": "Samsung Galaxy S24 Ultra",
+      "chipset": "qualcomm-snapdragon-8gen3",
+      "npu_count": 1,
+      "os": {
+        "ostype": "OPERATING_SYSTEM_TYPE_ANDROID",
+        "version": "14"
+      },
+      "form_factor": "FORM_FACTOR_PHONE",
+      "vendor": "samsung",
+      "icon": "WEBSITE_ICON_PHONE_S24_ULTRA",
+      "available_in_workbench": true
+    },
+    {
+      "name": "Samsung Galaxy S24+",
+      "chipset": "qualcomm-snapdragon-8gen3",
+      "npu_count": 1,
+      "os": {
+        "ostype": "OPERATING_SYSTEM_TYPE_ANDROID",
+        "version": "14"
+      },
+      "form_factor": "FORM_FACTOR_PHONE",
+      "vendor": "samsung",
+      "icon": "WEBSITE_ICON_PHONE_S24",
+      "available_in_workbench": true
+    },
+    {
+      "name": "Samsung Galaxy S25",
+      "chipset": "qualcomm-snapdragon-8-elite-for-galaxy",
+      "npu_count": 1,
+      "os": {
+        "ostype": "OPERATING_SYSTEM_TYPE_ANDROID",
+        "version": "15"
+      },
+      "form_factor": "FORM_FACTOR_PHONE",
+      "vendor": "samsung",
+      "icon": "WEBSITE_ICON_PHONE_S21",
+      "enabled_in_scorecard": true,
+      "available_in_workbench": true
+    },
+    {
+      "name": "Samsung Galaxy S25 Ultra",
+      "chipset": "qualcomm-snapdragon-8-elite-for-galaxy",
+      "npu_count": 1,
+      "os": {
+        "ostype": "OPERATING_SYSTEM_TYPE_ANDROID",
+        "version": "15"
+      },
+      "form_factor": "FORM_FACTOR_PHONE",
+      "vendor": "samsung",
+      "icon": "WEBSITE_ICON_PHONE_S21",
+      "available_in_workbench": true
+    },
+    {
+      "name": "Samsung Galaxy S25+",
+      "chipset": "qualcomm-snapdragon-8-elite-for-galaxy",
+      "npu_count": 1,
+      "os": {
+        "ostype": "OPERATING_SYSTEM_TYPE_ANDROID",
+        "version": "15"
+      },
+      "form_factor": "FORM_FACTOR_PHONE",
+      "vendor": "samsung",
+      "icon": "WEBSITE_ICON_PHONE_S21",
+      "available_in_workbench": true
+    },
+    {
+      "name": "Samsung Galaxy S26",
+      "chipset": "qualcomm-snapdragon-8-elite-gen5-for-galaxy",
+      "npu_count": 1,
+      "os": {
+        "ostype": "OPERATING_SYSTEM_TYPE_ANDROID",
+        "version": "16"
+      },
+      "form_factor": "FORM_FACTOR_PHONE",
+      "vendor": "samsung",
+      "icon": "WEBSITE_ICON_PHONE_S21",
+      "enabled_in_scorecard": true,
+      "available_in_workbench": true
+    },
+    {
+      "name": "Samsung Galaxy S26 Ultra",
+      "chipset": "qualcomm-snapdragon-8-elite-gen5-for-galaxy",
+      "npu_count": 1,
+      "os": {
+        "ostype": "OPERATING_SYSTEM_TYPE_ANDROID",
+        "version": "16"
+      },
+      "form_factor": "FORM_FACTOR_PHONE",
+      "vendor": "samsung",
+      "icon": "WEBSITE_ICON_PHONE_S21",
+      "available_in_workbench": true
+    },
+    {
+      "name": "Samsung Galaxy S26+",
+      "chipset": "qualcomm-snapdragon-8-elite-gen5-for-galaxy",
+      "npu_count": 1,
+      "os": {
+        "ostype": "OPERATING_SYSTEM_TYPE_ANDROID",
+        "version": "16"
+      },
+      "form_factor": "FORM_FACTOR_PHONE",
+      "vendor": "samsung",
+      "icon": "WEBSITE_ICON_PHONE_S21",
+      "available_in_workbench": true
+    },
+    {
+      "name": "Samsung Galaxy Tab S7",
+      "chipset": "qualcomm-snapdragon-865+",
+      "npu_count": 1,
+      "os": {
+        "ostype": "OPERATING_SYSTEM_TYPE_ANDROID",
+        "version": "11"
+      },
+      "form_factor": "FORM_FACTOR_TABLET",
+      "vendor": "samsung",
+      "icon": "WEBSITE_ICON_TABLET_ANDROID",
+      "available_in_workbench": true
+    },
+    {
+      "name": "Samsung Galaxy Tab S8",
+      "chipset": "qualcomm-snapdragon-8gen1",
+      "npu_count": 1,
+      "os": {
+        "ostype": "OPERATING_SYSTEM_TYPE_ANDROID",
+        "version": "12"
+      },
+      "form_factor": "FORM_FACTOR_TABLET",
+      "vendor": "samsung",
+      "icon": "WEBSITE_ICON_TABLET_ANDROID",
+      "available_in_workbench": true
+    },
+    {
+      "name": "Snapdragon 7 Gen 4 QRD",
+      "chipset": "qualcomm-snapdragon-7gen4",
+      "npu_count": 1,
+      "os": {
+        "ostype": "OPERATING_SYSTEM_TYPE_ANDROID",
+        "version": "15"
+      },
+      "form_factor": "FORM_FACTOR_PHONE",
+      "vendor": "qualcomm",
+      "icon": "WEBSITE_ICON_PHONE_S21",
+      "enabled_in_scorecard": true,
+      "available_in_workbench": true
+    },
+    {
+      "name": "Snapdragon X Elite CRD",
+      "chipset": "qualcomm-snapdragon-x-elite",
+      "npu_count": 1,
+      "os": {
+        "ostype": "OPERATING_SYSTEM_TYPE_WINDOWS",
+        "version": "11"
+      },
+      "form_factor": "FORM_FACTOR_COMPUTE",
+      "vendor": "qualcomm",
+      "icon": "WEBSITE_ICON_LAPTOP_X_ELITE",
+      "enabled_in_scorecard": true,
+      "available_in_workbench": true
+    },
+    {
+      "name": "Snapdragon X Plus 8-Core CRD",
+      "chipset": "qualcomm-snapdragon-x-plus-8-core",
+      "npu_count": 1,
+      "os": {
+        "ostype": "OPERATING_SYSTEM_TYPE_WINDOWS",
+        "version": "11"
+      },
+      "form_factor": "FORM_FACTOR_COMPUTE",
+      "vendor": "qualcomm",
+      "icon": "WEBSITE_ICON_LAPTOP_X_ELITE",
+      "enabled_in_scorecard": true,
+      "available_in_workbench": true
+    },
+    {
+      "name": "Snapdragon X2 Elite CRD",
+      "chipset": "qualcomm-snapdragon-x2-elite",
+      "npu_count": 1,
+      "os": {
+        "ostype": "OPERATING_SYSTEM_TYPE_WINDOWS",
+        "version": "11"
+      },
+      "form_factor": "FORM_FACTOR_COMPUTE",
+      "vendor": "qualcomm",
+      "icon": "WEBSITE_ICON_LAPTOP_GENERIC",
+      "enabled_in_scorecard": true,
+      "available_in_workbench": true
+    },
+    {
+      "name": "Xiaomi 12",
+      "chipset": "qualcomm-snapdragon-8gen1",
+      "npu_count": 1,
+      "os": {
+        "ostype": "OPERATING_SYSTEM_TYPE_ANDROID",
+        "version": "12"
+      },
+      "form_factor": "FORM_FACTOR_PHONE",
+      "vendor": "xiaomi",
+      "icon": "WEBSITE_ICON_PHONE_S22",
+      "available_in_workbench": true
+    },
+    {
+      "name": "Xiaomi Redmi Note 10 5G",
+      "chipset": "qualcomm-snapdragon-678",
+      "npu_count": 1,
+      "os": {
+        "ostype": "OPERATING_SYSTEM_TYPE_ANDROID",
+        "version": "11"
+      },
+      "form_factor": "FORM_FACTOR_PHONE",
+      "vendor": "oneplus",
+      "icon": "WEBSITE_ICON_PHONE_S21",
+      "available_in_workbench": true
+    }
+  ],
+  "chipsets": [
+    {
+      "name": "qualcomm-qcm6690",
+      "aliases": ["qualcomm-qcm6690", "qcm6690", "qualcomm-dragonwing-q-6690"],
+      "marketing_name": "Qualcomm\u00ae Dragonwing\u2122 Q-6690",
+      "world": "WEBSITE_WORLD_IOT",
+      "htp_version": 73,
+      "soc_model": 78,
+      "reference_device": "Dragonwing Q-6690 MTP",
+      "supports_weight_sharing": true
+    },
+    {
+      "name": "qualcomm-qcs6490",
+      "aliases": ["qualcomm-qcs6490", "qcs6490", "qualcomm-dragonwing-qcs6490"],
+      "marketing_name": "Qualcomm\u00ae Dragonwing\u2122 QCS6490",
+      "world": "WEBSITE_WORLD_IOT",
+      "htp_version": 68,
+      "soc_model": 93,
+      "reference_device": "Dragonwing RB3 Gen 2 Vision Kit"
+    },
+    {
+      "name": "qualcomm-qcs8275",
+      "aliases": ["qualcomm-qcs8275", "qcs8275", "qualcomm-dragonwing-iq-8275"],
+      "marketing_name": "Qualcomm\u00ae Dragonwing\u2122 IQ-8275",
+      "world": "WEBSITE_WORLD_IOT",
+      "supports_fp16": true,
+      "htp_version": 75,
+      "soc_model": 82,
+      "reference_device": "Arduino VENTUNO Q",
+      "supports_weight_sharing": true
+    },
+    {
+      "name": "qualcomm-qcs8550-proxy",
+      "aliases": ["qualcomm-qcs8550-proxy", "qualcomm-dragonwing-qcs8550-proxy"],
+      "marketing_name": "Qualcomm\u00ae Dragonwing\u2122 QCS8550 (Proxy)",
+      "world": "WEBSITE_WORLD_IOT",
+      "supports_fp16": true,
+      "htp_version": 73,
+      "soc_model": 43,
+      "reference_device": "QCS8550 (Proxy)",
+      "supports_weight_sharing": true
+    },
+    {
+      "name": "qualcomm-qcs9075",
+      "aliases": ["qualcomm-qcs9075", "qcs9075", "qualcomm-dragonwing-iq-9075"],
+      "marketing_name": "Qualcomm\u00ae Dragonwing\u2122 IQ-9075",
+      "world": "WEBSITE_WORLD_IOT",
+      "supports_fp16": true,
+      "htp_version": 73,
+      "soc_model": 77,
+      "reference_device": "Dragonwing IQ-9075 EVK",
+      "supports_weight_sharing": true
+    },
+    {
+      "name": "qualcomm-sa7255p",
+      "aliases": ["qualcomm-sa7255p"],
+      "marketing_name": "Qualcomm\u00ae SA7255P",
+      "world": "WEBSITE_WORLD_AUTOMOTIVE",
+      "supports_fp16": true,
+      "htp_version": 75,
+      "soc_model": 67,
+      "reference_device": "SA7255P ADP",
+      "supports_weight_sharing": true
+    },
+    {
+      "name": "qualcomm-sa8295p",
+      "aliases": ["qualcomm-sa8295p"],
+      "marketing_name": "Qualcomm\u00ae SA8295P",
+      "world": "WEBSITE_WORLD_AUTOMOTIVE",
+      "supports_fp16": true,
+      "htp_version": 68,
+      "soc_model": 39,
+      "reference_device": "SA8295P ADP",
+      "supports_weight_sharing": true
+    },
+    {
+      "name": "qualcomm-sa8775p",
+      "aliases": ["qualcomm-sa8775p"],
+      "marketing_name": "Qualcomm\u00ae SA8775P",
+      "world": "WEBSITE_WORLD_AUTOMOTIVE",
+      "supports_fp16": true,
+      "htp_version": 73,
+      "soc_model": 52,
+      "reference_device": "SA8775P ADP",
+      "supports_weight_sharing": true
+    },
+    {
+      "name": "qualcomm-snapdragon-670",
+      "aliases": ["qualcomm-snapdragon-670", "sdm670"],
+      "marketing_name": "Snapdragon\u00ae 670 Mobile",
+      "world": "WEBSITE_WORLD_MOBILE",
+      "htp_version": 65,
+      "soc_model": 6,
+      "reference_device": "Google Pixel 3a"
+    },
+    {
+      "name": "qualcomm-snapdragon-678",
+      "aliases": ["qualcomm-snapdragon-678", "sm6150-ac"],
+      "marketing_name": "Snapdragon\u00ae 678 Mobile",
+      "world": "WEBSITE_WORLD_MOBILE",
+      "htp_version": 66,
+      "soc_model": 16,
+      "reference_device": "Xiaomi Redmi Note 10 5G"
+    },
+    {
+      "name": "qualcomm-snapdragon-765g",
+      "aliases": ["qualcomm-snapdragon-765g", "sm7250"],
+      "marketing_name": "Snapdragon\u00ae 765g Mobile",
+      "world": "WEBSITE_WORLD_MOBILE",
+      "htp_version": 66,
+      "soc_model": 25,
+      "reference_device": "Google Pixel 5"
+    },
+    {
+      "name": "qualcomm-snapdragon-778g",
+      "aliases": ["qualcomm-snapdragon-778g", "sm7325"],
+      "marketing_name": "Snapdragon\u00ae 778g Mobile",
+      "world": "WEBSITE_WORLD_MOBILE",
+      "htp_version": 68,
+      "soc_model": 35,
+      "reference_device": "Samsung Galaxy A73 5G",
+      "supports_weight_sharing": true
+    },
+    {
+      "name": "qualcomm-snapdragon-7gen4",
+      "aliases": ["qualcomm-snapdragon-7gen4", "sm7750"],
+      "marketing_name": "Snapdragon\u00ae 7 Gen 4 Mobile",
+      "world": "WEBSITE_WORLD_MOBILE",
+      "htp_version": 73,
+      "soc_model": 86,
+      "reference_device": "Snapdragon 7 Gen 4 QRD",
+      "supports_weight_sharing": true
+    },
+    {
+      "name": "qualcomm-snapdragon-8-elite-for-galaxy",
+      "aliases": ["qualcomm-snapdragon-8-elite-for-galaxy", "sm8750-ac"],
+      "marketing_name": "Snapdragon\u00ae 8 Elite For Galaxy Mobile",
+      "world": "WEBSITE_WORLD_MOBILE",
+      "supports_fp16": true,
+      "htp_version": 79,
+      "soc_model": 69,
+      "reference_device": "Samsung Galaxy S25",
+      "supports_weight_sharing": true
+    },
+    {
+      "name": "qualcomm-snapdragon-8-elite-gen5-for-galaxy",
+      "aliases": ["qualcomm-snapdragon-8-elite-gen5-for-galaxy", "sm8850-ad"],
+      "marketing_name": "Snapdragon\u00ae 8 Elite Gen 5 For Galaxy Mobile",
+      "world": "WEBSITE_WORLD_MOBILE",
+      "supports_fp16": true,
+      "htp_version": 81,
+      "soc_model": 87,
+      "reference_device": "Samsung Galaxy S26",
+      "supports_weight_sharing": true
+    },
+    {
+      "name": "qualcomm-snapdragon-845",
+      "aliases": ["qualcomm-snapdragon-845", "sdm845"],
+      "marketing_name": "Snapdragon\u00ae 845 Mobile",
+      "world": "WEBSITE_WORLD_MOBILE",
+      "htp_version": 65,
+      "soc_model": 1,
+      "reference_device": "Google Pixel 3"
+    },
+    {
+      "name": "qualcomm-snapdragon-855",
+      "aliases": ["qualcomm-snapdragon-855", "sm8150"],
+      "marketing_name": "Snapdragon\u00ae 855 Mobile",
+      "world": "WEBSITE_WORLD_MOBILE",
+      "htp_version": 66,
+      "soc_model": 12,
+      "reference_device": "Google Pixel 4"
+    },
+    {
+      "name": "qualcomm-snapdragon-865+",
+      "aliases": ["qualcomm-snapdragon-865+", "sm8250-ab"],
+      "marketing_name": "Snapdragon\u00ae 865+ Mobile",
+      "world": "WEBSITE_WORLD_MOBILE",
+      "htp_version": 66,
+      "soc_model": 21,
+      "reference_device": "Samsung Galaxy Tab S7"
+    },
+    {
+      "name": "qualcomm-snapdragon-888",
+      "aliases": ["qualcomm-snapdragon-888", "sm8350"],
+      "marketing_name": "Snapdragon\u00ae 888 Mobile",
+      "world": "WEBSITE_WORLD_MOBILE",
+      "htp_version": 68,
+      "soc_model": 30,
+      "reference_device": "Samsung Galaxy S21"
+    },
+    {
+      "name": "qualcomm-snapdragon-8gen1",
+      "aliases": ["qualcomm-snapdragon-8gen1", "sm8450"],
+      "marketing_name": "Snapdragon\u00ae 8 Gen 1 Mobile",
+      "world": "WEBSITE_WORLD_MOBILE",
+      "supports_fp16": true,
+      "htp_version": 69,
+      "soc_model": 36,
+      "reference_device": "Samsung Galaxy S22 5G"
+    },
+    {
+      "name": "qualcomm-snapdragon-8gen2",
+      "aliases": ["qualcomm-snapdragon-8gen2", "sm8550"],
+      "marketing_name": "Snapdragon\u00ae 8 Gen 2 Mobile",
+      "world": "WEBSITE_WORLD_MOBILE",
+      "supports_fp16": true,
+      "htp_version": 73,
+      "soc_model": 43,
+      "reference_device": "Samsung Galaxy S23",
+      "supports_weight_sharing": true
+    },
+    {
+      "name": "qualcomm-snapdragon-8gen3",
+      "aliases": ["qualcomm-snapdragon-8gen3", "sm8650"],
+      "marketing_name": "Snapdragon\u00ae 8 Gen 3 Mobile",
+      "world": "WEBSITE_WORLD_MOBILE",
+      "supports_fp16": true,
+      "htp_version": 75,
+      "soc_model": 57,
+      "reference_device": "Samsung Galaxy S24",
+      "supports_weight_sharing": true
+    },
+    {
+      "name": "qualcomm-snapdragon-x-elite",
+      "aliases": ["qualcomm-snapdragon-x-elite", "sc8380xp"],
+      "marketing_name": "Snapdragon\u00ae X Elite",
+      "world": "WEBSITE_WORLD_COMPUTE",
+      "supports_fp16": true,
+      "htp_version": 73,
+      "soc_model": 60,
+      "reference_device": "Snapdragon X Elite CRD",
+      "supports_weight_sharing": true
+    },
+    {
+      "name": "qualcomm-snapdragon-x-plus-8-core",
+      "aliases": ["qualcomm-snapdragon-x-plus-8-core", "sc8340xp"],
+      "marketing_name": "Snapdragon\u00ae X Plus 8-Core",
+      "world": "WEBSITE_WORLD_COMPUTE",
+      "supports_fp16": true,
+      "htp_version": 73,
+      "soc_model": 60,
+      "reference_device": "Snapdragon X Plus 8-Core CRD",
+      "supports_weight_sharing": true
+    },
+    {
+      "name": "qualcomm-snapdragon-x2-elite",
+      "aliases": ["qualcomm-snapdragon-x2-elite", "sc8480xp"],
+      "marketing_name": "Snapdragon\u00ae X2 Elite",
+      "world": "WEBSITE_WORLD_COMPUTE",
+      "supports_fp16": true,
+      "htp_version": 81,
+      "soc_model": 88,
+      "reference_device": "Snapdragon X2 Elite CRD",
+      "supports_weight_sharing": true
+    }
+  ]
+}

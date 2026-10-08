@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Calcine · Local AI on your Snapdragon NPU</title>
+    <meta
+      name="description"
+      content="Calcine is a free desktop app for Qualcomm GenieX: download LLMs, chat on the Snapdragon NPU, and give every app on your PC a secure, OpenAI-compatible API."
+    />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="theme-color" content="#0c0c10" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#fafaf7" media="(prefers-color-scheme: light)" />
+    <link rel="icon" href="calcine.svg" type="image/svg+xml" />
+    <link rel="canonical" href="https://eraflo.github.io/Calcine/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://eraflo.github.io/Calcine/" />
+    <meta property="og:title" content="Calcine · Local AI on your Snapdragon NPU" />
+    <meta
+      property="og:description"
+      content="Download LLMs, chat on the NPU, and expose them to every app through a secure, OpenAI-compatible API."
+    />
+    <meta property="og:image" content="https://eraflo.github.io/Calcine/og.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="preload" href="fonts/geist.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="style.css" />
+    <script src="main.js" defer></script>
+  </head>
+  <body>
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+      <defs>
+        <symbol id="i-chat" viewBox="0 0 24 24"><path d="M14 9a2 2 0 0 1-2 2H6l-4 4V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2z" /><path d="M18 9h2a2 2 0 0 1 2 2v11l-4-4h-6a2 2 0 0 1-2-2v-1" /></symbol>
+        <symbol id="i-compass" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><path d="m16.24 7.76-1.804 5.411a2 2 0 0 1-1.265 1.265L7.76 16.24l1.804-5.411a2 2 0 0 1 1.265-1.265z" /></symbol>
+        <symbol id="i-cpu" viewBox="0 0 24 24"><rect width="16" height="16" x="4" y="4" rx="2" /><rect width="6" height="6" x="9" y="9" rx="1" /><path d="M15 2v2M15 20v2M2 15h2M2 9h2M20 15h2M20 9h2M9 2v2M9 20v2" /></symbol>
+        <symbol id="i-server" viewBox="0 0 24 24"><rect width="20" height="8" x="2" y="2" rx="2" /><rect width="20" height="8" x="2" y="14" rx="2" /><path d="M6 6h.01M6 18h.01" /></symbol>
+        <symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /><path d="m9 12 2 2 4-4" /></symbol>
+        <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" /><path d="M21 3v5h-5" /><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" /><path d="M8 16H3v5" /></symbol>
+        <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m7 10 5 5 5-5" /><path d="M12 15V3" /></symbol>
+        <symbol id="i-image" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2" /><circle cx="9" cy="9" r="2" /><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" /></symbol>
+        <symbol id="i-languages" viewBox="0 0 24 24"><path d="m5 8 6 6" /><path d="m4 14 6-6 2-3" /><path d="M2 5h12" /><path d="M7 2h1" /><path d="m22 22-5-10-5 10" /><path d="M14 18h6" /></symbol>
+        <symbol id="i-key" viewBox="0 0 24 24"><path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4" /><path d="m21 2-9.6 9.6" /><circle cx="7.5" cy="15.5" r="5.5" /></symbol>
+        <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5" /></symbol>
+        <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></symbol>
+        <symbol id="i-copy" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2" /><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" /></symbol>
+        <symbol id="i-github" viewBox="0 0 16 16"><path fill="currentColor" stroke="none" d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z" /></symbol>
+        <symbol id="i-windows" viewBox="0 0 24 24"><path fill="currentColor" stroke="none" d="M3 5.1 10.4 4v7.2H3zm0 13.8 7.4 1.1v-7.1H3zm8.3 1.2L21 21.5v-8.6h-9.7zm0-16.2v7.3H21V2.5z" /></symbol>
+      </defs>
+    </svg>
+
+    <header class="nav">
+      <div class="container nav-inner">
+        <a class="brand" href="#top" aria-label="Calcine home">
+          <img src="calcine.svg" alt="" width="28" height="28" />
+          <span>Calcine</span>
+        </a>
+        <nav class="nav-links" aria-label="Sections">
+          <a href="#features">Features</a>
+          <a href="#api">API</a>
+          <a href="#security">Security</a>
+          <a href="#faq">FAQ</a>
+        </nav>
+        <div class="nav-actions">
+          <a class="icon-link" href="https://github.com/eraflo/Calcine">
+            <svg aria-hidden="true" class="icon"><use href="#i-github" /></svg>
+            <span class="sr-only">Calcine on GitHub</span>
+          </a>
+          <a class="btn btn-primary btn-sm" href="#download">Download</a>
+        </div>
+      </div>
+    </header>
+
+    <main id="top">
+      <section class="hero">
+        <div class="glow" aria-hidden="true"></div>
+        <div class="container hero-inner">
+          <p class="eyebrow"><span class="dot"></span> Free &amp; open source · Windows 11 on Snapdragon</p>
+          <h1>
+            Your Snapdragon <span class="ember">NPU</span>,<br />
+            as a local AI server.
+          </h1>
+          <p class="lead">
+            Calcine is a desktop app for Qualcomm GenieX. Download language models, chat with them on
+            the Hexagon NPU, and give every app on your PC a secure, OpenAI-compatible API. Nothing
+            leaves your machine.
+          </p>
+          <div class="cta">
+            <a class="btn btn-primary btn-lg" href="https://github.com/eraflo/Calcine/releases" data-download>
+              <svg aria-hidden="true" class="icon"><use href="#i-windows" /></svg>
+              <span data-download-label>Download for Windows</span>
+            </a>
+            <a class="btn btn-ghost btn-lg" href="https://github.com/eraflo/Calcine">
+              <svg aria-hidden="true" class="icon"><use href="#i-github" /></svg>
+              View on GitHub
+            </a>
+          </div>
+          <p class="fine" data-download-meta>Windows 11 ARM64 · GenieX included</p>
+        </div>
+        <div class="container shot-wrap">
+          <picture>
+            <source srcset="screenshots/chat-light.png" media="(prefers-color-scheme: light)" />
+            <img
+              class="shot hero-shot"
+              src="screenshots/chat-dark.png"
+              width="2160"
+              height="1350"
+              alt="Calcine's chat page: a conversation with Qwen3-4B running on the NPU, with the inference settings panel open."
+            />
+          </picture>
+        </div>
+      </section>
+
+      <section class="units container" aria-label="Compute units">
+        <div class="unit npu">
+          <span class="unit-name">Hexagon NPU</span>
+          <span class="unit-desc">AI Hub models, pre-compiled with QAIRT</span>
+        </div>
+        <div class="unit gpu">
+          <span class="unit-name">Adreno GPU</span>
+          <span class="unit-desc">Any GGUF model, through llama.cpp</span>
+        </div>
+        <div class="unit cpu">
+          <span class="unit-name">Oryon CPU</span>
+          <span class="unit-desc">The fallback that always works</span>
+        </div>
+      </section>
+
+      <section id="features" class="section container">
+        <div class="section-head">
+          <p class="kicker">Everything GenieX does, in one window</p>
+          <h2>From first download to production API</h2>
+          <p class="sub">
+            Calcine wraps every GenieX command in a friendly interface, then adds what a CLI can't: a
+            live view of your hardware, a model browser that knows your chip, and an API you can
+            safely hand to other apps.
+          </p>
+        </div>
+        <div class="grid">
+          <article class="card">
+            <svg aria-hidden="true" class="icon card-icon"><use href="#i-chat" /></svg>
+            <h3>Chat with every option</h3>
+            <p>Thinking, temperature, power mode, compute unit: settings adapt to each model's runtime. Streams with tokens per second.</p>
+          </article>
+          <article class="card">
+            <svg aria-hidden="true" class="icon card-icon"><use href="#i-image" /></svg>
+            <h3>Images and voice</h3>
+            <p>Attach pictures or dictate to vision models. Attachments stay in memory, out of your saved conversations.</p>
+          </article>
+          <article class="card">
+            <svg aria-hidden="true" class="icon card-icon"><use href="#i-compass" /></svg>
+            <h3>Find models that fit</h3>
+            <p>Browse Qualcomm AI Hub for your chipset and search Hugging Face, with precisions, sizes, memory and disk checks.</p>
+          </article>
+          <article class="card">
+            <svg aria-hidden="true" class="icon card-icon"><use href="#i-cpu" /></svg>
+            <h3>See the NPU work</h3>
+            <p>Live NPU, GPU, CPU and memory load, drivers, and a self-test that compares speed on each unit.</p>
+          </article>
+          <article class="card">
+            <svg aria-hidden="true" class="icon card-icon"><use href="#i-server" /></svg>
+            <h3>OpenAI-compatible API</h3>
+            <p>On <code>127.0.0.1:18181</code>, GenieX's default port. Per-app keys, a request queue and a request log.</p>
+          </article>
+          <article class="card">
+            <svg aria-hidden="true" class="icon card-icon"><use href="#i-refresh" /></svg>
+            <h3>Always up to date</h3>
+            <p>GenieX ships in the installer and updates, or rolls back, from the app. Calcine updates itself with signed packages.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section container showcase">
+        <div class="row">
+          <div class="row-text">
+            <p class="kicker">Discover</p>
+            <h2>Pick the right precision, the first time</h2>
+            <p class="sub">
+              Calcine lists AI Hub models compiled for your exact chipset and searches Hugging Face for
+              GGUF models. For each precision it shows the size and whether it fits in free memory
+              and on disk, and recommends the one that runs best on the NPU.
+            </p>
+            <ul class="checks">
+              <li><svg aria-hidden="true" class="icon"><use href="#i-check" /></svg> Paste any Hugging Face, ModelScope or Docker Hub link</li>
+              <li><svg aria-hidden="true" class="icon"><use href="#i-check" /></svg> Downloads run in the background, with progress and cancel</li>
+              <li><svg aria-hidden="true" class="icon"><use href="#i-check" /></svg> Override the model type when a hub mislabels it</li>
+            </ul>
+          </div>
+          <img class="shot" src="screenshots/discover-detail.png" width="950" height="772" loading="lazy" alt="Choosing a precision for Qwen3-4B-GGUF: Q4_0 recommended, each option with its size and a memory check." />
+        </div>
+        <div class="row reverse">
+          <div class="row-text">
+            <p class="kicker">Hardware</p>
+            <h2>Watch your NPU light up</h2>
+            <p class="sub">
+              Live load for the Hexagon NPU, Adreno GPU and Oryon CPU, read from Windows performance
+              counters while a model generates. Run a self-test to see which unit is fastest for a
+              given model.
+            </p>
+            <ul class="checks">
+              <li><svg aria-hidden="true" class="icon"><use href="#i-check" /></svg> Chipset detected automatically</li>
+              <li><svg aria-hidden="true" class="icon"><use href="#i-check" /></svg> Memory and model storage at a glance</li>
+              <li><svg aria-hidden="true" class="icon"><use href="#i-check" /></svg> GenieX, QAIRT and llama.cpp versions</li>
+            </ul>
+          </div>
+          <img class="shot" src="screenshots/hardware-detail.png" width="1479" height="664" loading="lazy" alt="The Hardware page with live NPU, GPU and CPU load charts, memory and storage bars." />
+        </div>
+        <div class="row">
+          <div class="row-text">
+            <p class="kicker">Library</p>
+            <h2>Your models, ready to run</h2>
+            <p class="sub">
+              Every installed model with its runtime, precisions and size. Switch a model between
+              text and vision, copy its API id, or open a chat in one click.
+            </p>
+            <ul class="checks">
+              <li><svg aria-hidden="true" class="icon"><use href="#i-check" /></svg> Remove one precision or the whole model</li>
+              <li><svg aria-hidden="true" class="icon"><use href="#i-check" /></svg> Import GGUF folders or AI Hub bundles by drag and drop</li>
+              <li><svg aria-hidden="true" class="icon"><use href="#i-check" /></svg> Command palette for everything (Ctrl K)</li>
+            </ul>
+          </div>
+          <img class="shot" src="screenshots/library-detail.png" width="1490" height="621" loading="lazy" alt="The Library page listing three models with their runtime, precisions and size." />
+        </div>
+      </section>
+
+      <section id="api" class="section container">
+        <div class="api">
+          <div class="api-text">
+            <p class="kicker">Local API</p>
+            <h2>Point any OpenAI client at your NPU</h2>
+            <p class="sub">
+              Create a key per app in <strong>Server › API keys</strong>, then use the OpenAI SDK you
+              already know. Streaming, vision and reasoning work as they do in the cloud, except
+              everything runs on this PC.
+            </p>
+            <ul class="checks">
+              <li><svg aria-hidden="true" class="icon"><use href="#i-check" /></svg> Existing GenieX clients work unchanged</li>
+              <li><svg aria-hidden="true" class="icon"><use href="#i-check" /></svg> Requests queue while a model is busy</li>
+              <li><svg aria-hidden="true" class="icon"><use href="#i-check" /></svg> The log shows who called which model, never the prompts</li>
+            </ul>
+          </div>
+          <div class="code-card">
+            <div class="tabs" role="tablist" aria-label="Language">
+              <button type="button" role="tab" aria-selected="true" aria-controls="code-python" id="tab-python">Python</button>
+              <button type="button" role="tab" aria-selected="false" aria-controls="code-js" id="tab-js" tabindex="-1">JavaScript</button>
+              <button type="button" role="tab" aria-selected="false" aria-controls="code-curl" id="tab-curl" tabindex="-1">curl</button>
+              <button class="copy" type="button" aria-label="Copy code"><svg aria-hidden="true" class="icon"><use href="#i-copy" /></svg></button>
+            </div>
+<pre role="tabpanel" id="code-python" aria-labelledby="tab-python"><code><span class="k">from</span> openai <span class="k">import</span> OpenAI
+
+client = OpenAI(
+    base_url=<span class="s">"http://127.0.0.1:18181/v1"</span>,
+    api_key=<span class="s">"calcine_…"</span>,  <span class="c"># Server › API keys</span>
+)
+stream = client.chat.completions.create(
+    model=<span class="s">"qualcomm/Qwen3-4B"</span>,
+    messages=[{<span class="s">"role"</span>: <span class="s">"user"</span>, <span class="s">"content"</span>: <span class="s">"Hello from my NPU!"</span>}],
+    stream=<span class="k">True</span>,
+)
+<span class="k">for</span> chunk <span class="k">in</span> stream:
+    <span class="f">print</span>(chunk.choices[<span class="n">0</span>].delta.content <span class="k">or</span> <span class="s">""</span>, end=<span class="s">""</span>)</code></pre>
+<pre role="tabpanel" id="code-js" aria-labelledby="tab-js" hidden><code><span class="k">import</span> OpenAI <span class="k">from</span> <span class="s">"openai"</span>;
+
+<span class="k">const</span> client = <span class="k">new</span> OpenAI({
+  baseURL: <span class="s">"http://127.0.0.1:18181/v1"</span>,
+  apiKey: process.env.CALCINE_API_KEY, <span class="c">// Server › API keys</span>
+});
+<span class="k">const</span> stream = <span class="k">await</span> client.chat.completions.<span class="f">create</span>({
+  model: <span class="s">"qualcomm/Qwen3-4B"</span>,
+  messages: [{ role: <span class="s">"user"</span>, content: <span class="s">"Hello from my NPU!"</span> }],
+  stream: <span class="k">true</span>,
+});
+<span class="k">for await</span> (<span class="k">const</span> chunk <span class="k">of</span> stream) {
+  process.stdout.<span class="f">write</span>(chunk.choices[<span class="n">0</span>]?.delta?.content ?? <span class="s">""</span>);
+}</code></pre>
+<pre role="tabpanel" id="code-curl" aria-labelledby="tab-curl" hidden><code><span class="f">curl</span> http://127.0.0.1:18181/v1/chat/completions \
+  -H <span class="s">"Authorization: Bearer $CALCINE_API_KEY"</span> \
+  -H <span class="s">"Content-Type: application/json"</span> \
+  -d <span class="s">'{
+    "model": "qualcomm/Qwen3-4B",
+    "messages": [{"role": "user", "content": "Hello from my NPU!"}]
+  }'</span></code></pre>
+          </div>
+        </div>
+        <img class="shot api-shot" src="screenshots/server.png" width="2160" height="1350" loading="lazy" alt="The Server page with the API base URL, ready-to-copy client code and API key settings." />
+      </section>
+
+      <section id="security" class="section container">
+        <div class="section-head">
+          <p class="kicker">Secure by default</p>
+          <h2>A local API that doesn't trust the browser</h2>
+          <p class="sub">
+            <code>geniex serve</code> has no authentication and accepts any web origin. Calcine never
+            exposes it: it runs on a hidden loopback port, and every request goes through a gateway
+            that checks, in order:
+          </p>
+        </div>
+        <ol class="layers">
+          <li><span class="layer-n">1</span><div><h3>Loopback only</h3><p>Listens on 127.0.0.1. Other machines on your network can't reach it.</p></div></li>
+          <li><span class="layer-n">2</span><div><h3>Host header</h3><p>Blocks DNS rebinding, where a web page points its domain at 127.0.0.1.</p></div></li>
+          <li><span class="layer-n">3</span><div><h3>Browser origin</h3><p>Web pages can't call the API from your browser unless you allow their origin.</p></div></li>
+          <li><span class="layer-n">4</span><div><h3>Per-app keys</h3><p>Shown once, stored as SHA-256 fingerprints, revocable instantly, scoped to inference or management.</p></div></li>
+          <li><span class="layer-n">5</span><div><h3>Request bodies</h3><p>Local file paths and internal URLs in requests are refused, so apps can't make GenieX read your files.</p></div></li>
+          <li><span class="layer-n">6</span><div><h3>Clean exit</h3><p>A Windows Job Object stops GenieX with Calcine, even after a crash. Nothing is left listening.</p></div></li>
+        </ol>
+        <p class="more">
+          Signed updates, verified GenieX installers, and an SBOM with build provenance on every stable release.
+          <a href="https://github.com/eraflo/Calcine/blob/main/docs/security-model.md">Read the security model <svg aria-hidden="true" class="icon"><use href="#i-arrow" /></svg></a>
+        </p>
+      </section>
+
+      <section id="download" class="section container">
+        <div class="download">
+          <img src="calcine.svg" alt="" width="72" height="72" />
+          <h2>Get started in three steps</h2>
+          <ol class="steps">
+            <li><strong>Install Calcine.</strong> The installer also sets up GenieX, the Qualcomm runtime.</li>
+            <li><strong>Download a model.</strong> The welcome screen suggests a few that fit your PC.</li>
+            <li><strong>Chat, or connect an app.</strong> Create an API key and use any OpenAI client.</li>
+          </ol>
+          <div class="cta">
+            <a class="btn btn-primary btn-lg" href="https://github.com/eraflo/Calcine/releases" data-download>
+              <svg aria-hidden="true" class="icon"><use href="#i-download" /></svg>
+              <span data-download-label>Download for Windows</span>
+            </a>
+          </div>
+          <p class="fine" data-download-meta>Windows 11 ARM64 · GenieX included</p>
+          <p class="fine">
+            Calcine is in beta and not code-signed yet: Windows SmartScreen asks for confirmation
+            before installing (More info › Run anyway).
+          </p>
+        </div>
+      </section>
+
+      <section id="faq" class="section container faq">
+        <h2>Questions</h2>
+        <details>
+          <summary>Which PCs does Calcine run on?</summary>
+          <p>Windows 11 on Arm with a Snapdragon processor that GenieX supports, such as the Snapdragon X Elite and X Plus. Linux on ARM64 is planned.</p>
+        </details>
+        <details>
+          <summary>Does anything leave my PC?</summary>
+          <p>No. Models run locally, the API only listens on this PC, and conversations are stored on this PC only. Calcine connects to the internet to download models and check for updates, and that's it: no telemetry.</p>
+        </details>
+        <details>
+          <summary>Do I need to install GenieX first?</summary>
+          <p>No. GenieX is bundled in the installer. You can update it, switch to pre-releases, or roll back from Hardware › GenieX runtime.</p>
+        </details>
+        <details>
+          <summary>Which models can I run?</summary>
+          <p>Qualcomm AI Hub models pre-compiled for the NPU, and GGUF models from Hugging Face run by llama.cpp on the NPU, GPU or CPU. Both text (LLM) and vision (VLM) models are supported.</p>
+        </details>
+        <details>
+          <summary><span>I already use <code>geniex serve</code>. Will my apps still work?</span></summary>
+          <p>Yes. Calcine listens on GenieX's default port, 18181, with the same OpenAI-compatible routes. Add an API key to your client, or turn off "Require an API key" for clients that can't send one.</p>
+        </details>
+        <details>
+          <summary>Is Calcine made by Qualcomm?</summary>
+          <p>No. Calcine is an independent open-source project under the MIT license. It redistributes GenieX under its BSD 3-Clause license.</p>
+        </details>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="container footer-inner">
+        <div class="brand">
+          <img src="calcine.svg" alt="" width="22" height="22" />
+          <span>Calcine</span>
+        </div>
+        <p>MIT licensed · Not affiliated with Qualcomm · English and French</p>
+        <nav aria-label="Links">
+          <a href="https://github.com/eraflo/Calcine">GitHub</a>
+          <a href="https://github.com/eraflo/Calcine/releases">Releases</a>
+          <a href="https://github.com/eraflo/Calcine/blob/main/CHANGELOG.md">Changelog</a>
+          <a href="https://github.com/eraflo/Calcine/blob/main/CONTRIBUTING.md">Contribute</a>
+        </nav>
+      </div>
+    </footer>
+  </body>
+</html>

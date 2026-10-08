@@ -1,0 +1,48 @@
+[package]
+name = "calcine"
+description = "Desktop app and local API gateway for Qualcomm GenieX"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+publish = false
+
+[lib]
+# The `_lib` suffix keeps the lib name distinct from the bin name on Windows
+# (https://github.com/rust-lang/cargo/issues/8519).
+name = "calcine_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build.workspace = true
+
+[dependencies]
+calcine-core.workspace = true
+calcine-gateway.workspace = true
+calcine-geniex.workspace = true
+calcine-hub.workspace = true
+calcine-hw.workspace = true
+calcine-mock.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+specta.workspace = true
+specta-typescript.workspace = true
+tauri.workspace = true
+tauri-plugin-autostart.workspace = true
+tauri-plugin-dialog.workspace = true
+tauri-plugin-notification.workspace = true
+tauri-plugin-opener.workspace = true
+tauri-plugin-single-instance.workspace = true
+tauri-plugin-updater.workspace = true
+tauri-specta.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+
+[target.'cfg(windows)'.dependencies]
+win32job.workspace = true
+
+[lints]
+workspace = true

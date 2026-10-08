@@ -1,0 +1,100 @@
+{
+  "schema_version": 1,
+  "tag": "v0.8.0",
+  "is_prerelease": false,
+  "released_at": "2026-10-02T20:24:24Z",
+  "llama_sha": "942561",
+  "htp_signed": true,
+  "assets": [
+    {
+      "name": "geniex-cli-linux-arm64-v0.8.0.tar.gz",
+      "url": "https://qaihub-public-assets.s3.us-west-2.amazonaws.com/qai-hub-geniex/geniex-cli-linux-arm64-v0.8.0.tar.gz",
+      "size": 105309808,
+      "sha256": "a8ff7f90850b9f10629bc3c729d0fb93594e8c0b01d31ac5cf5ef9ea7b3e1c37",
+      "kind": "cli-archive",
+      "platform": "linux",
+      "arch": "arm64"
+    },
+    {
+      "name": "geniex-cli-linux-arm64-v0.8.0.tar.gz.sha256",
+      "url": "https://qaihub-public-assets.s3.us-west-2.amazonaws.com/qai-hub-geniex/geniex-cli-linux-arm64-v0.8.0.tar.gz.sha256",
+      "size": 103,
+      "sha256": "5d9554e2e3f809778ecbf91bfe0508f94be6751e732a00bdf632e5ff684f3a9f",
+      "kind": "sha256",
+      "platform": "linux",
+      "arch": "arm64"
+    },
+    {
+      "name": "geniex-cli-setup-windows-arm64-v0.8.0.exe",
+      "url": "https://qaihub-public-assets.s3.us-west-2.amazonaws.com/qai-hub-geniex/geniex-cli-setup-windows-arm64-v0.8.0.exe",
+      "size": 65196910,
+      "sha256": "fcc4d932f371a9b3ad3d08a1b34912fe21a7fdf7c54d47c869250b50d81ec734",
+      "kind": "cli-installer",
+      "platform": "windows",
+      "arch": "arm64"
+    },
+    {
+      "name": "geniex-cli-setup-windows-arm64-v0.8.0.exe.sha256",
+      "url": "https://qaihub-public-assets.s3.us-west-2.amazonaws.com/qai-hub-geniex/geniex-cli-setup-windows-arm64-v0.8.0.exe.sha256",
+      "size": 108,
+      "sha256": "db8999187593e0fca8a6b5c45835c7a79640ce6b61bce8dec31103d7440cbebb",
+      "kind": "sha256",
+      "platform": "windows",
+      "arch": "arm64"
+    },
+    {
+      "name": "geniex-sdk-linux-arm64-v0.8.0.zip",
+      "url": "https://qaihub-public-assets.s3.us-west-2.amazonaws.com/qai-hub-geniex/geniex-sdk-linux-arm64-v0.8.0.zip",
+      "size": 95086470,
+      "sha256": "86909f1a2972b3490c194fc24eedcab0b557a6785e9cdcc0816bfde7df7eb722",
+      "kind": "sdk",
+      "platform": "linux",
+      "arch": "arm64"
+    },
+    {
+      "name": "geniex-sdk-linux-arm64-v0.8.0.zip.sha256",
+      "url": "https://qaihub-public-assets.s3.us-west-2.amazonaws.com/qai-hub-geniex/geniex-sdk-linux-arm64-v0.8.0.zip.sha256",
+      "size": 100,
+      "sha256": "564fd5d278b26786d75bccf650d1569ddcc7144c45f9577ddd77fad340a66a1e",
+      "kind": "sha256",
+      "platform": "linux",
+      "arch": "arm64"
+    },
+    {
+      "name": "geniex-sdk-windows-arm64-v0.8.0.zip",
+      "url": "https://qaihub-public-assets.s3.us-west-2.amazonaws.com/qai-hub-geniex/geniex-sdk-windows-arm64-v0.8.0.zip",
+      "size": 84788957,
+      "sha256": "5676e27cc5639717890ce92f3beec937a6aefc645c9cc57bcb537f972b4fecc7",
+      "kind": "sdk",
+      "platform": "windows",
+      "arch": "arm64"
+    },
+    {
+      "name": "geniex-sdk-windows-arm64-v0.8.0.zip.sha256",
+      "url": "https://qaihub-public-assets.s3.us-west-2.amazonaws.com/qai-hub-geniex/geniex-sdk-windows-arm64-v0.8.0.zip.sha256",
+      "size": 102,
+      "sha256": "af059d744eaf293a5d8d1168ab10b2ef7f43e041b4e12c92a7161baa40d6f8c0",
+      "kind": "sha256",
+      "platform": "windows",
+      "arch": "arm64"
+    },
+    {
+      "name": "install-v0.8.0.sh",
+      "url": "https://qaihub-public-assets.s3.us-west-2.amazonaws.com/qai-hub-geniex/install-v0.8.0.sh",
+      "size": 10075,
+      "sha256": "11c1b0d0b54bcbf11c8475e05971ad18fbddbfb7f179442e7fa3df98d7ab2c94",
+      "kind": "install-script",
+      "platform": "linux",
+      "arch": "arm64"
+    },
+    {
+      "name": "install-v0.8.0.sh.sha256",
+      "url": "https://qaihub-public-assets.s3.us-west-2.amazonaws.com/qai-hub-geniex/install-v0.8.0.sh.sha256",
+      "size": 84,
+      "sha256": "07b0f1f797fe84bfebcaa3bd8ef814f67e63a9599d874f6d509c6ca2ea5c05d0",
+      "kind": "sha256",
+      "platform": "linux",
+      "arch": "arm64"
+    }
+  ]
+}

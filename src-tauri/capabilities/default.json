@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Permissions for the main window. Keep this minimal: no shell or generic filesystem access.",
+  "windows": ["main"],
+  "permissions": ["core:default", "core:window:allow-set-theme", "core:window:allow-set-effects"]
+}

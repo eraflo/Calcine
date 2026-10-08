@@ -1,0 +1,401 @@
+{
+  "_id": "680f574d990259644b674a6d",
+  "id": "unsloth/Qwen3-0.6B-GGUF",
+  "private": false,
+  "pipeline_tag": "text-generation",
+  "library_name": "transformers",
+  "tags": [
+    "transformers",
+    "gguf",
+    "qwen3",
+    "text-generation",
+    "qwen",
+    "unsloth",
+    "en",
+    "base_model:Qwen/Qwen3-0.6B",
+    "base_model:quantized:Qwen/Qwen3-0.6B",
+    "license:apache-2.0",
+    "endpoints_compatible",
+    "region:us",
+    "conversational"
+  ],
+  "downloads": 139267,
+  "likes": 141,
+  "modelId": "unsloth/Qwen3-0.6B-GGUF",
+  "author": "unsloth",
+  "sha": "50968a4468ef4233ed78cd7c3de230dd1d61a56b",
+  "lastModified": "2025-06-23T00:26:15.000Z",
+  "gated": false,
+  "disabled": false,
+  "widgetData": [
+    {
+      "text": "Hi, what can you help me with?"
+    },
+    {
+      "text": "What is 84 * 3 / 2?"
+    },
+    {
+      "text": "Tell me an interesting fact about the universe!"
+    },
+    {
+      "text": "Explain quantum computing in simple terms."
+    }
+  ],
+  "model-index": null,
+  "config": {
+    "architectures": ["Qwen3ForCausalLM"],
+    "model_type": "qwen3"
+  },
+  "transformersInfo": {
+    "auto_model": "AutoModelForCausalLM",
+    "pipeline_tag": "text-generation",
+    "processor": "AutoTokenizer"
+  },
+  "siblings": [
+    {
+      "rfilename": ".gitattributes",
+      "blobId": "c4d86c20cd8a0d609d7ee484d1c00128a7080a69",
+      "size": 3135
+    },
+    {
+      "rfilename": "Qwen3-0.6B-BF16.gguf",
+      "blobId": "e22e8c54a6393be7f203ba87b8025d476229472b",
+      "size": 1198182848,
+      "lfs": {
+        "sha256": "f9c9f1d3c1e21755b82d4e165f88dbbbd4355646d632fb5d6cef7c66ed4ee04e",
+        "size": 1198182848,
+        "pointerSize": 135
+      }
+    },
+    {
+      "rfilename": "Qwen3-0.6B-IQ4_NL.gguf",
+      "blobId": "79c9b234a91313aa9065c7cb3b2cd402b86cc6fb",
+      "size": 381566656,
+      "lfs": {
+        "sha256": "f1b14e28a6de64f21672ddf2c8f24736c389da4c64ebf024b1204f4f43a4fd71",
+        "size": 381566656,
+        "pointerSize": 134
+      }
+    },
+    {
+      "rfilename": "Qwen3-0.6B-IQ4_XS.gguf",
+      "blobId": "5158366cc7fb1cd14c63d1216d9b6c1a6bbf9484",
+      "size": 367804096,
+      "lfs": {
+        "sha256": "dacc1fe1dc6f4799f366ac3385299f71c7e02c58b8702448a174f14d91b1c64d",
+        "size": 367804096,
+        "pointerSize": 134
+      }
+    },
+    {
+      "rfilename": "Qwen3-0.6B-Q2_K.gguf",
+      "blobId": "3f6ec03c8195bda89bd65333c300a981e792bbc9",
+      "size": 296238784,
+      "lfs": {
+        "sha256": "26d035ea15c4a2853e8d20ffc56a76f6164e17dbb6c9e532c5766700c404519d",
+        "size": 296238784,
+        "pointerSize": 134
+      }
+    },
+    {
+      "rfilename": "Qwen3-0.6B-Q2_K_L.gguf",
+      "blobId": "3f6ec03c8195bda89bd65333c300a981e792bbc9",
+      "size": 296238784,
+      "lfs": {
+        "sha256": "26d035ea15c4a2853e8d20ffc56a76f6164e17dbb6c9e532c5766700c404519d",
+        "size": 296238784,
+        "pointerSize": 134
+      }
+    },
+    {
+      "rfilename": "Qwen3-0.6B-Q3_K_M.gguf",
+      "blobId": "0a25d99fd6ee370ea226fbd6e557266afc23809d",
+      "size": 347127488,
+      "lfs": {
+        "sha256": "30bb9f9222cf58c076277879881a24e7127a10be32076d76d8c70f8defc01f5d",
+        "size": 347127488,
+        "pointerSize": 134
+      }
+    },
+    {
+      "rfilename": "Qwen3-0.6B-Q3_K_S.gguf",
+      "blobId": "862ce57d235bb8f545834de6296d5cbc7c7e8317",
+      "size": 323075776,
+      "lfs": {
+        "sha256": "1d61e10a443e3e335a979eecde30bab6c2489a1e876632e22e0695178d368b67",
+        "size": 323075776,
+        "pointerSize": 134
+      }
+    },
+    {
+      "rfilename": "Qwen3-0.6B-Q4_0.gguf",
+      "blobId": "8cf1e2776da5a0fe7d116ce565aad420397b419f",
+      "size": 382156480,
+      "lfs": {
+        "sha256": "33bcc57074ec7b6eada5a90651ee546ec0c2b271002c22baf9f1b2dd1e8f75cb",
+        "size": 382156480,
+        "pointerSize": 134
+      }
+    },
+    {
+      "rfilename": "Qwen3-0.6B-Q4_1.gguf",
+      "blobId": "414d2c0f1eaa4d4bbec0c74aaf99bc8e53864bf3",
+      "size": 409091776,
+      "lfs": {
+        "sha256": "ddaf05402c668540464a91efc607d732f41f108401533fe69de874bfc9653688",
+        "size": 409091776,
+        "pointerSize": 134
+      }
+    },
+    {
+      "rfilename": "Qwen3-0.6B-Q4_K_M.gguf",
+      "blobId": "a09d43d97b8250d5de215fbebce5499cdbc1a448",
+      "size": 396705472,
+      "lfs": {
+        "sha256": "ac2d97712095a558e31573f62f466a3f9d93990898b0ec79d7c974c1780d524a",
+        "size": 396705472,
+        "pointerSize": 134
+      }
+    },
+    {
+      "rfilename": "Qwen3-0.6B-Q4_K_S.gguf",
+      "blobId": "947945e2a66ad4cd971c84befc2d7db435316105",
+      "size": 383270592,
+      "lfs": {
+        "sha256": "3e5495288a45c7891d32afeb4e7a1ed58a9a22fab83f8903b561204a89aae363",
+        "size": 383270592,
+        "pointerSize": 134
+      }
+    },
+    {
+      "rfilename": "Qwen3-0.6B-Q5_K_M.gguf",
+      "blobId": "c92d102c040afb7e7861a417d1244e73b2a19102",
+      "size": 444415680,
+      "lfs": {
+        "sha256": "03c6e2127d155b89c21a512954010486b1e00e1a9eebdfad650d03b53ab4c74a",
+        "size": 444415680,
+        "pointerSize": 134
+      }
+    },
+    {
+      "rfilename": "Qwen3-0.6B-Q5_K_S.gguf",
+      "blobId": "da292484e476f6e94e70d6064db575678060f506",
+      "size": 436616896,
+      "lfs": {
+        "sha256": "222acaa0376ffd371c5673a98ff896d7aa82428a4fab92e4b858e7eb281467ad",
+        "size": 436616896,
+        "pointerSize": 134
+      }
+    },
+    {
+      "rfilename": "Qwen3-0.6B-Q6_K.gguf",
+      "blobId": "5c9774194d834a5a50b0f9bcf8ef32ebc0dee08d",
+      "size": 495107776,
+      "lfs": {
+        "sha256": "1c15a88244c9e852516e5ba0e394fc97f2182f1f2757413fb99fe6a9214c033b",
+        "size": 495107776,
+        "pointerSize": 134
+      }
+    },
+    {
+      "rfilename": "Qwen3-0.6B-Q8_0.gguf",
+      "blobId": "f8f078643b71179df66f671b3f576db3925db1ea",
+      "size": 639447744,
+      "lfs": {
+        "sha256": "e150ed544dfe6016930c026a93913a5e3184181ebfe6ab2223ae01dd0491784c",
+        "size": 639447744,
+        "pointerSize": 134
+      }
+    },
+    {
+      "rfilename": "Qwen3-0.6B-UD-IQ1_M.gguf",
+      "blobId": "ae0addbc1a545758a8d1151c012226e9f374466a",
+      "size": 220754624,
+      "lfs": {
+        "sha256": "7b3e7f1ba1b743d9f97c4c8fe926cf92b0ac1902cb4a99309fe58b3bdd30d33b",
+        "size": 220754624,
+        "pointerSize": 134
+      }
+    },
+    {
+      "rfilename": "Qwen3-0.6B-UD-IQ1_S.gguf",
+      "blobId": "7b1f730467e75d9949223c2c35b022e1ec4164d1",
+      "size": 214643392,
+      "lfs": {
+        "sha256": "fcb165efedaee2cfbdefe02bd3bbf22c80cfdb728915fbbe54fa809a8556710a",
+        "size": 214643392,
+        "pointerSize": 134
+      }
+    },
+    {
+      "rfilename": "Qwen3-0.6B-UD-IQ2_M.gguf",
+      "blobId": "677db80478e9a923f073eb8a7af08ef0e9d22349",
+      "size": 268702400,
+      "lfs": {
+        "sha256": "2c473f73f162dae9e09de4cec78eb6569ac7e78aa65dfcd71e40939e52fcf69b",
+        "size": 268702400,
+        "pointerSize": 134
+      }
+    },
+    {
+      "rfilename": "Qwen3-0.6B-UD-IQ2_XXS.gguf",
+      "blobId": "b09c3e24327af02a57c3181edfdaa314258991f6",
+      "size": 234074816,
+      "lfs": {
+        "sha256": "55e0d0b88ae021edf15d2f0cec5ab2c47552b6a5f388dfab869f1e67240263c3",
+        "size": 234074816,
+        "pointerSize": 134
+      }
+    },
+    {
+      "rfilename": "Qwen3-0.6B-UD-IQ3_XXS.gguf",
+      "blobId": "c111328b4724826a73be9d0162b11f0130ae615c",
+      "size": 282088128,
+      "lfs": {
+        "sha256": "0ed6dab036349ba8198324c70002a15397e8bdeb06748eee5c631f872e1eaf2f",
+        "size": 282088128,
+        "pointerSize": 134
+      }
+    },
+    {
+      "rfilename": "Qwen3-0.6B-UD-Q2_K_XL.gguf",
+      "blobId": "ceb71843614724dff21b498d4ff1950017bdb586",
+      "size": 301727424,
+      "lfs": {
+        "sha256": "93a7ae9c1ddbebc9d754d855aa623c8109dad5ac2952de71300160122c1044b0",
+        "size": 301727424,
+        "pointerSize": 134
+      }
+    },
+    {
+      "rfilename": "Qwen3-0.6B-UD-Q3_K_XL.gguf",
+      "blobId": "b0bcb111d206b0649fe064942aa06caecb678d0f",
+      "size": 356622016,
+      "lfs": {
+        "sha256": "401c23cd33883cb9403f14a941c0cb04b8d5bdbc240f0f9008b574a5dcb75b5e",
+        "size": 356622016,
+        "pointerSize": 134
+      }
+    },
+    {
+      "rfilename": "Qwen3-0.6B-UD-Q4_K_XL.gguf",
+      "blobId": "d8f71c95cbde80e516dc8f408f7bd86c7cce0371",
+      "size": 405372608,
+      "lfs": {
+        "sha256": "ed2dd561f8aa5651cfb198be583269779e26ca6e28c40dba94fc2da4432bde2a",
+        "size": 405372608,
+        "pointerSize": 134
+      }
+    },
+    {
+      "rfilename": "Qwen3-0.6B-UD-Q5_K_XL.gguf",
+      "blobId": "5f7d4b22706c6d8e3145b0f3002949505a6a0da5",
+      "size": 446381760,
+      "lfs": {
+        "sha256": "23604893990250423a7f1a08e9a8d16da71eaeb560352020f533c9e62e14badd",
+        "size": 446381760,
+        "pointerSize": 134
+      }
+    },
+    {
+      "rfilename": "Qwen3-0.6B-UD-Q6_K_XL.gguf",
+      "blobId": "3ecaf76d4363ccf01155c90d929298ef4e0c0b31",
+      "size": 576467648,
+      "lfs": {
+        "sha256": "d7df206be8dfac0267b24b97b6f062b31a8655ef770a74e82a38c262efb570ba",
+        "size": 576467648,
+        "pointerSize": 134
+      }
+    },
+    {
+      "rfilename": "Qwen3-0.6B-UD-Q8_K_XL.gguf",
+      "blobId": "47798a1f2fe6d4ba7ca2ed4b0139a882d6f2c9d8",
+      "size": 844288704,
+      "lfs": {
+        "sha256": "523982b2bb2ce75857aa0de6763c41e46ef2be5f79c26867f73be143f2ba8bad",
+        "size": 844288704,
+        "pointerSize": 134
+      }
+    },
+    {
+      "rfilename": "README.md",
+      "blobId": "582067be63694bb12bf5ea44e8b5972435656015",
+      "size": 17082
+    },
+    {
+      "rfilename": "config.json",
+      "blobId": "de077778adaa4aa6e706209cd95a2a0d6049bc59",
+      "size": 752
+    },
+    {
+      "rfilename": "imatrix_unsloth.dat",
+      "blobId": "7394e29226bb0dea2141ab272313f242ef2ed343",
+      "size": 1153380,
+      "lfs": {
+        "sha256": "8eeffbe08370c5cc1a27adb534ff7940094691b18d406f7bb624f3fc0e08f39e",
+        "size": 1153380,
+        "pointerSize": 132
+      }
+    },
+    {
+      "rfilename": "params",
+      "blobId": "a0e209876aecd6785194f4d10c84e25eb3e524ff",
+      "size": 178
+    },
+    {
+      "rfilename": "template",
+      "blobId": "26f6656fa874146ef0a595217be7dcb1aa2eca71",
+      "size": 1482
+    }
+  ],
+  "spaces": [
+    "tardellirs/model-pulse",
+    "Lyte/Qwen3-0.6B-Demo-GGUF",
+    "Simonc-44/Cygnis-Nano",
+    "Oss11/WLM",
+    "Luka512/Qwen3",
+    "gouravbhadraDev/server_test",
+    "gouravbhadraDev/chat_bot_server",
+    "lemonteaa/edge_llm_chat",
+    "zazaman/guardrails-final",
+    "hsuwill000/ESP01LLMSample",
+    "ASomeoneWhoInterestedWithAI/Qwen3-0.6B-Demo-GGUF-Duplicate",
+    "frankok/Qwen3-0.6B-Demo-GGUF",
+    "AILaborant/Qwen3-0.6B-Demo-GGUF",
+    "triflix/llmstream",
+    "Dddred/qwen3-vl-2b-thinking-gguf-q4km-llamacpp-cpu",
+    "MuangMuangE/my-llm-test-260320",
+    "janskyy/qwen3-ft-demo",
+    "ki-jung000/qwen3-ft-demo",
+    "louis-3452/qwen3-ft-demo",
+    "htt0099/qwen3-ft-demo",
+    "Gangseo/qwen3-ft-demo",
+    "walk-run-fly/finetuning-project",
+    "HopeBear/qwen3-ft-demo",
+    "sori2/qwen3-ft-demo",
+    "enoh6/qwen3-ft-demo",
+    "jeongah884/qwen3-ft-demo",
+    "gboong2/ft_lecture",
+    "ScottKang/qwen3-ft-demo",
+    "woogeun1119/qwen3-ft-demo",
+    "machinegp/qwen3-ft-demo",
+    "jongmon/qwen3-ft-demo",
+    "dh-kam/android-uiautomation-chatbot",
+    "thisnameisnotavail/qwen3-ft-demo",
+    "hyosungjung/qwen3-ft-demo",
+    "Yegeeee/qwen3-ft-demo",
+    "moonny76/qwen3-ft-demo",
+    "MuangMuangE/test3",
+    "linuker/qwen3-ft-demo",
+    "MuangMuangE/qwen3-ft-demo",
+    "dmount7/qwen3-ft-demo",
+    "solestar/Qwen3-4B-Instruct-MJ",
+    "Tarekt/Bkhyi",
+    "Lafu01/eva-mirror",
+    "ghosthets/seopipe",
+    "ramedde/test",
+    "Lachowski-V2/lumora-ai-supersmall-is"
+  ],
+  "createdAt": "2025-04-28T10:24:13.000Z",
+  "usedStorage": 77245449484
+}

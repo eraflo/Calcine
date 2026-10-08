@@ -1,0 +1,27 @@
+Qualcomm AI Hub models for Snapdragon X Elite CRD (use --all to see every model):
+
+┌─────────────────────────────────────────┬──────┐
+│ NAME                                    │ TYPE │
+├─────────────────────────────────────────┼──────┤
+│ qualcomm/Falcon3-7B-Instruct            │  llm │
+│ qualcomm/Gemma-4-E4B-it                 │  vlm │
+│ qualcomm/Intern3.5-VL-2B                │  vlm │
+│ qualcomm/Intern3.5-VL-4B                │  vlm │
+│ qualcomm/Llama-SEA-LION-v3.5-8B-R       │  llm │
+│ qualcomm/Llama-v3-8B-Instruct           │  llm │
+│ qualcomm/Llama-v3-ELYZA-JP-8B           │  llm │
+│ qualcomm/Llama-v3.1-8B-Instruct         │  llm │
+│ qualcomm/Llama-v3.2-1B-Instruct         │  llm │
+│ qualcomm/Llama-v3.2-3B-Instruct         │  llm │
+│ qualcomm/Llama-v3.2-3B-Instruct-SSD     │  llm │
+│ qualcomm/Llama3-TAIDE-LX-8B-Chat-Alpha1 │  llm │
+│ qualcomm/Phi-3.5-Mini-Instruct          │  llm │
+│ qualcomm/Qwen2.5-VL-7B-Instruct         │  vlm │
+│ qualcomm/Qwen3-0.6B                     │  llm │
+│ qualcomm/Qwen3-1.7B                     │  llm │
+│ qualcomm/Qwen3-4B                       │  llm │
+│ qualcomm/Qwen3-4B-Instruct-2507         │  llm │
+│ qualcomm/Qwen3-8B                       │  llm │
+│ qualcomm/Qwen3-VL-4B-Instruct           │  vlm │
+│ qualcomm/Qwen3-VL-8B-Instruct           │  vlm │
+└─────────────────────────────────────────┴──────┘

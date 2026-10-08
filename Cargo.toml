@@ -1,0 +1,79 @@
+[workspace]
+resolver = "3"
+members = ["crates/*", "src-tauri"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.99"
+license = "MIT"
+repository = "https://github.com/eraflo/calcine"
+homepage = "https://github.com/eraflo/calcine"
+authors = ["The Calcine Authors"]
+
+[workspace.dependencies]
+# Internal crates
+calcine-core = { path = "crates/calcine-core" }
+calcine-gateway = { path = "crates/calcine-gateway" }
+calcine-geniex = { path = "crates/calcine-geniex" }
+calcine-hub = { path = "crates/calcine-hub" }
+calcine-hw = { path = "crates/calcine-hw" }
+calcine-mock = { path = "crates/calcine-mock" }
+
+# Tauri
+tauri = { version = "2.12", features = ["tray-icon"] }
+tauri-plugin-single-instance = "2.5"
+tauri-plugin-dialog = "2"
+tauri-plugin-notification = "2"
+tauri-plugin-opener = "2"
+tauri-plugin-updater = "2"
+tauri-plugin-autostart = "2"
+tauri-build = { version = "2.7", features = [] }
+tauri-specta = { version = "=2.0.0-rc.25", features = ["derive", "typescript"] }
+specta = { version = "=2.0.0-rc.25", features = ["derive"] }
+specta-typescript = "0.0.12"
+
+# Async & utilities
+async-trait = "0.1"
+tokio = { version = "1.53", features = ["macros", "process", "rt-multi-thread", "sync", "time", "io-util", "net"] }
+tokio-util = "0.7"
+sysinfo = { version = "0.39", default-features = false, features = ["system", "disk"] }
+wmi = "0.18"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+which = "8"
+axum = { version = "0.8", default-features = false, features = ["http1", "json", "tokio", "query"] }
+reqwest = { version = "0.13", default-features = false, features = ["stream", "json", "http2"] }
+futures-util = "0.3"
+bytes = "1"
+tokio-stream = "0.1"
+sha2 = "0.11"
+hex = "0.4"
+getrandom = "0.4"
+win32job = "2"
+windows-sys = "0.61"
+
+[workspace.lints.rust]
+# Denied everywhere; the only exception is calcine-hw's Windows performance
+# counter bindings (`windows/gpu_engines.rs`), which must call the C API.
+unsafe_code = "deny"
+missing_debug_implementations = "warn"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+module_name_repetitions = "allow"
+# Product names (GenieX, llama.cpp, Hexagon…) aren't code identifiers.
+doc_markdown = "allow"
+missing_errors_doc = "allow"
+must_use_candidate = "allow"
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = 3
+panic = "abort"
+strip = true

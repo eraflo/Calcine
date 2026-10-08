@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img">
+  <title>Calcine</title>
+  <rect width="1024" height="1024" rx="230" fill="#0C0C10"/>
+  <path d="M512 212 L771.8 362 L771.8 662 L512 812 L252.2 662 L252.2 362 Z" fill="none" stroke="#FF6B3D" stroke-width="60" stroke-linejoin="round"/>
+  <path d="M512 352 C592 446 624 520 603 592 C588 650 548 684 512 684 C476 684 436 650 421 592 C400 520 432 446 512 352 Z" fill="#FF6B3D"/>
+  <path d="M512 498 C551 544 562 584 552 616 C544 642 529 656 512 656 C495 656 480 642 472 616 C462 584 473 544 512 498 Z" fill="#FFB547"/>
+</svg>

@@ -1,0 +1,118 @@
+<!doctype html>
+<!-- Source of og.png, the 1200x630 social preview. Regenerate with:
+     msedge --headless --hide-scrollbars --window-size=1200,630 --screenshot=og.png og.html -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Calcine social preview</title>
+    <style>
+      @font-face {
+        font-family: "Geist";
+        src: url("fonts/geist.woff2") format("woff2");
+        font-weight: 100 900;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1200px;
+        height: 630px;
+        overflow: hidden;
+        background: #0c0c10;
+        color: #ececf1;
+        font-family: "Geist", sans-serif;
+      }
+      .card {
+        position: relative;
+        width: 1200px;
+        height: 630px;
+        overflow: hidden;
+        background:
+          radial-gradient(520px 380px at 18% 30%, rgba(255, 107, 61, 0.28), transparent 70%),
+          radial-gradient(500px 360px at 85% 90%, rgba(255, 181, 71, 0.16), transparent 70%),
+          #0c0c10;
+      }
+      .card::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background-image:
+          linear-gradient(rgba(42, 42, 51, 0.6) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(42, 42, 51, 0.6) 1px, transparent 1px);
+        background-size: 48px 48px;
+        mask-image: radial-gradient(600px 420px at 25% 35%, #000 10%, transparent 75%);
+      }
+      .text {
+        position: absolute;
+        left: 72px;
+        top: 76px;
+        width: 520px;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        font-size: 34px;
+        font-weight: 650;
+        letter-spacing: -0.01em;
+      }
+      h1 {
+        margin: 56px 0 0;
+        font-size: 64px;
+        line-height: 1.04;
+        letter-spacing: -0.035em;
+        font-weight: 700;
+      }
+      .ember {
+        background: linear-gradient(120deg, #ff6b3d 10%, #ffb547 90%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+      p {
+        margin: 28px 0 0;
+        font-size: 24px;
+        line-height: 1.45;
+        color: #9898a6;
+      }
+      .units {
+        position: absolute;
+        left: 72px;
+        bottom: 64px;
+        display: flex;
+        gap: 12px;
+        font-size: 18px;
+        font-weight: 600;
+      }
+      .units span {
+        padding: 8px 16px;
+        border-radius: 999px;
+        border: 1px solid #2a2a33;
+        background: rgba(20, 20, 25, 0.85);
+      }
+      .shot {
+        position: absolute;
+        left: 640px;
+        top: 96px;
+        width: 900px;
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        box-shadow: 0 40px 100px -20px rgba(255, 107, 61, 0.35), 0 20px 60px rgba(0, 0, 0, 0.6);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="text">
+        <div class="brand"><img src="calcine.svg" width="56" height="56" alt="" />Calcine</div>
+        <h1>Your Snapdragon <span class="ember">NPU</span>, as a local AI server.</h1>
+        <p>Run LLMs on Qualcomm GenieX and share them through a secure, OpenAI-compatible API.</p>
+      </div>
+      <div class="units">
+        <span style="color: #ff6b3d">NPU</span>
+        <span style="color: #a78bfa">GPU</span>
+        <span style="color: #2dd4bf">CPU</span>
+      </div>
+      <img class="shot" src="screenshots/chat-dark.png" alt="" />
+    </div>
+  </body>
+</html>

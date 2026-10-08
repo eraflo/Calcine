@@ -1,0 +1,243 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/*
+ * Calcine "Ember" design tokens.
+ *
+ * Names follow shadcn/ui so generated components work as-is. Note that
+ * `accent` is shadcn's hover surface; Calcine's indigo highlight is `info`.
+ * Dark is the default theme; `data-theme="light"` on <html> switches it.
+ */
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --background: #0c0c10;
+  --foreground: #ececf1;
+  --card: #141419;
+  --card-foreground: #ececf1;
+  --popover: #1c1c23;
+  --popover-foreground: #ececf1;
+  --primary: #ff6b3d;
+  --primary-foreground: #1a0b05;
+  --secondary: #1c1c23;
+  --secondary-foreground: #ececf1;
+  --muted: #1c1c23;
+  --muted-foreground: #9898a6;
+  --accent: #1c1c23;
+  --accent-foreground: #ececf1;
+  --destructive: #f87171;
+  --border: #2a2a33;
+  --input: #2a2a33;
+  --ring: #ff6b3d;
+
+  --info: #7b8cff;
+  --success: #34d399;
+  --warning: #fbbf24;
+
+  /* Compute units: same color everywhere (badges, charts, pickers). */
+  --npu: #ff6b3d;
+  --gpu: #a78bfa;
+  --cpu: #2dd4bf;
+
+  --sidebar: #141419;
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+
+  --background: #fafaf7;
+  --foreground: #18181b;
+  --card: #ffffff;
+  --card-foreground: #18181b;
+  --popover: #ffffff;
+  --popover-foreground: #18181b;
+  --primary: #c2410c;
+  --primary-foreground: #ffffff;
+  --secondary: #f4f4f0;
+  --secondary-foreground: #18181b;
+  --muted: #f4f4f0;
+  --muted-foreground: #66666f;
+  --accent: #f4f4f0;
+  --accent-foreground: #18181b;
+  --destructive: #b91c1c;
+  --border: #e7e5e0;
+  --input: #e7e5e0;
+  --ring: #c2410c;
+
+  --info: #4f5bd5;
+  --success: #047857;
+  --warning: #b45309;
+
+  --npu: #e8501f;
+  --gpu: #7c3aed;
+  --cpu: #0d9488;
+
+  --sidebar: #f4f4f0;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-info: var(--info);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-npu: var(--npu);
+  --color-gpu: var(--gpu);
+  --color-cpu: var(--cpu);
+  --color-sidebar: var(--sidebar);
+
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, "Cascadia Code", monospace;
+
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  /*
+   * A desktop app, not a page: the document itself never scrolls and WebView2's
+   * elastic overscroll is off. Only explicit regions (main content, drawers) scroll.
+   */
+  html,
+  body {
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /*
+   * Mica (Settings › Appearance): Windows 11's material shows through the
+   * page and sidebar backgrounds; cards and dialogs stay opaque.
+   */
+  :root[data-material="mica"] body {
+    background-color: color-mix(in srgb, var(--background) 70%, transparent);
+  }
+
+  :root[data-material="mica"] .bg-sidebar {
+    background-color: color-mix(in srgb, var(--sidebar) 45%, transparent);
+  }
+
+  /* Thin, theme-aware scrollbars instead of the light Windows default. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--muted-foreground) 35%, transparent) transparent;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--primary) 30%, transparent);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      /* biome-ignore lint/complexity/noImportantStyles: reduced motion must override component animations. */
+      animation-duration: 0.01ms !important;
+      /* biome-ignore lint/complexity/noImportantStyles: reduced motion must override component transitions. */
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+/* Markdown replies in the Chat. */
+@layer components {
+  .markdown > * + * {
+    margin-top: 0.75em;
+  }
+  .markdown h1,
+  .markdown h2,
+  .markdown h3 {
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .markdown h1 {
+    font-size: 1.25em;
+  }
+  .markdown h2 {
+    font-size: 1.125em;
+  }
+  .markdown ul {
+    list-style: disc;
+    padding-left: 1.25em;
+  }
+  .markdown ol {
+    list-style: decimal;
+    padding-left: 1.25em;
+  }
+  .markdown li + li {
+    margin-top: 0.25em;
+  }
+  .markdown a {
+    color: var(--info);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .markdown strong {
+    font-weight: 600;
+  }
+  .markdown blockquote {
+    border-left: 2px solid var(--border);
+    padding-left: 0.75em;
+    color: var(--muted-foreground);
+  }
+  .markdown :not(pre) > code {
+    border-radius: 4px;
+    background: var(--muted);
+    padding: 0.1em 0.35em;
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+  }
+  .markdown pre {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--background);
+    padding: 0.75em 1em;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.6;
+  }
+  .markdown table {
+    border-collapse: collapse;
+    font-size: 0.95em;
+  }
+  .markdown th,
+  .markdown td {
+    border: 1px solid var(--border);
+    padding: 0.35em 0.6em;
+    text-align: left;
+  }
+}

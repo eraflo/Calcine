@@ -1,0 +1,28 @@
+Qualcomm AI Hub models geniex can run:
+
+┌─────────────────────────────────────────┬──────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ NAME                                    │ TYPE │ CHIPSETS                                                                                                                           │
+├─────────────────────────────────────────┼──────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ qualcomm/Falcon3-7B-Instruct            │  llm │ 8-elite-gen5-for-galaxy, 8-elite-for-galaxy, x2-elite, x-elite, x-plus-8-core, qcs8275, qcs9075                                    │
+│ qualcomm/Gemma-4-E4B-it                 │  vlm │ 8-elite-gen5-for-galaxy, 8-elite-for-galaxy, x2-elite, x-elite, x-plus-8-core, 8gen3, 8gen2, 8gen1, 888, qcs8275, sa8775p, qcs9075 │
+│ qualcomm/Intern3.5-VL-2B                │  vlm │ 8-elite-gen5-for-galaxy, 8-elite-for-galaxy, x2-elite, x-elite, x-plus-8-core, 8gen3, 8gen2, 8gen1, 888, qcs8275, sa8775p, qcs9075 │
+│ qualcomm/Intern3.5-VL-4B                │  vlm │ 8-elite-gen5-for-galaxy, 8-elite-for-galaxy, x2-elite, x-elite, x-plus-8-core, 8gen3, 8gen2, 8gen1, 888, qcs8275, qcs9075          │
+│ qualcomm/Llama-SEA-LION-v3.5-8B-R       │  llm │ 8-elite-gen5-for-galaxy, 8-elite-for-galaxy, x2-elite, x-elite, x-plus-8-core, qcs8275, qcs9075                                    │
+│ qualcomm/Llama-v3-8B-Instruct           │  llm │ 8-elite-gen5-for-galaxy, 8-elite-for-galaxy, x2-elite, x-elite, x-plus-8-core, qcs8275, qcs9075                                    │
+│ qualcomm/Llama-v3-ELYZA-JP-8B           │  llm │ 8-elite-gen5-for-galaxy, 8-elite-for-galaxy, x2-elite, x-elite, x-plus-8-core, qcs8275, qcs9075                                    │
+│ qualcomm/Llama-v3.1-8B-Instruct         │  llm │ 8-elite-gen5-for-galaxy, 8-elite-for-galaxy, x2-elite, x-elite, x-plus-8-core, qcs8275, qcs9075                                    │
+│ qualcomm/Llama-v3.2-1B-Instruct         │  llm │ 8-elite-gen5-for-galaxy, 8-elite-for-galaxy, x2-elite, x-elite, x-plus-8-core, qcs8275, sa8775p, qcs9075, sa8295p                  │
+│ qualcomm/Llama-v3.2-3B-Instruct         │  llm │ 8-elite-gen5-for-galaxy, 8-elite-for-galaxy, x2-elite, x-elite, x-plus-8-core, qcs8275, sa8775p, qcs9075, sa8295p                  │
+│ qualcomm/Llama-v3.2-3B-Instruct-SSD     │  llm │ 8-elite-gen5-for-galaxy, 8-elite-for-galaxy, x2-elite, x-elite, x-plus-8-core, qcs8275, sa8775p, qcs9075                           │
+│ qualcomm/Llama3-TAIDE-LX-8B-Chat-Alpha1 │  llm │ 8-elite-gen5-for-galaxy, 8-elite-for-galaxy, x2-elite, x-elite, x-plus-8-core, qcs8275, qcs9075                                    │
+│ qualcomm/Phi-3.5-Mini-Instruct          │  llm │ x2-elite, x-elite, x-plus-8-core                                                                                                   │
+│ qualcomm/Qwen2.5-VL-7B-Instruct         │  vlm │ 8-elite-gen5-for-galaxy, 8-elite-for-galaxy, x2-elite, x-elite, x-plus-8-core, 8gen3, 8gen2, 8gen1, 888, qcs8275, sa8775p, qcs9075 │
+│ qualcomm/Qwen3-0.6B                     │  llm │ 8-elite-gen5-for-galaxy, 8-elite-for-galaxy, x2-elite, x-elite, x-plus-8-core, qcs8275, qcs9075                                    │
+│ qualcomm/Qwen3-1.7B                     │  llm │ 8-elite-gen5-for-galaxy, 8-elite-for-galaxy, x2-elite, x-elite, x-plus-8-core, qcs8275, qcs9075                                    │
+│ qualcomm/Qwen3-4B                       │  llm │ 8-elite-gen5-for-galaxy, 8-elite-for-galaxy, x2-elite, x-elite, x-plus-8-core, qcs8275, qcs9075                                    │
+│ qualcomm/Qwen3-4B-Instruct-2507         │  llm │ 8-elite-gen5-for-galaxy, 8-elite-for-galaxy, x2-elite, x-elite, x-plus-8-core, qcs8275, qcs9075                                    │
+│ qualcomm/Qwen3-8B                       │  llm │ 8-elite-gen5-for-galaxy, 8-elite-for-galaxy, x2-elite, x-elite, x-plus-8-core, qcs8275, qcs9075                                    │
+│ qualcomm/Qwen3-VL-4B-Instruct           │  vlm │ 8-elite-gen5-for-galaxy, 8-elite-for-galaxy, x2-elite, x-elite, x-plus-8-core, 8gen3, 8gen2, 8gen1, 888, qcs8275, qcs9075          │
+│ qualcomm/Qwen3-VL-8B-Instruct           │  vlm │ 8-elite-gen5-for-galaxy, 8-elite-for-galaxy, x2-elite, x-elite, x-plus-8-core, qcs8275, qcs9075                                    │
+│ qualcomm/SmolLM2-1.7B-Instruct          │  llm │ 8-elite-gen5-for-galaxy, 8-elite-for-galaxy, x2-elite                                                                              │
+└─────────────────────────────────────────┴──────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘

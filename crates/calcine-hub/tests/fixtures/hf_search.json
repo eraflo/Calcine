@@ -1,0 +1,46 @@
+[
+  {
+    "_id": "6a7d8038d813eea1a14a8db4",
+    "id": "unsloth/Qwen3.8-27B-GGUF",
+    "gated": false,
+    "lastModified": "2026-08-20T12:04:25.000Z",
+    "likes": 4943,
+    "downloads": 6518857
+  },
+  {
+    "_id": "688b451a53e70a07b0669a7c",
+    "id": "unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF",
+    "gated": false,
+    "lastModified": "2026-01-30T06:29:38.000Z",
+    "likes": 1119,
+    "downloads": 6065516,
+    "pipeline_tag": "text-generation"
+  },
+  {
+    "_id": "6a838b56859b6056ecfa5667",
+    "id": "cdiamond/Qwen3.8-27B-iMatrix-NVFP4-MTP-GGUF",
+    "gated": false,
+    "lastModified": "2026-08-17T22:40:35.000Z",
+    "likes": 25,
+    "downloads": 3788082,
+    "pipeline_tag": "image-text-to-text"
+  },
+  {
+    "_id": "6a9e86d1dab7f88030e2af20",
+    "id": "ISTA-DASLab/Qwen3.8-Flash-Next-GSQ-RCO-GGUF",
+    "gated": false,
+    "lastModified": "2026-09-29T10:28:23.000Z",
+    "likes": 711,
+    "downloads": 3405442,
+    "pipeline_tag": "image-text-to-text"
+  },
+  {
+    "_id": "6a7e8ee8b77fccb497299fb3",
+    "id": "JonathanColetti/Qwen3.8-27B-Uncensored-GGUF",
+    "gated": false,
+    "lastModified": "2026-08-29T04:18:18.000Z",
+    "likes": 1491,
+    "downloads": 2363035,
+    "pipeline_tag": "text-generation"
+  }
+]

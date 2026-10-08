@@ -1,0 +1,165 @@
+name: Release
+
+# When `main` carries a version without a tag yet (after merging the release
+# PR prepared by `bun scripts/release.ts`), build and publish it:
+# signed installer with GenieX bundled, updater manifest, checksums, SBOM and
+# build provenance. See docs/RELEASING.md.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+  # Keep in sync with rust-toolchain.toml.
+  RUST_TOOLCHAIN: "1.99.0"
+
+jobs:
+  check:
+    name: Is there a new version?
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      release: ${{ steps.version.outputs.release }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
+      - id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="$(bun scripts/version.ts current)"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if [[ "$version" == *-* ]]; then
+            echo "::notice::$version is a pre-release version; nothing to publish from main."
+            echo "release=false" >> "$GITHUB_OUTPUT"
+          elif gh release view "v$version" >/dev/null 2>&1; then
+            echo "release=false" >> "$GITHUB_OUTPUT"
+          elif ! grep -q "^## $version " CHANGELOG.md 2>/dev/null; then
+            echo "::notice::No CHANGELOG.md section for $version: prepare releases with 'bun scripts/release.ts $version'."
+            echo "release=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "release=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  release:
+    name: Release v${{ needs.check.outputs.version }} (Windows ARM64)
+    needs: check
+    if: needs.check.outputs.release == 'true'
+    runs-on: windows-11-arm
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    defaults:
+      run:
+        shell: bash
+    env:
+      VERSION: ${{ needs.check.outputs.version }}
+      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
+      - uses: dtolnay/rust-toolchain@7e38f4b43b4db5c8dd498af069a4f6196df1d067 # master
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - run: bun install --frozen-lockfile
+
+      - name: Build installer (GenieX bundled, update signature)
+        run: bun run build:release
+
+      - name: Collect the installer
+        id: installer
+        run: |
+          mkdir -p dist-release
+          installer="$(ls target/release/bundle/nsis/*-setup.exe)"
+          cp "$installer" dist-release/
+          echo "path=dist-release/$(basename "$installer")" >> "$GITHUB_OUTPUT"
+
+      # Authenticode signing through the SignPath Foundation, once the project
+      # is approved: set the repository variables SIGNPATH_ORGANIZATION_ID and
+      # SIGNPATH_PROJECT_SLUG, and the secret SIGNPATH_API_TOKEN.
+      - name: Upload the unsigned installer for signing
+        id: unsigned
+        if: vars.SIGNPATH_ORGANIZATION_ID != ''
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: unsigned-installer
+          path: ${{ steps.installer.outputs.path }}
+      - name: Sign with SignPath
+        if: vars.SIGNPATH_ORGANIZATION_ID != ''
+        uses: signpath/github-action-submit-signing-request@f6d04783b4569d051e0c80105fe66e82819d0092 # v3.0
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: release-signing
+          github-artifact-id: ${{ steps.unsigned.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: dist-release
+      # The updater signature must cover the final, Authenticode-signed file.
+      - name: Sign the update
+        run: |
+          bun tauri signer sign "${{ steps.installer.outputs.path }}"
+          cp "${{ steps.installer.outputs.path }}.sig" "target/release/bundle/nsis/$(basename "${{ steps.installer.outputs.path }}").sig"
+          cp "${{ steps.installer.outputs.path }}" target/release/bundle/nsis/
+
+      - name: Release notes, updater manifest and checksums
+        run: |
+          awk -v v="## $VERSION " 'index($0, v) == 1 {found=1; next} found && /^## / {exit} found' CHANGELOG.md > notes.md
+          [ -s notes.md ] || echo "Calcine $VERSION" > notes.md
+          bun scripts/updater-manifest.ts "$VERSION" dist-release/latest.json notes.md
+          cd dist-release && sha256sum -- *.exe > SHA256SUMS
+
+      - name: SBOM (CycloneDX)
+        uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+        with:
+          path: .
+          format: cyclonedx-json
+          output-file: dist-release/calcine-${{ env.VERSION }}.cdx.json
+          upload-artifact: false
+          upload-release-assets: false
+
+      - name: Build provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: ${{ steps.installer.outputs.path }}
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "v$VERSION" dist-release/* \
+            --target "$GITHUB_SHA" \
+            --title "Calcine $VERSION" \
+            --notes-file notes.md \
+            --latest
+
+      # Beta users get the stable release too when it's newer than the
+      # latest beta.
+      - name: Offer it on the Beta channel
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          beta="$(gh release download beta-channel -p latest-beta.json -O - 2>/dev/null | bun -e 'const t = await Bun.stdin.text(); console.log(t ? JSON.parse(t).version : "")')"
+          if [ -z "$beta" ] || [ "$(bun -e "console.log(Bun.semver.order('$VERSION', '$beta'))")" = "1" ]; then
+            gh release view beta-channel >/dev/null 2>&1 || gh release create beta-channel \
+              --prerelease --target "$GITHUB_SHA" --title "Beta update channel" \
+              --notes "Holds latest-beta.json for Calcine's Beta update channel. Not an installer."
+            cp dist-release/latest.json latest-beta.json
+            gh release upload beta-channel latest-beta.json --clobber
+          fi

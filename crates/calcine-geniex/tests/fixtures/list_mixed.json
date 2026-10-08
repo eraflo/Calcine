@@ -1,0 +1,23 @@
+[
+  {
+    "name": "qualcomm/Qwen3-4B",
+    "size": 3182356037,
+    "runtime": "qairt",
+    "type": "llm",
+    "precisions": ["W4A16"]
+  },
+  {
+    "name": "unsloth/Qwen3-0.6B-GGUF",
+    "size": 1288490188,
+    "runtime": "llama_cpp",
+    "type": "llm",
+    "precisions": ["Q4_0", "Q8_0"]
+  },
+  {
+    "name": "google/gemma-4-E2B-it-qat-q4_0-gguf",
+    "size": 4294967296,
+    "runtime": "llama_cpp",
+    "type": "vlm",
+    "precisions": ["Q4_0"]
+  }
+]

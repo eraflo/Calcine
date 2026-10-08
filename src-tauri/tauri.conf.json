@@ -1,0 +1,72 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Calcine",
+  "mainBinaryName": "calcine",
+  "identifier": "com.eraflo.calcine",
+  "build": {
+    "beforeDevCommand": "bun run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "bun run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Calcine",
+        "width": 1280,
+        "height": 820,
+        "minWidth": 960,
+        "minHeight": 620,
+        "center": true,
+        "theme": "Dark",
+        "backgroundColor": "#0C0C10",
+        "visible": false,
+        "transparent": true
+      }
+    ],
+    "security": {
+      "csp": {
+        "default-src": "'self'",
+        "script-src": "'self'",
+        "style-src": "'self' 'unsafe-inline'",
+        "img-src": "'self' data: asset: http://asset.localhost",
+        "font-src": "'self' data:",
+        "connect-src": "'self' ipc: http://ipc.localhost http://127.0.0.1:*"
+      }
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "publisher": "The Calcine Authors",
+    "copyright": "Copyright (c) 2026 The Calcine Authors",
+    "license": "MIT",
+    "licenseFile": "../LICENSE",
+    "homepage": "https://github.com/eraflo/calcine",
+    "category": "DeveloperTool",
+    "shortDescription": "Run LLMs on the Snapdragon NPU",
+    "longDescription": "Desktop app and local API gateway for Qualcomm GenieX: download, manage and run LLMs and VLMs on the Snapdragon NPU, GPU and CPU.",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser"
+      }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEJCQjE3QkJFRUZGMkZGOTUKUldTVi8vTHZ2bnV4dTF2aVJ3VjBnYmRzdU9pM1FjeHJxTDVvTnhEanZ4YXpob3YvdDdnSHlaSlYK",
+      "endpoints": ["https://github.com/eraflo/calcine/releases/latest/download/latest.json"],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
+  }
+}
