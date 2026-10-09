@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, Select } from "@/components/ui/field";
 import { Progress } from "@/components/ui/progress";
+import type { PowerMode } from "@/features/chat/lib/request";
 import { messages as chatMessages } from "@/features/chat/messages";
 import { usageQuery } from "@/features/hardware/api";
 import { modelsQuery } from "@/features/library/api";
@@ -291,7 +292,7 @@ function EnergyResults({
   const mode = (row: EnergyRow) =>
     [
       severalUnits || !severalModes ? tc(row.unit) : null,
-      severalModes ? tchat(`power_${row.mode}`) : null,
+      severalModes ? tchat(`power_${row.mode as PowerMode}`) : null,
     ]
       .filter(Boolean)
       .join(" · ");
@@ -302,7 +303,7 @@ function EnergyResults({
         <span className="font-mono">{results[0]?.model}</span>
         <span>
           {formatRelative(startedAtMs)}
-          {idle !== undefined && ` · ${t("energyIdle", { value: watts(idle) })}`}
+          {idle != null && ` · ${t("energyIdle", { value: watts(idle) })}`}
         </span>
       </div>
       <div className="overflow-x-auto">
@@ -329,7 +330,7 @@ function EnergyResults({
                   <span className="flex items-center gap-2">
                     {mode(row)}
                     {row === efficient && (
-                      <Badge variant="success">
+                      <Badge tone="success">
                         <Leaf className="size-3" />
                         {t("mostEfficient")}
                       </Badge>

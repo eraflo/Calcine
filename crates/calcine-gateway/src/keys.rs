@@ -2,6 +2,7 @@
 
 use std::path::PathBuf;
 use std::sync::{Mutex, MutexGuard, PoisonError};
+use std::time::SystemTime;
 
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -89,6 +90,9 @@ pub enum KeyError {
 pub struct KeyStore {
     path: Option<PathBuf>,
     keys: Mutex<Vec<StoredKey>>,
+    /// When the file was last read or written by this store. Another process
+    /// (the app and `calcine-cli`) may change it: it's read again then.
+    seen: Mutex<Option<SystemTime>>,
     last_persist_ms: Mutex<u64>,
     internal_token: String,
 }
@@ -106,13 +110,16 @@ impl KeyStore {
             Err(err) if err.kind() == std::io::ErrorKind::NotFound => Vec::new(),
             Err(err) => return Err(err.into()),
         };
-        Ok(Self::with_keys(Some(path), keys))
+        let store = Self::with_keys(Some(path), keys);
+        *store.seen() = store.modified();
+        Ok(store)
     }
 
     fn with_keys(path: Option<PathBuf>, keys: Vec<StoredKey>) -> Self {
         Self {
             path,
             keys: Mutex::new(keys),
+            seen: Mutex::new(None),
             last_persist_ms: Mutex::new(0),
             internal_token: random_token(),
         }
@@ -124,10 +131,12 @@ impl KeyStore {
     }
 
     pub fn list(&self) -> Vec<ApiKeyInfo> {
+        self.sync();
         self.lock().iter().map(|key| key.info.clone()).collect()
     }
 
     pub fn create(&self, request: NewApiKey) -> Result<CreatedApiKey, KeyError> {
+        self.sync();
         let name = request.name.trim();
         if name.is_empty() {
             return Err(KeyError::MissingName);
@@ -159,6 +168,7 @@ impl KeyStore {
 
     /// Returns `false` if no key has this id.
     pub fn revoke(&self, id: &str) -> Result<bool, KeyError> {
+        self.sync();
         let removed = {
             let mut keys = self.lock();
             let before = keys.len();
@@ -174,6 +184,7 @@ impl KeyStore {
     /// Let a key be used from other devices, or not. `None` when there's
     /// no such key.
     pub fn set_network(&self, id: &str, network: bool) -> Result<Option<ApiKeyInfo>, KeyError> {
+        self.sync();
         let changed = {
             let mut keys = self.lock();
             keys.iter_mut().find(|key| key.info.id == id).map(|key| {
@@ -192,6 +203,8 @@ impl KeyStore {
         if constant_time_eq(token.as_bytes(), self.internal_token.as_bytes()) {
             return Some(Caller::Calcine);
         }
+        // A key created or revoked by the other program counts at once.
+        self.sync();
         let digest = hash(token);
         let now = now_ms();
         let caller = {
@@ -231,7 +244,44 @@ impl KeyStore {
         let partial = path.with_extension("json.partial");
         std::fs::write(&partial, json)?;
         std::fs::rename(partial, path)?;
+        *self.seen() = self.modified();
         Ok(())
+    }
+
+    fn modified(&self) -> Option<SystemTime> {
+        std::fs::metadata(self.path.as_ref()?).ok()?.modified().ok()
+    }
+
+    fn seen(&self) -> MutexGuard<'_, Option<SystemTime>> {
+        self.seen.lock().unwrap_or_else(PoisonError::into_inner)
+    }
+
+    /// Read the file again when another program changed it.
+    fn sync(&self) {
+        let Some(path) = &self.path else {
+            return;
+        };
+        let modified = self.modified();
+        if modified == *self.seen() {
+            return;
+        }
+        let keys = match std::fs::read(path) {
+            Ok(bytes) => serde_json::from_slice::<Vec<StoredKey>>(&bytes),
+            Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok(Vec::new()),
+            Err(err) => {
+                tracing::warn!(%err, "couldn't read API keys again");
+                return;
+            }
+        };
+        match keys {
+            Ok(keys) => {
+                *self.lock() = keys;
+                *self.seen() = modified;
+            }
+            Err(err) => {
+                tracing::warn!(%err, "API keys file is unreadable, keeping the keys in memory");
+            }
+        }
     }
 
     fn lock(&self) -> MutexGuard<'_, Vec<StoredKey>> {
@@ -316,6 +366,21 @@ mod tests {
             ..new_key("App")
         };
         assert!(matches!(store.create(no_scope), Err(KeyError::NoScope)));
+    }
+
+    #[test]
+    fn sees_keys_changed_by_another_program() {
+        let dir =
+            std::env::temp_dir().join(format!("calcine-keys-{}", hex::encode(random_bytes::<4>())));
+        let path = dir.join("api-keys.json");
+        let app = KeyStore::load(path.clone()).unwrap();
+        let cli = KeyStore::load(path).unwrap();
+        let created = cli.create(new_key("Script")).unwrap();
+        assert!(app.authenticate(&created.token).is_some());
+        assert_eq!(app.list().len(), 1);
+        assert!(cli.revoke(&created.key.id).unwrap());
+        assert!(app.authenticate(&created.token).is_none());
+        let _ = std::fs::remove_dir_all(dir);
     }
 
     #[test]

@@ -72,6 +72,9 @@ const strings = defineMessages({
   },
 });
 
+/** The network port's default, as in the gateway. */
+const DEFAULT_NETWORK_PORT = 18443;
+
 /** An IPv4 or IPv6 address, optionally with a prefix length. */
 export function isRange(value: string): boolean {
   const [address = "", prefix, extra] = value.trim().split("/");
@@ -97,7 +100,7 @@ export function NetworkCard() {
   const [renewing, setRenewing] = useState(false);
 
   useEffect(() => {
-    if (settings.data) setPort(String(settings.data.networkPort));
+    if (settings.data) setPort(String(settings.data.networkPort ?? DEFAULT_NETWORK_PORT));
   }, [settings.data]);
 
   const refresh = () =>
@@ -121,14 +124,15 @@ export function NetworkCard() {
   const enabled = current?.networkEnabled ?? false;
   const allowed = current?.networkAllowed ?? [];
   const portNumber = Number(port);
-  const portChanged = current !== undefined && portNumber !== current.networkPort;
+  const portChanged =
+    current !== undefined && portNumber !== (current.networkPort ?? DEFAULT_NETWORK_PORT);
   const network = status?.network;
   const apply = (patch: Partial<{ enabled: boolean; port: number; allowed: string[] }>) =>
     current &&
     save.mutate({
-      enabled: current.networkEnabled,
-      port: current.networkPort,
-      allowed: current.networkAllowed,
+      enabled: current.networkEnabled ?? false,
+      port: current.networkPort ?? DEFAULT_NETWORK_PORT,
+      allowed: current.networkAllowed ?? [],
       ...patch,
     });
 

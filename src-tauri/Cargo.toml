@@ -8,6 +8,8 @@ license.workspace = true
 repository.workspace = true
 authors.workspace = true
 publish = false
+# `tauri dev` runs the app; `calcine-cli` is the other binary.
+default-run = "calcine"
 
 [lib]
 # The `_lib` suffix keeps the lib name distinct from the bin name on Windows
@@ -37,7 +39,7 @@ tauri-plugin-opener.workspace = true
 tauri-plugin-single-instance.workspace = true
 tauri-plugin-updater.workspace = true
 tauri-specta.workspace = true
-tokio.workspace = true
+tokio = { workspace = true, features = ["signal"] }
 tracing.workspace = true
 tracing-subscriber.workspace = true
 

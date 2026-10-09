@@ -261,17 +261,20 @@ export function energyRows(results: readonly BenchResult[]): EnergyRow[] {
     .flatMap((result) => {
       const energy = result.measure?.energy;
       if (!result.measure || !energy) return [];
+      // Numbers come as `null` when they aren't finite.
+      const activeWatts = energy.activeWatts ?? 0;
+      const joulesPerToken = energy.joulesPerToken ?? 0;
       return [
         {
           result,
           unit: result.unit,
           mode: result.powerMode,
-          decodeTps: result.measure.decodeTps.median,
-          activeWatts: energy.activeWatts,
-          extraWatts: Math.max(0, energy.activeWatts - energy.idleWatts),
-          joulesPerToken: energy.joulesPerToken,
-          systemJoulesPerToken: energy.systemJoulesPerToken,
-          tokensPerJoule: energy.joulesPerToken > 0 ? 1 / energy.joulesPerToken : 0,
+          decodeTps: result.measure.decodeTps.median ?? 0,
+          activeWatts,
+          extraWatts: Math.max(0, activeWatts - (energy.idleWatts ?? 0)),
+          joulesPerToken,
+          systemJoulesPerToken: energy.systemJoulesPerToken ?? 0,
+          tokensPerJoule: joulesPerToken > 0 ? 1 / joulesPerToken : 0,
         },
       ];
     })

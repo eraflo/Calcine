@@ -34,6 +34,7 @@ Security of the gateway is described in [security-model.md](security-model.md).
 | `crates/calcine-hub` | Hub lookups over HTTPS: Hugging Face search, precisions with sizes (named like GenieX), AI Hub chipsets (`ModelDirectory`) | No |
 | `crates/calcine-hw` | Hardware probe: CPU, memory and disk (sysinfo), NPU/GPU and drivers (Windows WMI), live NPU/GPU load (performance counters), power and energy from the SoC's energy metering (`Energy Meter` counters, found by their English names through PerfLib) | No |
 | `crates/calcine-mock` | In-memory backend with simulated downloads, for UI work and tests | No |
+| `src-tauri/src/cli.rs`, `src-tauri/src/bin/calcine-cli.rs` | `calcine-cli`: a console program (the app is a windowed one) built from the same crate: `serve` runs the same services and gateway as the window (`setup::build`), `keys` manages API keys | Tauri runtime only |
 | `src-tauri` | Desktop shell: builds `Services`, exposes commands, exports TypeScript bindings | Yes |
 
 Backend selection: `CALCINE_BACKEND=mock` uses the mock, anything else uses GenieX.

@@ -16,6 +16,8 @@ const status = (overrides: Partial<GatewayStatus> = {}): GatewayStatus => ({
   requireApiKey: true,
   ollamaUrl: null,
   ollamaError: null,
+  network: null,
+  networkError: null,
   ...overrides,
 });
 

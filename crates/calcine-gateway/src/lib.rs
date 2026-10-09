@@ -130,6 +130,17 @@ impl Gateway {
         }
     }
 
+    /// Change settings for this run only, without saving them. Call before
+    /// [`Self::start`].
+    pub fn override_settings(&self, change: impl FnOnce(&mut GatewaySettings)) {
+        change(
+            &mut self
+                .settings
+                .write()
+                .unwrap_or_else(std::sync::PoisonError::into_inner),
+        );
+    }
+
     /// Start listening. Errors (port taken) are also reported in [`Self::status`].
     pub async fn start(&self) -> Result<(), String> {
         let mut running = self.running.lock().await;
