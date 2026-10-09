@@ -132,16 +132,15 @@ run models.
 
 ### Without the window
 
-`calcine-cli`, installed next to Calcine (`%LOCALAPPDATA%\Calcine` by default), serves the
-same API from a terminal, with the app's settings, keys and models. Quit Calcine first
-(also from the tray), since only one of them can answer on a port, or give `calcine-cli`
-another one with `--port`.
+`calcine-cli` serves the same API from a terminal, with the app's settings, keys and
+models. The installer puts it on your `PATH` (`calcine-cli path remove` takes it off).
+Quit Calcine first (also from the tray), since only one of them can answer on a port, or
+give `calcine-cli` another one with `--port`.
 
 ```powershell
-cd "$env:LOCALAPPDATA\Calcine"
-.\calcine-cli keys create "My script"    # prints the key, once
-.\calcine-cli serve                      # until Ctrl+C
-.\calcine-cli serve --network            # also other devices, over HTTPS
+calcine-cli keys create "My script"      # prints the key, once
+calcine-cli serve                        # until Ctrl+C
+calcine-cli serve --network              # also other devices, over HTTPS
 ```
 
 ## How it works

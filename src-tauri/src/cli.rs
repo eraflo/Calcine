@@ -6,6 +6,7 @@
 //! calcine-cli keys list
 //! calcine-cli keys create <name> [--manage] [--network] [--local-files]
 //! calcine-cli keys revoke <id>
+//! calcine-cli path add|remove|status
 //! ```
 
 use std::collections::HashSet;
@@ -28,6 +29,8 @@ Usage:
   calcine-cli keys create <name> [--manage] [--network] [--local-files]
                                    Create a key and print it, once
   calcine-cli keys revoke <id>     Revoke a key
+  calcine-cli path add|remove|status
+                                   Put calcine-cli on your PATH (the installer does)
   calcine-cli --version
 
 Settings, keys and models are the app's own. --port and --network only
@@ -47,6 +50,7 @@ pub fn main(args: &[String]) -> i32 {
         }
         ["serve", options @ ..] => ServeOptions::parse(options).and_then(|options| serve(&options)),
         ["keys", rest @ ..] => keys(rest),
+        ["path", action] => path(action),
         [other, ..] => Err(format!("unknown command {other}. Run calcine-cli --help.")),
     };
     match result {
@@ -220,6 +224,52 @@ fn request_line(entry: &RequestEntry) -> String {
         let _ = write!(line, ": {error}");
     }
     line
+}
+
+/// Put the folder holding `calcine-cli` on the user's `PATH`, or take it off.
+#[cfg(windows)]
+fn path(action: &str) -> Result<(), String> {
+    const NAME: &str = "Path";
+    let exe = std::env::current_exe().map_err(|err| err.to_string())?;
+    let dir = exe
+        .parent()
+        .ok_or("can't tell where calcine-cli is")?
+        .display()
+        .to_string();
+    match action {
+        "add" => {
+            if crate::user_path::add(NAME, &dir)? {
+                println!("Added {dir} to your PATH. New terminals will find calcine-cli.");
+            } else {
+                println!("{dir} is already on your PATH.");
+            }
+        }
+        "remove" => {
+            if crate::user_path::remove(NAME, &dir)? {
+                println!("Removed {dir} from your PATH.");
+            } else {
+                println!("{dir} wasn't on your PATH.");
+            }
+        }
+        "status" => {
+            if crate::user_path::is_added(NAME, &dir)? {
+                println!("{dir} is on your PATH.");
+            } else {
+                println!("{dir} isn't on your PATH. Add it with: calcine-cli path add");
+            }
+        }
+        other => return Err(format!("unknown action {other}: add, remove or status")),
+    }
+    Ok(())
+}
+
+#[cfg(not(windows))]
+fn path(_action: &str) -> Result<(), String> {
+    Err(
+        "on Linux, link calcine-cli into a folder on your PATH, e.g. \
+         ln -s \"$(command -v calcine-cli)\" ~/.local/bin/"
+            .into(),
+    )
 }
 
 fn keys(words: &[&str]) -> Result<(), String> {

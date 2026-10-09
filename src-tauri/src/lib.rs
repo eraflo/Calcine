@@ -13,6 +13,7 @@ pub mod cli;
 mod desktop;
 mod ipc;
 mod setup;
+mod user_path;
 
 use tauri::RunEvent;
 use tracing_subscriber::EnvFilter;

@@ -557,6 +557,7 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "win32job",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
