@@ -182,6 +182,10 @@ fn with_cors(mut response: Response, origin: Option<&str>) -> Response {
             HeaderValue::from_static("GET, POST, DELETE, OPTIONS"),
         );
         headers.insert(
+            header::ACCESS_CONTROL_EXPOSE_HEADERS,
+            HeaderValue::from_static(crate::context::FORGOTTEN_HEADER),
+        );
+        headers.insert(
             header::ACCESS_CONTROL_MAX_AGE,
             HeaderValue::from_static("600"),
         );

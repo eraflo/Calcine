@@ -27,6 +27,7 @@ outside request goes through the gateway.
 | `Authorization: Bearer calcine_…` must be a known key (on by default) | Other local programs using your models without your consent |
 | Key scopes: `inference` (`/v1/*`) and `manage` (`/calcine/v1/*`) | An app meant to chat downloading or deleting models |
 | Request bodies: local paths and URLs refused in `image_url`, `grammar_path`, `spec_draft_model` unless the key allows local files (`input_audio` is always decoded as base64 by GenieX, so it needs no check) | GenieX reading arbitrary files (`C:/Users/…`) or fetching internal URLs (SSRF) on an app's behalf |
+| Model names used to count tokens: only `owner/name[:precision]` made of letters, digits, `-`, `_` and `.`, never `..`, read inside GenieX's model cache | A client making Calcine read `tokenizer.json` or `genie_config.json` outside the cache |
 | 64 MiB body limit | Memory exhaustion |
 
 Errors use the OpenAI shape (`{"error": {"message", "type"}}`) so client

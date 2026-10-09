@@ -65,6 +65,11 @@ export function Message({
                 {t("loadFailedHint")}
               </span>
             )}
+            {message.error.includes("context window") && (
+              <span className="mt-1 block text-xs text-muted-foreground">
+                {t("contextErrorHint")}
+              </span>
+            )}
           </span>
         </p>
       )}

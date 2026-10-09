@@ -50,6 +50,10 @@ every web page you visit.
 - **Structured output and tools on the NPU.** `response_format` (JSON or a JSON Schema) and
   `tool_choice` work on every model: Calcine asks for JSON or for the call, checks the reply
   against the schema and has the model fix it if needed. Agents can rely on them.
+- **Long conversations on the NPU.** AI Hub models have a fixed context window (4096 tokens
+  for most). Calcine counts it with the model's own tokenizer, shows how full it is, and lets
+  the model forget the oldest messages instead of failing, in steps that keep GenieX's cache
+  useful: the next reply starts in under 0.1 s instead of re-reading the whole conversation.
 - **Works with Ollama apps.** Ollama's API is translated too, and can answer on Ollama's
   port, 11434, for apps that only speak Ollama.
 - **OpenAI-compatible API.** On `127.0.0.1:18181`, GenieX's default port, with per-app keys,

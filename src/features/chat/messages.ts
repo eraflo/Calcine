@@ -53,6 +53,18 @@ export const messages = defineMessages({
     firstToken: "first token {value}s",
     draftsAccepted: "{accepted}/{drafted} guesses kept ({percent}%)",
     attachmentGone: "Not kept after restarting Calcine",
+    // Context window
+    contextDetail: "Context: {used} of {window} tokens ({percent}%)",
+    contextExact: "Counted with the model's tokenizer.",
+    contextEstimate: "Estimated: this model's tokenizer can't be read.",
+    contextForgotten_one: "The model no longer sees the first message.",
+    contextForgotten_other: "The model no longer sees the first {count} messages.",
+    contextFullForget: "When it's full, the model stops seeing the oldest messages.",
+    contextFullStop:
+      "When it's full, the model won't answer: start a new chat, or turn on Forget oldest messages.",
+    forgottenDivider: "The model no longer sees the messages above",
+    contextErrorHint:
+      "The conversation is longer than this model can read at once. Turn on Forget oldest messages in the settings, or start a new chat.",
     // Settings panel
     systemPrompt: "System prompt",
     systemPromptPlaceholder: "You are a concise assistant.",
@@ -61,6 +73,8 @@ export const messages = defineMessages({
     temperature: "Temperature",
     maxTokens: "Max tokens",
     maxTokensHint: "Longest reply allowed.",
+    forgetOldest: "Forget oldest messages",
+    forgetOldestHint: "When the conversation outgrows the model's context window.",
     outputFormat: "Output format",
     format_text: "Text",
     format_json: "JSON",
@@ -210,6 +224,18 @@ export const messages = defineMessages({
     firstToken: "premier token {value} s",
     draftsAccepted: "{accepted}/{drafted} prédictions retenues ({percent} %)",
     attachmentGone: "Non conservé après le redémarrage de Calcine",
+    // Context window
+    contextDetail: "Contexte : {used} tokens sur {window} ({percent} %)",
+    contextExact: "Compté avec le tokenizer du modèle.",
+    contextEstimate: "Estimé : le tokenizer de ce modèle n'est pas lisible.",
+    contextForgotten_one: "Le modèle ne voit plus le premier message.",
+    contextForgotten_other: "Le modèle ne voit plus les {count} premiers messages.",
+    contextFullForget: "Une fois plein, le modèle ne voit plus les plus anciens messages.",
+    contextFullStop:
+      "Une fois plein, le modèle ne répondra plus : lancez une nouvelle discussion, ou activez Oublier les plus anciens messages.",
+    forgottenDivider: "Le modèle ne voit plus les messages ci-dessus",
+    contextErrorHint:
+      "La conversation est plus longue que ce que ce modèle peut lire d'un coup. Activez Oublier les plus anciens messages dans les réglages, ou lancez une nouvelle discussion.",
     systemPrompt: "Prompt système",
     systemPromptPlaceholder: "Tu es un assistant concis.",
     thinkingLabel: "Réflexion",
@@ -217,6 +243,8 @@ export const messages = defineMessages({
     temperature: "Température",
     maxTokens: "Tokens max",
     maxTokensHint: "Longueur maximale de la réponse.",
+    forgetOldest: "Oublier les plus anciens messages",
+    forgetOldestHint: "Quand la conversation dépasse la fenêtre de contexte du modèle.",
     outputFormat: "Format de sortie",
     format_text: "Texte",
     format_json: "JSON",

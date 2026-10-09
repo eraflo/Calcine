@@ -145,6 +145,18 @@ export function SettingsPanel({
         />
       </Field>
 
+      <div className="flex items-center justify-between gap-3">
+        <label htmlFor="forget-oldest" className="flex flex-col">
+          <span className="text-xs font-medium text-muted-foreground">{t("forgetOldest")}</span>
+          <span className="text-[11px] text-muted-foreground">{t("forgetOldestHint")}</span>
+        </label>
+        <Switch
+          id="forget-oldest"
+          checked={settings.forgetOldest}
+          onCheckedChange={(forgetOldest) => setSettings({ forgetOldest })}
+        />
+      </div>
+
       <OutputFormatField />
 
       <Section

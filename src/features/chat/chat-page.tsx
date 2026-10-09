@@ -7,6 +7,7 @@ import { Tooltip } from "@/components/ui/tooltip";
 import { modelsQuery } from "@/features/library/api";
 import { useT } from "@/i18n";
 import { Composer } from "./components/composer";
+import { ContextMeter } from "./components/context-meter";
 import { ConversationList } from "./components/conversation-list";
 import { ExportButton } from "./components/export-button";
 import { ModelPicker } from "./components/model-picker";
@@ -65,6 +66,12 @@ export function ChatPage() {
           />
           {missingModel && <span className="text-xs text-warning">{t("missingModel")}</span>}
           <div className="ml-auto" />
+          <ContextMeter
+            conversation={active}
+            model={model}
+            modelId={modelId}
+            streaming={streaming}
+          />
           <PreloadButton model={model} modelId={modelId} disabled={streaming || !ready} />
           <ExportButton conversation={active} />
           <Tooltip content={showSettings ? t("hideSettings") : t("showSettings")}>

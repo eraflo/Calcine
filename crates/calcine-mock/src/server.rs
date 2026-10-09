@@ -11,7 +11,7 @@ use std::time::Duration;
 use async_trait::async_trait;
 use axum::Json;
 use axum::body::{Body, Bytes};
-use axum::http::header;
+use axum::http::{StatusCode, header};
 use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post};
 use calcine_core::Result;
@@ -21,6 +21,8 @@ use tokio::sync::{mpsc, oneshot, watch};
 use tokio_stream::wrappers::ReceiverStream;
 
 const TOKEN_DELAY: Duration = Duration::from_millis(25);
+/// Like AI Hub models: GenieX refuses longer prompts.
+const WINDOW: usize = 4096;
 
 #[derive(Debug)]
 pub struct MockServer {
@@ -99,6 +101,17 @@ impl InferenceServer for MockServer {
 
 async fn chat_completions(Json(request): Json<Value>) -> Response {
     let model = request["model"].as_str().unwrap_or("mock").to_owned();
+    if prompt_size(&request) > WINDOW {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(json!({ "error": {
+                "code": "context_length_exceeded",
+                "message": "prompt is longer than the model's context window",
+                "type": "invalid_request_error",
+            } })),
+        )
+            .into_response();
+    }
     if let Some(call) = tool_call(&request) {
         return call_tool(&model, &call, request["stream"].as_bool() == Some(true));
     }
@@ -178,6 +191,18 @@ async fn chat_completions(Json(request): Json<Value>) -> Response {
         Body::from_stream(ReceiverStream::new(rx)),
     )
         .into_response()
+}
+
+/// Tokens the prompt takes, counted as the mock's context meter does.
+fn prompt_size(request: &Value) -> usize {
+    let messages = request["messages"]
+        .as_array()
+        .map(Vec::as_slice)
+        .unwrap_or_default();
+    20 + messages
+        .iter()
+        .map(|message| message["content"].to_string().len().div_ceil(3) + 5)
+        .sum::<usize>()
 }
 
 /// With tools and a user message last, the mock calls the first tool, with

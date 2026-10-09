@@ -29,6 +29,9 @@ export type Conversation = {
   modelId: string;
   messages: ChatMessage[];
   updatedAt: number;
+  /** The first message the model still sees, when the conversation
+   * outgrew its context window. */
+  contextFrom?: string;
 };
 
 /** A system prompt saved for reuse. */
@@ -46,6 +49,7 @@ type ChatState = {
   setModel: (id: string, modelId: string) => void;
   addMessage: (id: string, message: ChatMessage) => void;
   updateMessage: (id: string, messageId: string, patch: Partial<ChatMessage>) => void;
+  setContextFrom: (id: string, messageId: string | undefined) => void;
   setSettings: (patch: Partial<ChatSettings>) => void;
   prompts: SavedPrompt[];
   savePrompt: (name: string, text: string) => void;
@@ -112,6 +116,10 @@ export const useChat = create<ChatState>()(
               : c,
           ),
         })),
+      setContextFrom: (id, contextFrom) =>
+        set((state) => ({
+          conversations: state.conversations.map((c) => (c.id === id ? { ...c, contextFrom } : c)),
+        })),
       setSettings: (patch) => set((state) => ({ settings: { ...state.settings, ...patch } })),
       prompts: [],
       // Saving under an existing name replaces that prompt.
@@ -127,7 +135,7 @@ export const useChat = create<ChatState>()(
     }),
     {
       name: "calcine.chat",
-      version: 3,
+      version: 4,
       migrate: (persisted, version) => {
         const state = persisted as Pick<ChatState, "conversations" | "settings" | "prompts">;
         if (version < 2) {

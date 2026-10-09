@@ -55,6 +55,9 @@ export type ChatSettings = {
   outputFormat: OutputFormat;
   /** JSON Schema text, used when `outputFormat` is `schema`. */
   jsonSchema: string;
+  /** When the conversation outgrows the model's context window, stop
+   * showing it the oldest messages instead of failing. */
+  forgetOldest: boolean;
 };
 
 export type OutputFormat = "text" | "json" | "schema";
@@ -122,6 +125,7 @@ export const DEFAULT_SETTINGS: ChatSettings = {
   draftPMin: null,
   outputFormat: "text",
   jsonSchema: "",
+  forgetOldest: true,
 };
 
 /** Sampling presets, from focused to inventive. */
@@ -280,6 +284,8 @@ export function buildChatRequest(
       : {}),
     ...(llamaCpp ? speculative(settings) : {}),
     ...responseFormat(settings),
+    // The gateway forgets what still doesn't fit (the chat trims first).
+    ...(settings.forgetOldest ? { truncation: "auto" } : {}),
     ...(settings.powerMode !== DEFAULT_SETTINGS.powerMode
       ? { power_mode: settings.powerMode }
       : {}),

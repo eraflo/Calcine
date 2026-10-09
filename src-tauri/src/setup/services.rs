@@ -8,8 +8,8 @@ use calcine_core::runtime::{InstallerAsset, RuntimeRelease, ServerOptions};
 use calcine_core::{BackendKind, Services};
 use calcine_geniex::update::RELEASE_ENDPOINT;
 use calcine_geniex::{
-    BenchConfig, BundledInstaller, Geniex, GeniexBench, GeniexConfig, GeniexInstaller,
-    GeniexServer, InstallerConfig,
+    BenchConfig, BundledInstaller, Geniex, GeniexBench, GeniexConfig, GeniexContext,
+    GeniexInstaller, GeniexServer, InstallerConfig,
 };
 use calcine_hub::{HubConfig, HubDirectory};
 use calcine_hw::SystemProbe;
@@ -73,6 +73,7 @@ fn geniex_services(paths: &AppPaths) -> Services {
         },
     )
     .expect("the system TLS stack should load");
+    let context = Arc::new(GeniexContext::new(geniex.clone()));
     let geniex = Arc::new(geniex);
     Services {
         backend: BackendKind::Geniex,
@@ -86,6 +87,7 @@ fn geniex_services(paths: &AppPaths) -> Services {
         hardware: Arc::new(SystemProbe::new()),
         installer: Arc::new(installer),
         bench: Arc::new(bench),
+        context,
         jobs: JobManager::new(),
     }
 }

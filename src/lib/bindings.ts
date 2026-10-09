@@ -116,6 +116,11 @@ export const commands = {
 	stopServer: () => typedError<null, ApiError>(__TAURI_INVOKE("stop_server")),
 	/**  Recent output of `geniex serve`. */
 	serverLogs: () => __TAURI_INVOKE<string[]>("server_logs"),
+	/**
+	 *  How much of the model's context window a chat request takes. `request`
+	 *  is the request's JSON, as sent to `/v1/chat/completions`.
+	 */
+	contextUsage: (model: string, request: string) => typedError<ContextUsage, ApiError>(__TAURI_INVOKE("context_usage", { model, request })),
 	/**  What `geniex serve` starts with: model unload delay, context window. */
 	serverOptions: () => __TAURI_INVOKE<ServerOptions>("server_options"),
 	/**  Save new server options. A running GenieX restarts to apply them. */
@@ -311,6 +316,13 @@ export type ComputeUnit =
 "cpu" | 
 /**  Split between units. */
 "hybrid";
+
+/**  How full a conversation is. */
+export type ContextUsage = {
+	tokens: TokenCount,
+	/**  The model's context window, when known. */
+	window: number | null,
+};
 
 /**  A freshly created key. `token` is only ever returned here. */
 export type CreatedApiKey = {
@@ -708,6 +720,22 @@ export type ServerState = { state: "stopped" } | { state: "starting" } |
 { state: "ready"; url: string; startedAtMs: number } | 
 /**  The process exited or never became ready. */
 { state: "failed"; message: string };
+
+/**  Tokens a chat request takes. */
+export type TokenCount = {
+	/**  Each message, in order, with its share of the chat template. */
+	perMessage: number[],
+	/**
+	 *  The rest of the prompt: tools, the start of the reply, the default
+	 *  system prompt GenieX adds when there's none.
+	 */
+	overhead: number,
+	/**
+	 *  Counted with the model's tokenizer (within a few tokens of what
+	 *  GenieX counts) rather than estimated from the text's length.
+	 */
+	exact: boolean,
+};
 
 /* Tauri Specta runtime */
 async function typedError<T, E>(result: Promise<T>): Promise<{ status: "ok"; data: T } | { status: "error"; error: E }> {

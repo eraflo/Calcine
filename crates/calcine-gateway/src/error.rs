@@ -16,12 +16,24 @@ pub fn api_error(status: StatusCode, kind: &str, message: &str) -> Response {
 /// GenieX answers `{"error": "…"}`; rewrap it, keeping the status code.
 pub fn upstream_error(status: StatusCode, body: &[u8]) -> Response {
     let message = upstream_message(body);
+    if is_context_error(body) {
+        return crate::context::too_long(&format!(
+            "{message}: send fewer messages, or add \"truncation\": \"auto\" to forget the oldest ones"
+        ));
+    }
     let kind = if status.is_client_error() {
         "invalid_request_error"
     } else {
         "server_error"
     };
     api_error(status, kind, &message)
+}
+
+/// GenieX's "the prompt doesn't fit the window" error.
+pub fn is_context_error(body: &[u8]) -> bool {
+    serde_json::from_slice::<Value>(body).is_ok_and(|error| {
+        error.pointer("/error/code").and_then(Value::as_str) == Some("context_length_exceeded")
+    })
 }
 
 pub fn upstream_message(body: &[u8]) -> String {

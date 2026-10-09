@@ -9,6 +9,7 @@
 //!   trait implementations
 
 mod bench;
+mod context;
 mod data;
 mod directory;
 mod hardware;
@@ -79,7 +80,8 @@ impl MockBackend {
             runtime: backend.clone(),
             hardware: backend.clone(),
             installer: backend.clone(),
-            bench: backend,
+            bench: backend.clone(),
+            context: backend,
             server: Arc::new(MockServer::default()),
             jobs: JobManager::new(),
         }

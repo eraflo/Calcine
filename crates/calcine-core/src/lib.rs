@@ -15,8 +15,10 @@
 //! | [`hardware`] | `HardwareInfo`, `HardwareUsage`… | `HardwareProbe` |
 //! | [`jobs`] | `Job`, `JobState`… | — (`JobManager` runs them) |
 //! | [`bench`] | `BenchRequest`, `BenchResult`… | `Benchmarker` |
+//! | [`context`] | `TokenCount`, `ContextUsage` | `ContextMeter` |
 
 pub mod bench;
+pub mod context;
 pub mod error;
 pub mod hardware;
 pub mod jobs;

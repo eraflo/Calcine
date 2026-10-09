@@ -762,3 +762,75 @@ async fn enforces_tool_choice() {
         .unwrap();
     assert!(body.contains("\"tool_calls\"") && body.contains("\"finish_reason\":\"tool_calls\""));
 }
+
+#[tokio::test(flavor = "multi_thread")]
+async fn forgets_the_oldest_messages_when_asked() {
+    let h = start(any_port()).await;
+    let token = h.key(&[KeyScope::Inference], false);
+    let long = "word ".repeat(1300);
+    let conversation = json!([
+        { "role": "system", "content": "Be brief." },
+        { "role": "user", "content": long },
+        { "role": "assistant", "content": "OK" },
+        { "role": "user", "content": long },
+        { "role": "assistant", "content": "OK" },
+        { "role": "user", "content": "hello" },
+    ]);
+    let ask = |truncation: Option<&str>| {
+        let mut body = json!({ "model": "qualcomm/Qwen3-4B", "messages": conversation });
+        if let Some(truncation) = truncation {
+            body["truncation"] = json!(truncation);
+        }
+        body
+    };
+
+    // Too long for the window: refused, saying how to fix it.
+    let refused = h.chat(Some(&token), &ask(None)).send().await.unwrap();
+    assert_eq!(refused.status(), StatusCode::BAD_REQUEST);
+    let error: Value = refused.json().await.unwrap();
+    assert_eq!(error["error"]["code"], "context_length_exceeded");
+    assert!(
+        error["error"]["message"]
+            .as_str()
+            .unwrap()
+            .contains("truncation")
+    );
+
+    // With truncation, the first exchange goes and the reply comes.
+    let fitted = h
+        .chat(Some(&token), &ask(Some("auto")))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(fitted.status(), StatusCode::OK);
+    assert_eq!(fitted.headers()["x-calcine-forgotten-messages"], "2");
+    let reply: Value = fitted.json().await.unwrap();
+    assert!(reply["choices"][0]["message"]["content"].is_string());
+
+    // A last message that can't fit alone.
+    let huge = json!({
+        "model": "qualcomm/Qwen3-4B",
+        "truncation": "auto",
+        "messages": [{ "role": "user", "content": "word ".repeat(3000) }],
+    });
+    let response = h.chat(Some(&token), &huge).send().await.unwrap();
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    let error: Value = response.json().await.unwrap();
+    assert!(
+        error["error"]["message"]
+            .as_str()
+            .unwrap()
+            .contains("doesn't fit")
+    );
+
+    // Ollama clients get it without asking, as with Ollama.
+    let ollama = h
+        .http
+        .post(format!("{}/api/chat", h.base))
+        .bearer_auth(&token)
+        .json(&json!({ "model": "qualcomm/Qwen3-4B", "stream": false, "messages": conversation }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(ollama.status(), StatusCode::OK);
+}

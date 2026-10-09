@@ -11,6 +11,7 @@
 //!   when turned on
 
 mod caller;
+mod context;
 mod error;
 pub mod keys;
 pub mod log;

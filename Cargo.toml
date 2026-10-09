@@ -55,6 +55,8 @@ hex = "0.4"
 getrandom = "0.4"
 win32job = "2"
 windows-sys = "0.61"
+# Pure Rust (no Oniguruma or C++): counts tokens with a model's tokenizer.json.
+tokenizers = { version = "0.23.2", default-features = false, features = ["fancy-regex"] }
 
 [workspace.lints.rust]
 # Denied everywhere; the only exception is calcine-hw's Windows performance

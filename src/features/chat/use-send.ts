@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useCallback, useRef } from "react";
 import { modelsQuery } from "@/features/library/api";
 import { connectionQuery } from "@/features/server/api";
+import { fetchContextUsage, fittedStart, visibleMessages } from "./context-usage";
 import type { Attachment } from "./lib/attachments";
 import { buildChatRequest, type ChatTurn, type MediaPart, stopIndex } from "./lib/request";
 import { streamChat } from "./lib/sse";
@@ -13,13 +14,11 @@ export type PendingAttachment = { attachment: Attachment; payload: MediaPart };
 /** History as the API expects it. Attachments whose data is gone are left out. */
 export function toTurns(messages: readonly ChatMessage[]): ChatTurn[] {
   const payloads = useMediaPayloads.getState();
-  return messages
-    .filter((message) => !message.error && (message.content || message.attachments?.length))
-    .map(({ role, content, attachments }) => ({
-      role,
-      content,
-      media: attachments?.flatMap((attachment) => payloads[attachment.id] ?? []),
-    }));
+  return visibleMessages(messages, undefined).map(({ role, content, attachments }) => ({
+    role,
+    content,
+    media: attachments?.flatMap((attachment) => payloads[attachment.id] ?? []),
+  }));
 }
 
 /** Send a message in a conversation and stream the reply; stop it on demand. */
@@ -44,7 +43,10 @@ export function useSend() {
         content: text,
         ...(pending.length ? { attachments: pending.map(({ attachment }) => attachment) } : {}),
       };
-      const history = toTurns([...conversation.messages, userMessage]);
+      let visible = visibleMessages(
+        [...conversation.messages, userMessage],
+        conversation.contextFrom,
+      );
 
       chat.addMessage(conversationId, userMessage);
       const replyId = newId();
@@ -56,7 +58,21 @@ export function useSend() {
       controller.current = abort;
 
       const model = models.find((candidate) => candidate.name === conversation.modelId);
-      const body = buildChatRequest(model, conversation.modelId, chat.settings, history);
+      const request = () =>
+        buildChatRequest(model, conversation.modelId, chat.settings, toTurns(visible));
+      let body = request();
+      // Too long for the model's context window: stop showing it the oldest
+      // messages, enough of them that the start stays put for a few turns.
+      if (chat.settings.forgetOldest) {
+        const start = await fetchContextUsage(conversation.modelId, body)
+          .then((usage) => fittedStart(usage, visible, chat.settings.maxTokens))
+          .catch(() => 0);
+        if (start > 0) {
+          visible = visible.slice(start);
+          chat.setContextFrom(conversationId, visible[0]?.id);
+          body = request();
+        }
+      }
       // GenieX doesn't apply stop sequences sent over the API: cut the reply here.
       const stops = chat.settings.stop;
       let reachedStop = false;
@@ -83,6 +99,10 @@ export function useSend() {
           reasoning: result.reasoning || undefined,
           stats: result.stats,
         });
+        // The gateway forgot more than counted here (an estimate was short).
+        if (result.forgotten > 0) {
+          chat.setContextFrom(conversationId, visible[result.forgotten]?.id);
+        }
       } catch (error) {
         const partial = useLiveReply.getState();
         if (reachedStop) {

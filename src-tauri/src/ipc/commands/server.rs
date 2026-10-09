@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use calcine_core::Services;
+use calcine_core::context::ContextUsage;
 use calcine_core::runtime::ServerOptions;
 use calcine_gateway::{
     ApiKeyInfo, CreatedApiKey, Gateway, GatewaySettings, GatewayStatus, KeyError, NewApiKey,
@@ -56,6 +57,20 @@ pub async fn stop_server(services: State<'_, Services>) -> ApiResult<()> {
 #[specta::specta]
 pub fn server_logs(services: State<'_, Services>) -> Vec<String> {
     services.server.logs()
+}
+
+/// How much of the model's context window a chat request takes. `request`
+/// is the request's JSON, as sent to `/v1/chat/completions`.
+#[tauri::command]
+#[specta::specta]
+pub async fn context_usage(
+    services: State<'_, Services>,
+    model: String,
+    request: String,
+) -> ApiResult<ContextUsage> {
+    let request: serde_json::Value = serde_json::from_str(&request)
+        .map_err(|err| ApiError::invalid_input(format!("request isn't JSON: {err}")))?;
+    Ok(services.context_usage(&model, &request).await?)
 }
 
 /// What `geniex serve` starts with: model unload delay, context window.

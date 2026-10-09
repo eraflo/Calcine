@@ -8,12 +8,15 @@
 //! - [`parse`]: output parsers, tested against captures from a real install
 //! - [`update`]: installing and updating GenieX with its official installer
 //! - [`bench`]: benchmarks with Qualcomm's `geniex-bench`
+//! - `context`: context windows and token counts
 
 mod backend;
 pub use backend::GeniexServer;
 pub mod bench;
 pub use bench::{BenchConfig, GeniexBench};
 pub mod cli;
+mod context;
+pub use context::GeniexContext;
 pub mod parse;
 pub mod update;
 pub use update::{BundledInstaller, GeniexInstaller, InstallerConfig};

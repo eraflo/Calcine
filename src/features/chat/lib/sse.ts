@@ -29,7 +29,13 @@ export type StreamStats = {
   durationMs: number;
 };
 
-export type StreamResult = { content: string; reasoning: string; stats: StreamStats };
+export type StreamResult = {
+  content: string;
+  reasoning: string;
+  stats: StreamStats;
+  /** Messages the gateway left out to fit the context window. */
+  forgotten: number;
+};
 
 type Delta = { content?: string; reasoning?: string };
 
@@ -66,7 +72,12 @@ export async function streamChat({
     throw new Error(await errorMessage(response));
   }
 
-  const result: StreamResult = { content: "", reasoning: "", stats: { durationMs: 0 } };
+  const result: StreamResult = {
+    content: "",
+    reasoning: "",
+    stats: { durationMs: 0 },
+    forgotten: Number(response.headers.get("x-calcine-forgotten-messages") ?? 0) || 0,
+  };
   let failure: string | null = null;
   const parser = createSseParser((data) => {
     if (data === "[DONE]" || !data.startsWith("{")) return;

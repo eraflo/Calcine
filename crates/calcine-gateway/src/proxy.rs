@@ -12,7 +12,7 @@ use tokio::sync::{OwnedSemaphorePermit, mpsc};
 use tokio_stream::wrappers::ReceiverStream;
 
 use crate::caller::Caller;
-use crate::error::{api_error, upstream_error, upstream_message};
+use crate::error::{api_error, is_context_error, upstream_error, upstream_message};
 use crate::log::{RequestEntry, RequestLog, SseUsage, Usage};
 use crate::security::sanitize;
 use crate::state::{ActiveRequest, AppState};
@@ -153,14 +153,29 @@ pub(crate) async fn send(
             ));
         }
     };
-    match app
-        .http
-        .post(format!("{upstream}{upstream_path}"))
-        .header(header::CONTENT_TYPE, "application/json")
-        .body(body)
-        .send()
-        .await
-    {
+    let post = |body: Bytes| {
+        app.http
+            .post(format!("{upstream}{upstream_path}"))
+            .header(header::CONTENT_TYPE, "application/json")
+            .body(body)
+            .send()
+    };
+    match post(body.clone()).await {
+        Ok(response) if response.status() == StatusCode::BAD_REQUEST => {
+            let bytes = response.bytes().await.unwrap_or_default();
+            if !is_context_error(&bytes) {
+                return Ok((exchange, rebuilt(StatusCode::BAD_REQUEST, bytes)));
+            }
+            // GenieX 0.8 counts the conversation still in its cache against
+            // the window when the new one doesn't continue it (a regenerated
+            // reply, another client): a prompt that fits is refused. A
+            // one-token request in between empties the cache.
+            clear_cache(app, &upstream, json).await;
+            match post(body).await {
+                Ok(response) => Ok((exchange, response)),
+                Err(_) => Ok((exchange, rebuilt(StatusCode::BAD_REQUEST, bytes))),
+            }
+        }
         Ok(response) => Ok((exchange, response)),
         Err(err) => {
             let message = format!("couldn't reach GenieX: {err}");
@@ -172,6 +187,38 @@ pub(crate) async fn send(
             ))
         }
     }
+}
+
+/// A response already read, to pass on as if it hadn't been.
+fn rebuilt(status: StatusCode, body: Bytes) -> reqwest::Response {
+    let mut response = axum::http::Response::new(body);
+    *response.status_mut() = status;
+    response.headers_mut().insert(
+        header::CONTENT_TYPE,
+        header::HeaderValue::from_static("application/json"),
+    );
+    reqwest::Response::from(response)
+}
+
+/// Run a one-token request so GenieX drops the conversation it caches.
+async fn clear_cache(app: &AppState, upstream: &str, request: &Value) {
+    let Some(model) = request.get("model") else {
+        return;
+    };
+    let reset = serde_json::json!({
+        "model": model,
+        "messages": [{ "role": "user", "content": "." }],
+        "max_tokens": 1,
+        "enable_think": false,
+    });
+    let _ = app
+        .http
+        .post(format!("{upstream}/v1/chat/completions"))
+        .header(header::CONTENT_TYPE, "application/json")
+        .body(reset.to_string())
+        .send()
+        .await;
+    tracing::info!("cleared GenieX's cached conversation to retry a prompt it refused");
 }
 
 /// Non-streaming responses and errors: read fully, log, pass on.

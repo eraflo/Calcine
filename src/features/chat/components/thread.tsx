@@ -1,6 +1,8 @@
-import { useEffect, useRef } from "react";
+import { EyeOff } from "lucide-react";
+import { Fragment, useEffect, useRef } from "react";
 import { LogoMark } from "@/components/calcine/brand/logo";
 import { useT } from "@/i18n";
+import { cn } from "@/lib/utils";
 import { messages as strings } from "../messages";
 import { type Conversation, useLiveReply } from "../store";
 import { Message } from "./message";
@@ -19,6 +21,10 @@ export function Thread({
   const live = useLiveReply();
   const bottom = useRef<HTMLDivElement>(null);
   const messages = conversation?.messages ?? [];
+  // Messages before this one no longer fit the model's context window.
+  const seenFrom = conversation?.contextFrom
+    ? messages.findIndex((message) => message.id === conversation.contextFrom)
+    : -1;
   const liveLength = live.content.length + live.reasoning.length;
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: scroll on every new message or token.
@@ -53,12 +59,18 @@ export function Thread({
   return (
     <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
       <div className="mx-auto flex max-w-3xl flex-col gap-6 px-6 py-6">
-        {messages.map((message) => (
-          <Message
-            key={message.id}
-            message={message}
-            live={live.messageId === message.id ? live : undefined}
-          />
+        {messages.map((message, index) => (
+          <Fragment key={message.id}>
+            {index === seenFrom && index > 0 && (
+              <p className="flex items-center gap-3 text-[11px] text-muted-foreground before:h-px before:flex-1 before:bg-border after:h-px after:flex-1 after:bg-border">
+                <EyeOff className="size-3.5" />
+                {t("forgottenDivider")}
+              </p>
+            )}
+            <div className={cn(index < seenFrom && "opacity-50")}>
+              <Message message={message} live={live.messageId === message.id ? live : undefined} />
+            </div>
+          </Fragment>
         ))}
         <div ref={bottom} />
       </div>

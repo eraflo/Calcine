@@ -6,6 +6,7 @@ use specta::Type;
 
 use crate::Result;
 use crate::bench::{BenchRequest, BenchResult, Benchmarker};
+use crate::context::{ContextMeter, ContextUsage};
 use crate::hardware::HardwareProbe;
 use crate::jobs::{JobCtx, JobId, JobKind, JobManager, JobPhase, JobProgress, JobState, JobStep};
 use crate::models::{ModelCatalog, ModelDirectory, ModelKey, ModelStore, PullRequest};
@@ -39,6 +40,8 @@ pub struct Services {
     pub installer: Arc<dyn RuntimeInstaller>,
     /// `geniex-bench` and the benchmark history.
     pub bench: Arc<dyn Benchmarker>,
+    /// Context windows and token counts.
+    pub context: Arc<dyn ContextMeter>,
     pub jobs: JobManager,
 }
 
@@ -161,6 +164,27 @@ impl Services {
             .into_iter()
             .find(|job| matches(&job.kind) && job.state == JobState::Running)
             .map(|job| job.id)
+    }
+
+    /// A model's context window: compiled into AI Hub models, the server
+    /// option for llama.cpp ones.
+    pub async fn context_window(&self, model: &str) -> Result<u32> {
+        Ok(match self.context.compiled_window(model).await? {
+            Some(window) => window,
+            None => self.server.options().context_size,
+        })
+    }
+
+    /// How much of `model`'s context window a chat request takes.
+    pub async fn context_usage(
+        &self,
+        model: &str,
+        request: &serde_json::Value,
+    ) -> Result<ContextUsage> {
+        Ok(ContextUsage {
+            tokens: self.context.count(model, request).await?,
+            window: Some(self.context_window(model).await?),
+        })
     }
 
     /// Delete models or precisions. Stops `geniex serve` first: Windows

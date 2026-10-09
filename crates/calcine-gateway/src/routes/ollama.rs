@@ -21,7 +21,7 @@ use crate::error::upstream_message;
 use crate::ollama::{self, Answer, Mode};
 use crate::proxy::{self, Exchange, elapsed_ms};
 use crate::state::AppState;
-use crate::structured;
+use crate::{context, structured};
 
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
@@ -197,7 +197,7 @@ async fn answer(app: Arc<AppState>, caller: Caller, mode: Mode, body: &[u8]) -> 
         Mode::Chat => ollama::chat_request(&json),
         Mode::Generate => ollama::generate_request(&json),
     };
-    let translated = match translated {
+    let mut translated = match translated {
         Ok(translated) => translated,
         Err(message) => return error(StatusCode::BAD_REQUEST, &message),
     };
@@ -205,6 +205,12 @@ async fn answer(app: Arc<AppState>, caller: Caller, mode: Mode, body: &[u8]) -> 
         Mode::Chat => "/api/chat",
         Mode::Generate => "/api/generate",
     };
+    // Ollama forgets the oldest messages that don't fit: so does Calcine.
+    if caller.can_infer()
+        && let Err(message) = context::fit(&app, &mut translated.body).await
+    {
+        return error(StatusCode::BAD_REQUEST, &message);
+    }
     // `format` (JSON or a schema): checked by Calcine, GenieX ignores it.
     if let Some(format) = structured::requested(&translated.body) {
         return structured_answer(&app, &caller, &translated, format, mode, path).await;
