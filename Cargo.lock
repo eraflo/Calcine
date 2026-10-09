@@ -532,7 +532,7 @@ dependencies = [
 
 [[package]]
 name = "calcine"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "calcine-core",
  "calcine-gateway",
@@ -562,7 +562,7 @@ dependencies = [
 
 [[package]]
 name = "calcine-core"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "async-trait",
  "serde",
@@ -575,7 +575,7 @@ dependencies = [
 
 [[package]]
 name = "calcine-gateway"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "axum",
  "bytes",
@@ -600,7 +600,7 @@ dependencies = [
 
 [[package]]
 name = "calcine-geniex"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "async-trait",
  "calcine-core",
@@ -619,7 +619,7 @@ dependencies = [
 
 [[package]]
 name = "calcine-hub"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "async-trait",
  "calcine-core",
@@ -632,7 +632,7 @@ dependencies = [
 
 [[package]]
 name = "calcine-hw"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "async-trait",
  "calcine-core",
@@ -646,7 +646,7 @@ dependencies = [
 
 [[package]]
 name = "calcine-mock"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "async-trait",
  "axum",
