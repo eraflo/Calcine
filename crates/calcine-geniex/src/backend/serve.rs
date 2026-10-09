@@ -58,7 +58,7 @@ impl GeniexServer {
         let keepalive = options.keepalive_secs.to_string();
         let context_size = options.context_size.to_string();
         // The server is internal: only the gateway talks to it, never a browser.
-        let args = [
+        let mut args = vec![
             "serve",
             "--host",
             &host,
@@ -69,6 +69,9 @@ impl GeniexServer {
             "--nctx",
             &context_size,
         ];
+        if let Some(unit) = crate::platform::default_compute() {
+            args.extend(["--compute", unit]);
+        }
         let mut child = self.geniex.cli()?.command(&args).spawn()?;
         tracing::info!(%host, "starting geniex serve");
 

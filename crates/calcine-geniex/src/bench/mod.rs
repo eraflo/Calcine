@@ -32,8 +32,13 @@ use crate::update::download;
 /// A large model with many repetitions takes minutes; this is a backstop.
 const RUN_TIMEOUT: Duration = Duration::from_mins(30);
 
-#[cfg(windows)]
-const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+/// `bin/geniex-bench` inside an unpacked version, with its libraries in
+/// `lib/` on Linux.
+const BINARY: &str = if cfg!(windows) {
+    "geniex-bench.exe"
+} else {
+    "geniex-bench"
+};
 
 /// Where the tool and the history live.
 #[derive(Debug, Clone)]
@@ -74,19 +79,19 @@ impl GeniexBench {
         Ok(self.geniex.info().await?.cli_version)
     }
 
-    /// Unpacked versions, by folder name `geniex-bench-windows-arm64-<v>`.
+    /// Unpacked versions, by folder name `geniex-bench-<platform>-arm64-<v>`.
     fn installed(&self) -> Vec<(String, PathBuf)> {
         let Ok(entries) = std::fs::read_dir(&self.config.tools_dir) else {
             return Vec::new();
         };
         let prefix = release::archive_name("");
-        let prefix = prefix.trim_end_matches(".zip");
+        let prefix = prefix.trim_end_matches(release::ARCHIVE_EXTENSION);
         let mut versions: Vec<(String, PathBuf)> = entries
             .filter_map(std::result::Result::ok)
             .filter_map(|entry| {
                 let name = entry.file_name().to_string_lossy().into_owned();
                 let version = name.strip_prefix(prefix)?.to_owned();
-                let binary = entry.path().join("bin").join("geniex-bench.exe");
+                let binary = entry.path().join("bin").join(BINARY);
                 binary.is_file().then_some((version, binary))
             })
             .collect();
@@ -204,16 +209,19 @@ impl Benchmarker for GeniexBench {
             phase: Some(JobPhase::Installing),
             ..JobProgress::default()
         });
-        let folder = asset.name.trim_end_matches(".zip").to_owned();
+        let folder = asset
+            .name
+            .trim_end_matches(release::ARCHIVE_EXTENSION)
+            .to_owned();
         let staging = tools.join(format!(".staging-{version}"));
         let _ = tokio::fs::remove_dir_all(&staging).await;
         tokio::fs::create_dir_all(&staging).await?;
         extract(&archive, &staging).await?;
         let unpacked = staging.join(&folder);
-        if !unpacked.join("bin").join("geniex-bench.exe").is_file() {
+        if !unpacked.join("bin").join(BINARY).is_file() {
             let _ = tokio::fs::remove_dir_all(&staging).await;
             return Err(Error::Parse(format!(
-                "{} doesn't contain geniex-bench.exe",
+                "{} doesn't contain {BINARY}",
                 asset.name
             )));
         }
@@ -289,8 +297,10 @@ impl Benchmarker for GeniexBench {
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .kill_on_drop(true);
-        #[cfg(windows)]
-        command.creation_flags(CREATE_NO_WINDOW);
+        // `bin/geniex-bench` loads its libraries from `lib/`.
+        if let Some(root) = binary.parent().and_then(Path::parent) {
+            crate::platform::prepare(&mut command, &root.join("lib"));
+        }
         tracing::info!(model = %request.model, ?unit, "starting geniex-bench");
 
         let child = command.spawn()?;
@@ -357,11 +367,15 @@ fn load_history(path: &Path) -> Vec<BenchResult> {
         .unwrap_or_default()
 }
 
-/// Unpack with Windows' own `tar` (bsdtar), which reads zip archives and
-/// refuses absolute paths and `..` entries.
+/// Unpack with the system's `tar`: Windows' own bsdtar reads zip archives,
+/// GNU tar the Linux tarballs; both refuse absolute paths and `..` entries.
 async fn extract(archive: &Path, destination: &Path) -> Result<()> {
-    let system_root = std::env::var_os("SystemRoot").unwrap_or_else(|| "C:\\Windows".into());
-    let tar = PathBuf::from(system_root).join("System32").join("tar.exe");
+    let tar = if cfg!(windows) {
+        let system_root = std::env::var_os("SystemRoot").unwrap_or_else(|| "C:\\Windows".into());
+        PathBuf::from(system_root).join("System32").join("tar.exe")
+    } else {
+        PathBuf::from("tar")
+    };
     let mut command = Command::new(tar);
     command
         .arg("-xf")
@@ -373,7 +387,7 @@ async fn extract(archive: &Path, destination: &Path) -> Result<()> {
         .stderr(Stdio::piped())
         .kill_on_drop(true);
     #[cfg(windows)]
-    command.creation_flags(CREATE_NO_WINDOW);
+    command.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
     let output = command.output().await?;
     if output.status.success() {
         Ok(())

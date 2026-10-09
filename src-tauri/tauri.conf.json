@@ -59,6 +59,11 @@
         "installMode": "currentUser",
         "installerHooks": "windows/installer-hooks.nsh"
       }
+    },
+    "linux": {
+      "deb": {
+        "depends": ["ocl-icd-libopencl1"]
+      }
     }
   },
   "plugins": {

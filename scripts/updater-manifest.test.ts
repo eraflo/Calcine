@@ -1,12 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { manifest } from "./updater-manifest";
+import { LINUX, manifest, WINDOWS } from "./updater-manifest";
 
 describe("updater manifest", () => {
-  it("points both Windows ARM64 keys at the release asset", () => {
+  it("points each platform's keys at its release asset", () => {
     const result = manifest(
       "1.0.0",
-      "Calcine_1.0.0_arm64-setup.exe",
-      "c2lnbmF0dXJl\n",
+      [
+        { file: "Calcine_1.0.0_arm64-setup.exe", signature: "c2lnbmF0dXJl\n", platforms: WINDOWS },
+        { file: "Calcine_1.0.0_arm64.deb", signature: "ZGVi", platforms: LINUX },
+      ],
       "Notes",
       new Date("2026-10-09T10:00:00Z"),
     );
@@ -18,5 +20,19 @@ describe("updater manifest", () => {
     expect(entry?.url).toBe(
       "https://github.com/eraflo/Calcine/releases/download/v1.0.0/Calcine_1.0.0_arm64-setup.exe",
     );
+    expect(result.platforms["linux-aarch64-deb"]).toEqual({
+      signature: "ZGVi",
+      url: "https://github.com/eraflo/Calcine/releases/download/v1.0.0/Calcine_1.0.0_arm64.deb",
+    });
+    expect(result.platforms["linux-aarch64"]).toEqual(result.platforms["linux-aarch64-deb"]);
+  });
+
+  it("leaves Linux out when it wasn't built", () => {
+    const result = manifest(
+      "1.0.0",
+      [{ file: "Calcine_1.0.0_arm64-setup.exe", signature: "x", platforms: WINDOWS }],
+      "",
+    );
+    expect(Object.keys(result.platforms)).toEqual(WINDOWS);
   });
 });

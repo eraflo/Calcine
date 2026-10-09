@@ -32,7 +32,12 @@ fn platform_devices() -> PlatformDevices {
     })
 }
 
-#[cfg(not(windows))]
+#[cfg(target_os = "linux")]
+fn platform_devices() -> PlatformDevices {
+    crate::linux::devices()
+}
+
+#[cfg(not(any(windows, target_os = "linux")))]
 fn platform_devices() -> PlatformDevices {
     PlatformDevices::default()
 }

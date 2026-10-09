@@ -81,7 +81,8 @@ turning it on changes nothing for apps on this PC:
 | Turning it off closes the port and the connections still open | A device keeping a connection alive after you turned it off |
 
 Windows asks the first time whether Calcine may use the network: allow
-private networks only. Request bodies are checked as on the main port.
+private networks only. On Linux, open the port in your firewall (ufw,
+firewalld) for your local network only. Request bodies are checked as on the main port.
 
 ## Privacy
 
@@ -91,9 +92,10 @@ Chat conversations are stored in the app's local storage on this PC only.
 
 ## Process lifetime
 
-Calcine runs inside a Windows Job Object that kills its child processes
+On Windows, Calcine runs inside a Job Object that kills its child processes
 (`geniex serve`, downloads) when Calcine exits, including after a crash, so no
-unauthenticated server or loaded model is left behind.
+unauthenticated server or loaded model is left behind. On Linux, each GenieX
+process asks the kernel for `SIGKILL` when Calcine exits (`PR_SET_PDEATHSIG`).
 
 ## Updates
 
@@ -111,9 +113,8 @@ unauthenticated server or loaded model is left behind.
 
 ## Not in scope (yet)
 
-- Exposing the API on the local network (planned: opt-in, TLS and keys required).
 - Rate limiting per key.
-- Programs running as your Windows user can read Calcine's data folder or talk
+- Programs running as your user can read Calcine's data folder or talk
   to `geniex serve` directly if they find its port; they already have your
   privileges, so this is outside what a local API can defend against.
 

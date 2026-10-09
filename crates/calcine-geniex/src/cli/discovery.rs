@@ -20,16 +20,30 @@ pub fn locate(custom: Option<&Path>) -> Option<PathBuf> {
         .or_else(|| which::which("geniex").ok())
 }
 
-/// Where the official GenieX installer puts the executable.
+/// Where GenieX is installed, the folder holding the executable:
 ///
-/// Windows: `%LOCALAPPDATA%\GenieX CLI\geniex.exe` (per-user Inno Setup install).
-pub fn official_install_path() -> Option<PathBuf> {
+/// - Windows: `%LOCALAPPDATA%\GenieX CLI`, where the official per-user Inno
+///   Setup installer puts it;
+/// - Linux: `$XDG_DATA_HOME/geniex-cli` (`~/.local/share/geniex-cli`), where
+///   Calcine unpacks the official archive (it has no installer).
+pub fn official_install_dir() -> Option<PathBuf> {
     if cfg!(windows) {
-        std::env::var_os("LOCALAPPDATA")
-            .map(|dir| PathBuf::from(dir).join("GenieX CLI").join("geniex.exe"))
+        std::env::var_os("LOCALAPPDATA").map(|dir| PathBuf::from(dir).join("GenieX CLI"))
     } else {
-        None
+        let data_home = std::env::var_os("XDG_DATA_HOME")
+            .filter(|dir| !dir.is_empty())
+            .map(PathBuf::from)
+            .or_else(|| {
+                std::env::var_os("HOME")
+                    .map(|home| PathBuf::from(home).join(".local").join("share"))
+            })?;
+        Some(data_home.join("geniex-cli"))
     }
+}
+
+/// The executable in [`official_install_dir`].
+pub fn official_install_path() -> Option<PathBuf> {
+    official_install_dir().map(|dir| dir.join(format!("geniex{}", std::env::consts::EXE_SUFFIX)))
 }
 
 /// GenieX's data directory: `custom`, else `GENIEX_DATADIR`, else

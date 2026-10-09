@@ -6,6 +6,8 @@
 //! calcine-cli keys list
 //! calcine-cli keys create <name> [--manage] [--network] [--local-files]
 //! calcine-cli keys revoke <id>
+//! calcine-cli geniex install
+//! calcine-cli geniex chipset [<id>|auto]
 //! calcine-cli path add|remove|status
 //! ```
 
@@ -13,6 +15,8 @@ use std::collections::HashSet;
 use std::fmt::Write as _;
 use std::io::Write as _;
 
+use calcine_core::jobs::{JobPhase, JobState};
+use calcine_core::runtime::InstallSource;
 use calcine_gateway::{KeyScope, NewApiKey, RequestEntry};
 
 use crate::setup::{self, DataDirs};
@@ -29,6 +33,9 @@ Usage:
   calcine-cli keys create <name> [--manage] [--network] [--local-files]
                                    Create a key and print it, once
   calcine-cli keys revoke <id>     Revoke a key
+  calcine-cli geniex install       Install the GenieX version Calcine was tested with
+  calcine-cli geniex chipset [<id>|auto]
+                                   Show or set the chipset models are downloaded for
   calcine-cli path add|remove|status
                                    Put calcine-cli on your PATH (the installer does)
   calcine-cli --version
@@ -50,6 +57,9 @@ pub fn main(args: &[String]) -> i32 {
         }
         ["serve", options @ ..] => ServeOptions::parse(options).and_then(|options| serve(&options)),
         ["keys", rest @ ..] => keys(rest),
+        ["geniex", "install"] => install_geniex(),
+        ["geniex", "chipset"] => chipset(None),
+        ["geniex", "chipset", id] => chipset(Some(id)),
         ["path", action] => path(action),
         [other, ..] => Err(format!("unknown command {other}. Run calcine-cli --help.")),
     };
@@ -121,7 +131,7 @@ fn serve(options: &ServeOptions) -> Result<(), String> {
             && core.services.backend == calcine_core::BackendKind::Geniex
         {
             return Err(format!(
-                "GenieX isn't ready ({err}). Open Calcine once: it installs GenieX for you."
+                "GenieX isn't ready ({err}). Install it with: calcine-cli geniex install"
             ));
         }
         if let Err(message) = gateway.start().await {
@@ -155,6 +165,135 @@ fn serve(options: &ServeOptions) -> Result<(), String> {
         println!("Stopping…");
         gateway.stop().await;
         let _ = core.services.server.stop().await;
+        Ok(())
+    })
+}
+
+/// Install the GenieX version Calcine was tested with, as the welcome screen
+/// does: downloaded from Qualcomm, checked against the SHA-256 built into
+/// Calcine. For machines without a screen.
+fn install_geniex() -> Result<(), String> {
+    let dirs = data_dirs()?;
+    tauri::async_runtime::block_on(async move {
+        let services = setup::build(&dirs, None).await.services;
+        let release = setup::pinned_release();
+        println!("Installing GenieX {} from Qualcomm…", release.version);
+        // Subscribed first, so no update is missed.
+        let mut updates = services.jobs.subscribe();
+        let id = services.start_runtime_install(InstallSource::Release { release });
+        let mut shown = (None, 0);
+        loop {
+            let job = match updates.recv().await {
+                Ok(job) if job.id == id => job,
+                Ok(_) => continue,
+                Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => {
+                    match services.jobs.get(id) {
+                        Some(job) => job,
+                        None => continue,
+                    }
+                }
+                Err(tokio::sync::broadcast::error::RecvError::Closed) => {
+                    return Err("the install stopped".into());
+                }
+            };
+            match job.state {
+                JobState::Running => {}
+                JobState::Succeeded => {
+                    let version = services.runtime.info().await.map_or_else(
+                        |_| "GenieX".to_owned(),
+                        |info| format!("GenieX {}", info.cli_version),
+                    );
+                    println!("{version} is installed. Start the API with: calcine-cli serve");
+                    return Ok(());
+                }
+                JobState::Cancelled => return Err("the install was cancelled".into()),
+                JobState::Failed { message } => return Err(message),
+            }
+            let Some(progress) = job.progress else {
+                continue;
+            };
+            // A line per phase, and per quarter of the download.
+            let quarter = progress
+                .total_bytes
+                .filter(|total| *total > 0)
+                .map_or(0, |total| progress.done_bytes * 4 / total);
+            if (progress.phase, quarter) == shown {
+                continue;
+            }
+            shown = (progress.phase, quarter);
+            match progress.phase {
+                Some(JobPhase::Downloading) => println!("  downloading {}%", quarter * 25),
+                Some(JobPhase::Verifying) => println!("  checking the SHA-256"),
+                Some(JobPhase::Installing) => println!("  installing"),
+                _ => {}
+            }
+        }
+    })
+}
+
+/// Show the chipset GenieX downloads models for, with the ones AI Hub knows,
+/// or set it (`auto`: let GenieX detect it). Linux machines GenieX can't
+/// identify need it before downloading.
+fn chipset(id: Option<&str>) -> Result<(), String> {
+    let dirs = data_dirs()?;
+    tauri::async_runtime::block_on(async move {
+        let services = setup::build(&dirs, None).await.services;
+        let known = services.directory.chipsets().await.unwrap_or_default();
+        match id {
+            Some("auto") => {
+                services
+                    .runtime
+                    .set_chipset(None)
+                    .await
+                    .map_err(|err| err.to_string())?;
+                println!("GenieX detects the chipset again.");
+            }
+            Some(id) => {
+                let found = known.iter().find(|chipset| {
+                    chipset.id.eq_ignore_ascii_case(id)
+                        || chipset
+                            .aliases
+                            .iter()
+                            .any(|alias| alias.eq_ignore_ascii_case(id))
+                });
+                // AI Hub lists Linux models for Dragonwing boards only: a
+                // Snapdragon X laptop on Linux still names its chipset (for
+                // GenieX), and gets llama.cpp (GGUF) models.
+                if found.is_none() {
+                    println!(
+                        "AI Hub has no NPU models for {id} on this system: \
+                         only llama.cpp (GGUF) models will download."
+                    );
+                }
+                let id = found.map_or(id, |chipset| chipset.id.as_str());
+                services
+                    .runtime
+                    .set_chipset(Some(id))
+                    .await
+                    .map_err(|err| err.to_string())?;
+                println!("Models will be downloaded for {id}.");
+            }
+            None => {
+                let current = services
+                    .runtime
+                    .chipset()
+                    .await
+                    .map_err(|err| err.to_string())?;
+                println!(
+                    "Chipset: {}",
+                    current
+                        .as_deref()
+                        .unwrap_or("unknown (GenieX couldn't detect it)")
+                );
+                if !known.is_empty() {
+                    println!("\nSet it with: calcine-cli geniex chipset <id>");
+                }
+                for chipset in &known {
+                    let name = chipset.marketing_name.as_deref().unwrap_or(&chipset.device);
+                    println!("  {:<40} {name}", chipset.id);
+                }
+            }
+        }
         Ok(())
     })
 }
@@ -263,13 +402,16 @@ fn path(action: &str) -> Result<(), String> {
     Ok(())
 }
 
+/// The Linux package installs calcine-cli in `/usr/bin`: nothing to do.
 #[cfg(not(windows))]
-fn path(_action: &str) -> Result<(), String> {
-    Err(
-        "on Linux, link calcine-cli into a folder on your PATH, e.g. \
-         ln -s \"$(command -v calcine-cli)\" ~/.local/bin/"
-            .into(),
-    )
+fn path(action: &str) -> Result<(), String> {
+    match action {
+        "add" | "remove" | "status" => {
+            println!("The Calcine package installs calcine-cli in /usr/bin, already on your PATH.");
+            Ok(())
+        }
+        other => Err(format!("unknown action {other}: add, remove or status")),
+    }
 }
 
 fn keys(words: &[&str]) -> Result<(), String> {

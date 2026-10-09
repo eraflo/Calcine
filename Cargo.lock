@@ -606,6 +606,7 @@ dependencies = [
  "calcine-core",
  "futures-util",
  "hex",
+ "libc",
  "reqwest",
  "serde",
  "serde_json",

@@ -23,6 +23,9 @@ reqwest = { workspace = true, features = ["native-tls"] }
 tracing.workspace = true
 which.workspace = true
 
+[target.'cfg(target_os = "linux")'.dependencies]
+libc.workspace = true
+
 [dev-dependencies]
 reqwest.workspace = true
 tokio = { workspace = true, features = ["macros", "rt", "rt-multi-thread"] }

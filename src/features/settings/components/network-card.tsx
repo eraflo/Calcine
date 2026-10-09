@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { gatewayQuery } from "@/features/server/api";
 import { defineMessages, useT } from "@/i18n";
 import { commands, unwrap } from "@/lib/api";
+import { isWindows } from "@/lib/platform";
 import { gatewaySettingsQuery } from "./system-cards";
 
 const strings = defineMessages({
@@ -20,6 +21,8 @@ const strings = defineMessages({
     enable: "Answer other devices",
     enableHint:
       "Off by default. Windows may ask whether Calcine can use the network: allow private networks.",
+    enableHintLinux:
+      "Off by default. If a firewall is on (ufw, firewalld), open this port to your network.",
     url: "Address for other devices",
     hostName: "Or by name: {url}",
     fingerprint: "Certificate fingerprint (SHA-256)",
@@ -48,6 +51,8 @@ const strings = defineMessages({
     enable: "Répondre aux autres appareils",
     enableHint:
       "Désactivé par défaut. Windows peut demander si Calcine peut utiliser le réseau : autorisez les réseaux privés.",
+    enableHintLinux:
+      "Désactivé par défaut. Si un pare-feu est actif (ufw, firewalld), ouvrez ce port à votre réseau.",
     url: "Adresse pour les autres appareils",
     hostName: "Ou par nom : {url}",
     fingerprint: "Empreinte du certificat (SHA-256)",
@@ -162,7 +167,9 @@ export function NetworkCard() {
         <div className="flex items-center justify-between gap-4">
           <label htmlFor="network-enabled" className="flex flex-col">
             <span className="text-sm">{t("enable")}</span>
-            <span className="text-[11px] text-muted-foreground">{t("enableHint")}</span>
+            <span className="text-[11px] text-muted-foreground">
+              {t(isWindows ? "enableHint" : "enableHintLinux")}
+            </span>
           </label>
           <Switch
             id="network-enabled"

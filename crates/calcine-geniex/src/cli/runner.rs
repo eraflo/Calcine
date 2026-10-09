@@ -10,10 +10,6 @@ use tokio::process::Command;
 /// Default limit for short, non-interactive commands (`list`, `version`, …).
 const DEFAULT_TIMEOUT: Duration = Duration::from_secs(30);
 
-/// Hide the console window when spawning from the GUI on Windows.
-#[cfg(windows)]
-const CREATE_NO_WINDOW: u32 = 0x0800_0000;
-
 /// A resolved GenieX executable plus the global flags Calcine always passes.
 #[derive(Debug, Clone)]
 pub struct Cli {
@@ -59,8 +55,10 @@ impl Cli {
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .kill_on_drop(true);
-        #[cfg(windows)]
-        command.creation_flags(CREATE_NO_WINDOW);
+        // GenieX's libraries sit next to the executable.
+        if let Some(dir) = self.binary.parent() {
+            crate::platform::prepare(&mut command, dir);
+        }
         command
     }
 

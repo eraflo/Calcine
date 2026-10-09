@@ -9,11 +9,13 @@ import { Switch } from "@/components/ui/switch";
 import { gatewayQuery } from "@/features/server/api";
 import { defineMessages, useT } from "@/i18n";
 import { call, commands, unwrap } from "@/lib/api";
+import { isWindows } from "@/lib/platform";
 
 const strings = defineMessages({
   en: {
     startup: "Startup",
     autostart: "Start with Windows",
+    autostartLinux: "Start when you log in",
     autostartHint: "Calcine opens in the tray so apps can use the API right away.",
     api: "Local API",
     apiHint:
@@ -40,6 +42,7 @@ const strings = defineMessages({
   fr: {
     startup: "Démarrage",
     autostart: "Lancer avec Windows",
+    autostartLinux: "Lancer à l'ouverture de session",
     autostartHint:
       "Calcine s'ouvre dans la zone de notification pour que les applis puissent utiliser l'API tout de suite.",
     api: "API locale",
@@ -74,7 +77,7 @@ export const gatewaySettingsQuery = {
   queryFn: () => call(commands.gatewaySettings),
 };
 
-/** Start Calcine with Windows, in the tray. */
+/** Start Calcine with the session, in the tray. */
 export function StartupCard() {
   const t = useT(strings);
   const queryClient = useQueryClient();
@@ -95,7 +98,7 @@ export function StartupCard() {
       <CardContent className="flex flex-col gap-2">
         <div className="flex items-center justify-between gap-4">
           <label htmlFor="autostart" className="flex flex-col">
-            <span className="text-sm">{t("autostart")}</span>
+            <span className="text-sm">{t(isWindows ? "autostart" : "autostartLinux")}</span>
             <span className="text-[11px] text-muted-foreground">{t("autostartHint")}</span>
           </label>
           <Switch

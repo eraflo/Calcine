@@ -1,13 +1,15 @@
-//! Installing and updating GenieX through its official installer.
+//! Installing and updating GenieX: its official installer on Windows, its
+//! official archive on Linux.
 //!
 //! - `index`: the release index and manifests `geniex update` reads
 //! - `download`: fetching an installer with progress and SHA-256 check
 //! - `signature`: Authenticode check of the installer
 //!
-//! The installer is per-user Inno Setup: it uninstalls the previous version
-//! (killing any running `geniex.exe`) and installs to
-//! `%LOCALAPPDATA%\GenieX CLI`. Installers are kept in a cache to roll back
-//! or repair without downloading.
+//! On Windows the installer is per-user Inno Setup: it uninstalls the
+//! previous version (killing any running `geniex.exe`) and installs to
+//! `%LOCALAPPDATA%\GenieX CLI`. On Linux the archive is unpacked to
+//! `~/.local/share/geniex-cli`, replacing the previous version in one move.
+//! Packages are kept in a cache to roll back or repair without downloading.
 
 pub(crate) mod download;
 mod index;
@@ -25,6 +27,23 @@ use calcine_core::runtime::{
 use calcine_core::{Error, Result};
 
 use crate::Geniex;
+use crate::cli::discovery;
+use crate::platform;
+
+/// What GenieX ships for this platform: an installer, or an archive.
+const PACKAGE_KIND: &str = if cfg!(windows) {
+    "cli-installer"
+} else {
+    "cli-archive"
+};
+
+/// Cached packages are named `<prefix><version><suffix>`.
+const CACHE_PREFIX: &str = if cfg!(windows) {
+    "geniex-cli-setup-"
+} else {
+    "geniex-cli-"
+};
+const CACHE_SUFFIX: &str = if cfg!(windows) { ".exe" } else { ".tar.gz" };
 
 /// Where Qualcomm publishes GenieX releases.
 pub const RELEASE_ENDPOINT: &str =
@@ -104,7 +123,7 @@ impl GeniexInstaller {
     fn cached_path(&self, version: &str) -> PathBuf {
         self.config
             .cache_dir
-            .join(format!("geniex-cli-setup-{version}.exe"))
+            .join(format!("{CACHE_PREFIX}{version}{CACHE_SUFFIX}"))
     }
 
     /// The installer file for `source`, downloading and verifying it if needed.
@@ -150,8 +169,8 @@ impl GeniexInstaller {
             .filter_map(|entry| {
                 let name = entry.file_name().into_string().ok()?;
                 let version = name
-                    .strip_prefix("geniex-cli-setup-")?
-                    .strip_suffix(".exe")?
+                    .strip_prefix(CACHE_PREFIX)?
+                    .strip_suffix(CACHE_SUFFIX)?
                     .to_owned();
                 Some((version, entry.path()))
             })
@@ -167,16 +186,21 @@ impl RuntimeInstaller for GeniexInstaller {
         let latest = match index::latest_tag(&index_json, channel)? {
             Some(tag) => {
                 let manifest = self.get_text(&format!("manifest-{tag}.json")).await?;
-                index::release(&manifest, "windows", "arm64")?
+                index::release(&manifest, platform::NAME, platform::ARCH, PACKAGE_KIND)?
             }
             None => None,
         };
-        let publisher_signed = match self.get_text("windows-signed.txt").await {
-            Ok(text) => index::publisher_signed(&text),
-            Err(err) => {
-                tracing::warn!(%err, "couldn't read windows-signed.txt");
-                false
+        // Code signing only applies to the Windows installer.
+        let publisher_signed = if cfg!(windows) {
+            match self.get_text("windows-signed.txt").await {
+                Ok(text) => index::publisher_signed(&text),
+                Err(err) => {
+                    tracing::warn!(%err, "couldn't read windows-signed.txt");
+                    false
+                }
             }
+        } else {
+            false
         };
         let update_available = latest.as_ref().is_some_and(|latest| {
             current.as_deref().is_none_or(|current| {
@@ -210,7 +234,11 @@ impl RuntimeInstaller for GeniexInstaller {
         // Past this point the job can't be cancelled: stopping the installer
         // halfway could leave GenieX half removed.
         ctx.report(phase(JobPhase::Installing));
-        run_installer(&installer).await?;
+        if cfg!(windows) {
+            run_installer(&installer).await?;
+        } else {
+            unpack(&installer).await?;
+        }
 
         let reported = self.current_version().await.ok_or_else(|| Error::Command {
             command: "version".into(),
@@ -258,6 +286,47 @@ fn phase(phase: JobPhase) -> JobProgress {
         phase: Some(phase),
         ..JobProgress::default()
     }
+}
+
+/// Unpack the Linux archive into the install folder: first beside it, then
+/// swapped in, so a failure never leaves half a GenieX.
+async fn unpack(archive: &Path) -> Result<()> {
+    let target = discovery::official_install_dir()
+        .ok_or_else(|| Error::InvalidInput("can't find the user's data folder".into()))?;
+    let parent = target
+        .parent()
+        .ok_or_else(|| Error::InvalidInput("unexpected install folder".into()))?;
+    let staging = parent.join(".geniex-cli-new");
+    let previous = parent.join(".geniex-cli-old");
+    let _ = tokio::fs::remove_dir_all(&staging).await;
+    tokio::fs::create_dir_all(&staging).await?;
+    let output = tokio::process::Command::new("tar")
+        .arg("-xzf")
+        .arg(archive)
+        .arg("-C")
+        .arg(&staging)
+        // The archive holds one `geniex-cli-linux-arm64-<version>` folder.
+        .arg("--strip-components=1")
+        .kill_on_drop(true)
+        .output()
+        .await?;
+    if !output.status.success() || !staging.join("geniex").is_file() {
+        let _ = tokio::fs::remove_dir_all(&staging).await;
+        return Err(Error::Command {
+            command: "tar".into(),
+            message: format!(
+                "the GenieX archive didn't unpack: {}",
+                String::from_utf8_lossy(&output.stderr).trim()
+            ),
+        });
+    }
+    let _ = tokio::fs::remove_dir_all(&previous).await;
+    if target.exists() {
+        tokio::fs::rename(&target, &previous).await?;
+    }
+    tokio::fs::rename(&staging, &target).await?;
+    let _ = tokio::fs::remove_dir_all(&previous).await;
+    Ok(())
 }
 
 /// Run the Inno Setup installer silently and wait for it.

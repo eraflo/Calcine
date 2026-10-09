@@ -30,27 +30,29 @@ if (!latest || Bun.semver.order(latest.slice(1), pin.version.slice(1)) <= 0) pro
 const manifest = (await (await fetch(`${ENDPOINT}/manifest-${latest}.json`)).json()) as {
   assets: Asset[];
 };
-const asset = manifest.assets.find(
-  (candidate) =>
-    candidate.kind === "cli-installer" &&
-    candidate.platform === "windows" &&
-    candidate.arch === "arm64",
-);
-if (!asset) throw new Error(`${latest} has no Windows ARM64 installer`);
-
-const bytes = new Uint8Array(await (await fetch(asset.url)).arrayBuffer());
-const digest = new Bun.CryptoHasher("sha256").update(bytes).digest("hex");
-if (bytes.length !== asset.size || digest !== asset.sha256.toLowerCase()) {
-  throw new Error(`${asset.name} doesn't match its manifest (size or SHA-256)`);
+/** The package of `kind` for `platform`, downloaded and checked against the manifest. */
+async function verified(kind: string, platform: string) {
+  const asset = manifest.assets.find(
+    (candidate) =>
+      candidate.kind === kind && candidate.platform === platform && candidate.arch === "arm64",
+  );
+  if (!asset) throw new Error(`${latest} has no ${platform} ARM64 ${kind}`);
+  const bytes = new Uint8Array(await (await fetch(asset.url)).arrayBuffer());
+  const digest = new Bun.CryptoHasher("sha256").update(bytes).digest("hex");
+  if (bytes.length !== asset.size || digest !== asset.sha256.toLowerCase()) {
+    throw new Error(`${asset.name} doesn't match its manifest (size or SHA-256)`);
+  }
+  const pinned = { name: asset.name, url: asset.url, size: asset.size, sha256: digest };
+  return { bytes, pinned };
 }
-await Bun.write(join(import.meta.dir, "..", "geniex-cli-setup.exe"), bytes);
+
+const windows = await verified("cli-installer", "windows");
+const linux = await verified("cli-archive", "linux");
+// The workflow installs it on a Windows runner before opening the PR.
+await Bun.write(join(import.meta.dir, "..", "geniex-cli-setup.exe"), windows.bytes);
 
 pin.version = latest;
-pin.assets["windows-arm64"] = {
-  name: asset.name,
-  url: asset.url,
-  size: asset.size,
-  sha256: digest,
-};
+pin.assets["windows-arm64"] = windows.pinned;
+pin.assets["linux-arm64"] = linux.pinned;
 await Bun.write(PIN, `${JSON.stringify(pin, null, 2)}\n`);
 console.log(latest);

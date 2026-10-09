@@ -1,0 +1,65 @@
+name: Build Linux package
+
+# Called by the Release and Prerelease workflows: the Linux ARM64 `.deb`
+# (Snapdragon X laptops running Ubuntu) with its update signature, uploaded
+# as the `linux-deb` artifact for them to publish.
+
+on:
+  workflow_call:
+    inputs:
+      beta-build:
+        description: Stamp the next beta version for this build number (prereleases).
+        type: string
+        default: ""
+    secrets:
+      TAURI_SIGNING_PRIVATE_KEY:
+        required: true
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD:
+        required: true
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  # Keep in sync with rust-toolchain.toml.
+  RUST_TOOLCHAIN: "1.99.0"
+
+jobs:
+  deb:
+    name: Package (Linux ARM64)
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install Tauri system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
+      - uses: dtolnay/rust-toolchain@7e38f4b43b4db5c8dd498af069a4f6196df1d067 # master
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - run: bun install --frozen-lockfile
+
+      - name: Stamp beta version
+        if: inputs.beta-build != ''
+        env:
+          BUILD: ${{ inputs.beta-build }}
+        run: bun scripts/version.ts beta "$BUILD"
+
+      - name: Build the package (update signature)
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: bun run build:release --bundles deb
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: linux-deb
+          path: |
+            target/release/bundle/deb/*.deb
+            target/release/bundle/deb/*.deb.sig
+          if-no-files-found: error

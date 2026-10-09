@@ -55,6 +55,7 @@ hex = "0.4"
 getrandom = "0.4"
 win32job = "2"
 windows-sys = "0.61"
+libc = "0.2"
 # The local network port: TLS with ring (no cmake or nasm needed), a
 # self-signed certificate, HTTP/1.1 and HTTP/2 over it.
 rcgen = { version = "0.14", default-features = false, features = ["crypto", "pem", "ring"] }

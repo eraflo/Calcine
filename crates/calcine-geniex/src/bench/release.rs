@@ -9,9 +9,16 @@ use serde_json::Value;
 /// Where GenieX releases are published on GitHub.
 pub const RELEASES_API: &str = "https://api.github.com/repos/qualcomm/GenieX";
 
+/// Archives are zips on Windows, gzipped tarballs on Linux.
+pub const ARCHIVE_EXTENSION: &str = if cfg!(windows) { ".zip" } else { ".tar.gz" };
+
 /// The archive for this platform and GenieX version.
 pub fn archive_name(version: &str) -> String {
-    format!("geniex-bench-windows-arm64-{version}.zip")
+    format!(
+        "geniex-bench-{}-{}-{version}{ARCHIVE_EXTENSION}",
+        crate::platform::NAME,
+        crate::platform::ARCH
+    )
 }
 
 /// The archive and the URL of its `.sha256` file, from a release's JSON.
@@ -77,10 +84,13 @@ mod tests {
 
     #[test]
     fn finds_the_archive_and_its_checksums() {
+        // This platform's archive, among the others GenieX publishes.
+        let name = archive_name("v0.8.0");
         let release = json!({ "assets": [
             { "name": "geniex-cli-setup-windows-arm64-v0.8.0.exe", "digest": "sha256:00", "size": 1, "browser_download_url": "x" },
-            { "name": "geniex-bench-windows-arm64-v0.8.0.zip", "digest": format!("sha256:{DIGEST}"), "size": 84_772_012, "browser_download_url": "https://github.com/a.zip" },
-            { "name": "geniex-bench-windows-arm64-v0.8.0.zip.sha256", "browser_download_url": "https://github.com/a.zip.sha256" },
+            { "name": "geniex-bench-android-arm64-v0.8.0.tar.gz", "digest": "sha256:00", "size": 1, "browser_download_url": "x" },
+            { "name": name, "digest": format!("sha256:{DIGEST}"), "size": 84_772_012, "browser_download_url": "https://github.com/a.zip" },
+            { "name": format!("{name}.sha256"), "browser_download_url": "https://github.com/a.zip.sha256" },
         ]});
         let (asset, checksum) = find(&release, "v0.8.0").unwrap();
         assert_eq!(asset.sha256, DIGEST);
@@ -92,10 +102,20 @@ mod tests {
     #[test]
     fn needs_a_digest() {
         let release = json!({ "assets": [
-            { "name": "geniex-bench-windows-arm64-v0.8.0.zip", "size": 1, "browser_download_url": "x" },
+            { "name": archive_name("v0.8.0"), "size": 1, "browser_download_url": "x" },
         ]});
         assert!(find(&release, "v0.8.0").is_err());
         assert!(find(&json!({ "assets": [] }), "v0.8.0").is_err());
+    }
+
+    #[test]
+    fn names_archives_per_platform() {
+        let expected = if cfg!(windows) {
+            "geniex-bench-windows-arm64-v0.8.0.zip"
+        } else {
+            "geniex-bench-linux-arm64-v0.8.0.tar.gz"
+        };
+        assert_eq!(archive_name("v0.8.0"), expected);
     }
 
     #[test]

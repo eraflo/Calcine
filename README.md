@@ -89,8 +89,9 @@ every web page you visit.
 
 ## Get started
 
-1. Download the installer from [Releases](https://github.com/eraflo/Calcine/releases)
-   (Windows 11 on Snapdragon, ARM64).
+1. Download the installer from [Releases](https://github.com/eraflo/Calcine/releases):
+   the `-setup.exe` for Windows 11 on Snapdragon, or the `.deb` for Linux on ARM64
+   (`sudo apt install ./Calcine_<version>_arm64.deb`).
 2. Open Calcine: on first launch it downloads GenieX, Qualcomm's runtime, from Qualcomm
    and checks it before installing.
 3. Download a model: the welcome screen suggests a few that fit your PC.
@@ -133,14 +134,18 @@ run models.
 ### Without the window
 
 `calcine-cli` serves the same API from a terminal, with the app's settings, keys and
-models. The installer puts it on your `PATH` (`calcine-cli path remove` takes it off).
-Quit Calcine first (also from the tray), since only one of them can answer on a port, or
-give `calcine-cli` another one with `--port`.
+models. The installer puts it on your `PATH` (`calcine-cli path remove` takes it off;
+the Linux package installs it in `/usr/bin`). Quit Calcine first (also from the tray),
+since only one of them can answer on a port, or give `calcine-cli` another one with
+`--port`. On a machine without a screen, `calcine-cli geniex install` installs GenieX
+the way the welcome screen does.
 
 ```powershell
 calcine-cli keys create "My script"      # prints the key, once
 calcine-cli serve                        # until Ctrl+C
 calcine-cli serve --network              # also other devices, over HTTPS
+calcine-cli geniex install               # GenieX, checked like on first launch
+calcine-cli geniex chipset               # which chipset models are downloaded for
 ```
 
 ## How it works
@@ -160,15 +165,20 @@ flowchart LR
 The gateway listens on loopback only, rejects DNS rebinding and browser origins you
 haven't allowed, checks per-app keys (stored as SHA-256 fingerprints, scoped to inference
 or management), and refuses local file paths and internal URLs in request bodies. GenieX
-itself is never exposed, and a Windows Job Object stops it with Calcine, even after a
-crash. Details in [docs/security-model.md](docs/security-model.md).
+itself is never exposed, and it stops with Calcine, even after a crash (a Job Object on
+Windows, a parent-death signal on Linux). Details in [docs/security-model.md](docs/security-model.md).
 
 ## Requirements
 
-- A Snapdragon PC running Windows 11 on Arm (Linux on ARM64 is planned)
+- A Snapdragon PC running Windows 11 on Arm, or Linux on ARM64 (Ubuntu 24.04 or later)
 - Free memory and disk space for the models you use: Calcine shows what fits before you download
 
 Calcine installs GenieX on first launch; nothing else is needed.
+
+On Linux, GenieX runs llama.cpp (GGUF) models on the CPU, and on the Hexagon NPU when the
+kernel exposes the compute DSP (FastRPC). Qualcomm AI Hub builds its Linux NPU models for
+Dragonwing boards (IQ-9075, QCS6490): pick your chipset in **Hardware › Chipset** if
+GenieX can't detect it. The live NPU load and power readings are Windows-only for now.
 
 ## Development
 

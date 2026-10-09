@@ -104,6 +104,8 @@ pub fn pinned_release() -> RuntimeRelease {
     struct Assets {
         #[serde(rename = "windows-arm64")]
         windows_arm64: Asset,
+        #[serde(rename = "linux-arm64")]
+        linux_arm64: Asset,
     }
     #[derive(Deserialize)]
     struct Asset {
@@ -113,7 +115,12 @@ pub fn pinned_release() -> RuntimeRelease {
         sha256: String,
     }
     let pin: Pin = serde_json::from_str(PINNED_GENIEX).expect("runtime/geniex.json is valid");
-    let asset = pin.assets.windows_arm64;
+    // The Windows installer, or the Linux archive.
+    let asset = if cfg!(windows) {
+        pin.assets.windows_arm64
+    } else {
+        pin.assets.linux_arm64
+    };
     RuntimeRelease {
         notes_url: Some(format!(
             "https://github.com/qualcomm/GenieX/releases/tag/{}",

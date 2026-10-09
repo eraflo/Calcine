@@ -5,9 +5,12 @@
 //! - `power`: power and energy, on devices with energy metering
 //! - `system`: CPU, memory and disk, portable (`sysinfo`)
 //! - `windows`: Hexagon NPU and Adreno GPU, from the driver database (WMI)
-//!   and the performance counters. Other platforms report no accelerators
-//!   or accelerator load for now.
+//!   and the performance counters
+//! - `linux`: the Hexagon NPU and Adreno GPU from `/dev` and `/sys`, no load
+//!   or power yet. Other platforms report no accelerators.
 
+#[cfg(target_os = "linux")]
+mod linux;
 mod power;
 mod snapshot;
 mod system;

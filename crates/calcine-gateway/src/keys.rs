@@ -92,7 +92,7 @@ pub struct KeyStore {
     keys: Mutex<Vec<StoredKey>>,
     /// When the file was last read or written by this store. Another process
     /// (the app and `calcine-cli`) may change it: it's read again then.
-    seen: Mutex<Option<SystemTime>>,
+    seen: Mutex<Option<FileVersion>>,
     last_persist_ms: Mutex<u64>,
     internal_token: String,
 }
@@ -111,7 +111,7 @@ impl KeyStore {
             Err(err) => return Err(err.into()),
         };
         let store = Self::with_keys(Some(path), keys);
-        *store.seen() = store.modified();
+        *store.seen() = store.version();
         Ok(store)
     }
 
@@ -244,15 +244,20 @@ impl KeyStore {
         let partial = path.with_extension("json.partial");
         std::fs::write(&partial, json)?;
         std::fs::rename(partial, path)?;
-        *self.seen() = self.modified();
+        *self.seen() = self.version();
         Ok(())
     }
 
-    fn modified(&self) -> Option<SystemTime> {
-        std::fs::metadata(self.path.as_ref()?).ok()?.modified().ok()
+    fn version(&self) -> Option<FileVersion> {
+        let meta = std::fs::metadata(self.path.as_ref()?).ok()?;
+        Some(FileVersion {
+            modified: meta.modified().ok(),
+            len: meta.len(),
+            inode: inode(&meta),
+        })
     }
 
-    fn seen(&self) -> MutexGuard<'_, Option<SystemTime>> {
+    fn seen(&self) -> MutexGuard<'_, Option<FileVersion>> {
         self.seen.lock().unwrap_or_else(PoisonError::into_inner)
     }
 
@@ -261,8 +266,8 @@ impl KeyStore {
         let Some(path) = &self.path else {
             return;
         };
-        let modified = self.modified();
-        if modified == *self.seen() {
+        let version = self.version();
+        if version == *self.seen() {
             return;
         }
         let keys = match std::fs::read(path) {
@@ -276,7 +281,7 @@ impl KeyStore {
         match keys {
             Ok(keys) => {
                 *self.lock() = keys;
-                *self.seen() = modified;
+                *self.seen() = version;
             }
             Err(err) => {
                 tracing::warn!(%err, "API keys file is unreadable, keeping the keys in memory");
@@ -287,6 +292,27 @@ impl KeyStore {
     fn lock(&self) -> MutexGuard<'_, Vec<StoredKey>> {
         self.keys.lock().unwrap_or_else(PoisonError::into_inner)
     }
+}
+
+/// Tells one version of the keys file from another. Linux timestamps are
+/// coarse (a few milliseconds), so the size and the inode count too: each
+/// save writes a new file and renames it in place.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct FileVersion {
+    modified: Option<SystemTime>,
+    len: u64,
+    inode: u64,
+}
+
+#[cfg(unix)]
+fn inode(meta: &std::fs::Metadata) -> u64 {
+    use std::os::unix::fs::MetadataExt;
+    meta.ino()
+}
+
+#[cfg(not(unix))]
+fn inode(_meta: &std::fs::Metadata) -> u64 {
+    0
 }
 
 fn random_token() -> String {

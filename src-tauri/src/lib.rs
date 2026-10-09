@@ -13,6 +13,7 @@ pub mod cli;
 mod desktop;
 mod ipc;
 mod setup;
+#[cfg(windows)]
 mod user_path;
 
 use tauri::RunEvent;

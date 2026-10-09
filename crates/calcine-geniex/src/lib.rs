@@ -18,6 +18,7 @@ pub mod cli;
 mod context;
 pub use context::GeniexContext;
 pub mod parse;
+mod platform;
 pub mod update;
 pub use update::{BundledInstaller, GeniexInstaller, InstallerConfig};
 

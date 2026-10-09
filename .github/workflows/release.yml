@@ -2,8 +2,8 @@ name: Release
 
 # When `main` carries a version without a tag yet (after merging the release
 # PR prepared by `bun scripts/release.ts`), build and publish it:
-# signed installer (Calcine only), updater manifest, checksums, SBOM and
-# build provenance. See docs/RELEASING.md.
+# signed Windows installer (Calcine only), Linux package, updater manifest,
+# checksums, SBOM and build provenance. See docs/RELEASING.md.
 
 on:
   push:
@@ -52,9 +52,18 @@ jobs:
             echo "release=true" >> "$GITHUB_OUTPUT"
           fi
 
-  release:
-    name: Release v${{ needs.check.outputs.version }} (Windows ARM64)
+  linux:
+    name: Linux
     needs: check
+    if: needs.check.outputs.release == 'true'
+    uses: ./.github/workflows/build-linux.yml
+    secrets:
+      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+
+  release:
+    name: Release v${{ needs.check.outputs.version }}
+    needs: [check, linux]
     if: needs.check.outputs.release == 'true'
     runs-on: windows-11-arm
     permissions:
@@ -89,6 +98,12 @@ jobs:
           installer="$(ls target/release/bundle/nsis/*-setup.exe)"
           cp "$installer" dist-release/
           echo "path=dist-release/$(basename "$installer")" >> "$GITHUB_OUTPUT"
+      - name: Collect the Linux package
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: linux-deb
+          path: linux-release
+      - run: cp linux-release/*.deb dist-release/
 
       # Authenticode signing through the SignPath Foundation, once the project
       # is approved: set the repository variables SIGNPATH_ORGANIZATION_ID and
@@ -122,8 +137,8 @@ jobs:
         run: |
           awk -v v="## $VERSION " 'index($0, v) == 1 {found=1; next} found && /^## / {exit} found' CHANGELOG.md > notes.md
           [ -s notes.md ] || echo "Calcine $VERSION" > notes.md
-          bun scripts/updater-manifest.ts "$VERSION" dist-release/latest.json notes.md
-          cd dist-release && sha256sum -- *.exe > SHA256SUMS
+          bun scripts/updater-manifest.ts "$VERSION" dist-release/latest.json notes.md linux-release
+          cd dist-release && sha256sum -- *.exe *.deb > SHA256SUMS
 
       - name: SBOM (CycloneDX)
         uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
@@ -137,7 +152,9 @@ jobs:
       - name: Build provenance
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
-          subject-path: ${{ steps.installer.outputs.path }}
+          subject-path: |
+            ${{ steps.installer.outputs.path }}
+            dist-release/*.deb
 
       - name: Publish the release
         env:
