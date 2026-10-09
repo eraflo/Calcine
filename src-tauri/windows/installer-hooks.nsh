@@ -1,18 +1,10 @@
-; Calcine NSIS installer hooks (merged in by tauri.release.conf.json).
-;
-; The official GenieX installer is bundled as a resource and run silently when
-; GenieX isn't installed yet. It is per-user (no admin), installs to
-; %LOCALAPPDATA%\GenieX CLI and adds itself to the user PATH. Upgrades of an
-; existing GenieX are handled by the app, which first stops the server: the
-; GenieX installer kills any running geniex.exe.
+; Lets terminals find calcine-cli. calcine-cli changes the user's PATH itself:
+; NSIS strings stop at 1024 characters and would cut a longer PATH short.
 
 !macro NSIS_HOOK_POSTINSTALL
-  IfFileExists "$LOCALAPPDATA\GenieX CLI\geniex.exe" calcine_geniex_present
-    DetailPrint "Installing GenieX CLI..."
-    ExecWait '"$INSTDIR\geniex\geniex-cli-setup.exe" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART' $0
-    DetailPrint "GenieX CLI installer exited with code $0"
-    Goto calcine_geniex_done
-  calcine_geniex_present:
-    DetailPrint "GenieX CLI already installed, leaving it as is"
-  calcine_geniex_done:
+  nsExec::Exec '"$INSTDIR\calcine-cli.exe" path add'
+!macroend
+
+!macro NSIS_HOOK_PREUNINSTALL
+  nsExec::Exec '"$INSTDIR\calcine-cli.exe" path remove'
 !macroend

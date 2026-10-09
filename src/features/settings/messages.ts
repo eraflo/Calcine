@@ -12,7 +12,7 @@ export const messages = defineMessages({
     mica: "Mica material",
     micaHint: "Windows 11's translucent material behind the window. Uses a little more power.",
     language: "Language",
-    languageHint: "System follows Windows' display language.",
+    languageHint: "System follows your computer's display language.",
     storage: "Storage",
     storageHint: "Models are stored by GenieX in its cache folder.",
     modelsFolder: "Model folder",
@@ -49,7 +49,7 @@ export const messages = defineMessages({
     micaHint:
       "La matière translucide de Windows 11 derrière la fenêtre. Consomme un peu plus d'énergie.",
     language: "Langue",
-    languageHint: "Système suit la langue d'affichage de Windows.",
+    languageHint: "Système suit la langue d'affichage de votre ordinateur.",
     storage: "Stockage",
     storageHint: "GenieX stocke les modèles dans son dossier de cache.",
     modelsFolder: "Dossier des modèles",

@@ -13,6 +13,9 @@ use crate::parse::progress::{FrameSplitter, parse_frame};
 /// Non-progress lines kept to explain a failure.
 const KEPT_LINES: usize = 12;
 
+/// What GenieX says before asking for the chipset.
+const NO_CHIPSET: &str = "No chipset configured";
+
 pub(crate) async fn run(cli: &Cli, request: &PullRequest, ctx: &JobCtx) -> Result<()> {
     let reference = request.reference.cli_arg();
     let mut args = vec!["pull", reference.as_str()];
@@ -54,6 +57,19 @@ pub(crate) async fn run(cli: &Cli, request: &PullRequest, ctx: &JobCtx) -> Resul
     let stdout_lines = stdout_task.await.unwrap_or_default();
     if status.success() {
         return Ok(());
+    }
+    // Without a terminal GenieX can't ask which chipset this is (on Linux
+    // it often can't tell). It says so on stdout, then fails on stderr.
+    if stdout_lines
+        .iter()
+        .chain(&stderr_lines)
+        .any(|line| line.contains(NO_CHIPSET))
+    {
+        return Err(Error::InvalidInput(
+            "GenieX doesn't know which Snapdragon this is. Choose your chipset in \
+             Hardware › Chipset (or run calcine-cli geniex chipset), then download again."
+                .into(),
+        ));
     }
     let message = [stderr_lines, stdout_lines]
         .into_iter()

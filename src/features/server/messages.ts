@@ -2,6 +2,22 @@ import { defineMessages } from "@/i18n";
 
 export const messages = defineMessages({
   en: {
+    // Model loading
+    loading: "Model loading",
+    loadingHint: "How GenieX loads models, for the chat and every app.",
+    unloadAfter: "Unload the model after",
+    unloadAfterHint: "Idle time before GenieX frees the memory. The next request loads it again.",
+    contextWindow: "Context window",
+    contextWindowHint:
+      "Tokens llama.cpp models see at once. Larger windows take more memory; AI Hub models keep the context they were compiled with.",
+    tokens: "{count} tokens",
+    minutes_one: "{count} minute",
+    minutes_other: "{count} minutes",
+    hours_one: "{count} hour",
+    hours_other: "{count} hours",
+    defaultChoice: "{value} (default)",
+    restartsGeniex: "GenieX restarts to apply changes: replies in progress stop.",
+    saved: "Saved.",
     title: "Server",
     description: "The local, OpenAI-compatible API for your other apps",
     // Status
@@ -30,6 +46,13 @@ export const messages = defineMessages({
     connectHint:
       "Any OpenAI-compatible client works. Set <code>{variable}</code> to a key created below.",
     snippetLanguage: "Language",
+    snippetKeys: "Server › API keys",
+    snippetOllamaSetting: "1. Turn on Settings › Local API › Ollama apps",
+    snippetOllamaDefault: "2. Leave the app on Ollama's address: no key needed there",
+    snippetOllamaWithKey: "Apps that can send headers can use the main port with a key:",
+    snippetOpenWebUiSettings: "Admin Panel › Settings › Connections › OpenAI API › Add connection",
+    snippetOpenWebUiLocal:
+      "Run Open WebUI on this PC (pip install open-webui): Calcine only listens on this PC, so Docker containers can't reach it.",
     // Keys
     keysTitle: "API keys",
     keysDescription: "One key per app, so you can see who uses the API and revoke access.",
@@ -46,6 +69,10 @@ export const messages = defineMessages({
     manageModels: "Manage models",
     manageModelsHint: "Download and remove models, follow downloads.",
     localFiles: "Local files",
+    networkBadge: "Other devices",
+    networkLabel: "From other devices",
+    networkHint:
+      "Also works on the local network port, when it's on (Settings → Local network). Never with local files.",
     revoke: "Revoke",
     revokeKey: "Revoke {name}",
     revokeTitle: "Revoke {name}?",
@@ -80,6 +107,23 @@ export const messages = defineMessages({
     requestStopped: "Stopped",
   },
   fr: {
+    loading: "Chargement des modèles",
+    loadingHint: "Comment GenieX charge les modèles, pour le chat et toutes les applis.",
+    unloadAfter: "Décharger le modèle après",
+    unloadAfterHint:
+      "Inactivité avant que GenieX libère la mémoire. La requête suivante le recharge.",
+    contextWindow: "Fenêtre de contexte",
+    contextWindowHint:
+      "Tokens que les modèles llama.cpp voient à la fois. Plus grand prend plus de mémoire ; les modèles AI Hub gardent le contexte avec lequel ils ont été compilés.",
+    tokens: "{count} tokens",
+    minutes_one: "{count} minute",
+    minutes_other: "{count} minutes",
+    hours_one: "{count} heure",
+    hours_other: "{count} heures",
+    defaultChoice: "{value} (par défaut)",
+    restartsGeniex:
+      "GenieX redémarre pour appliquer les changements : les réponses en cours s'arrêtent.",
+    saved: "Enregistré.",
     title: "Serveur",
     description: "L'API locale compatible OpenAI pour vos autres applications",
     statusApi: "API",
@@ -106,6 +150,15 @@ export const messages = defineMessages({
     connectHint:
       "Tout client compatible OpenAI convient. Renseignez dans <code>{variable}</code> une clé créée ci-dessous.",
     snippetLanguage: "Langage",
+    snippetKeys: "Serveur › Clés API",
+    snippetOllamaSetting: "1. Activez Réglages › API locale › Applis Ollama",
+    snippetOllamaDefault: "2. Laissez l'appli sur l'adresse d'Ollama : pas de clé nécessaire",
+    snippetOllamaWithKey:
+      "Les applis qui peuvent envoyer des en-têtes peuvent utiliser le port principal avec une clé :",
+    snippetOpenWebUiSettings:
+      "Panneau d'administration › Réglages › Connexions › API OpenAI › Ajouter une connexion",
+    snippetOpenWebUiLocal:
+      "Lancez Open WebUI sur ce PC (pip install open-webui) : Calcine n'écoute que sur ce PC, un conteneur Docker ne peut pas le joindre.",
     keysTitle: "Clés API",
     keysDescription:
       "Une clé par application, pour savoir qui utilise l'API et pouvoir révoquer son accès.",
@@ -124,6 +177,10 @@ export const messages = defineMessages({
     manageModels: "Gérer les modèles",
     manageModelsHint: "Télécharger et supprimer des modèles, suivre les téléchargements.",
     localFiles: "Fichiers locaux",
+    networkBadge: "Autres appareils",
+    networkLabel: "Depuis d'autres appareils",
+    networkHint:
+      "Fonctionne aussi sur le port du réseau local, quand il est activé (Réglages → Réseau local). Jamais avec les fichiers locaux.",
     revoke: "Révoquer",
     revokeKey: "Révoquer {name}",
     revokeTitle: "Révoquer {name} ?",

@@ -5,4 +5,4 @@ mod pull;
 mod runtime;
 mod serve;
 
-pub use serve::{GeniexServer, ServeOptions};
+pub use serve::GeniexServer;

@@ -17,7 +17,14 @@ export function ConnectCard() {
   const { data: models = [] } = useQuery(modelsQuery);
   const baseUrl = status?.baseUrl ?? "http://127.0.0.1:18181/v1";
   const model = models[0]?.name ?? "qualcomm/Qwen3-0.6B";
-  const code = snippet(language, baseUrl, model);
+  const code = snippet(language, baseUrl, model, {
+    keys: t("snippetKeys"),
+    openWebUiSettings: t("snippetOpenWebUiSettings"),
+    openWebUiLocal: t("snippetOpenWebUiLocal"),
+    ollamaSetting: t("snippetOllamaSetting"),
+    ollamaDefault: t("snippetOllamaDefault"),
+    ollamaWithKey: t("snippetOllamaWithKey"),
+  });
 
   return (
     <Card>
@@ -32,7 +39,7 @@ export function ConnectCard() {
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-2">
-        <div role="tablist" aria-label={t("snippetLanguage")} className="flex gap-1">
+        <div role="tablist" aria-label={t("snippetLanguage")} className="flex flex-wrap gap-1">
           {SNIPPET_LANGUAGES.map(({ id, label }) => (
             <button
               key={id}

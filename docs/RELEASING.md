@@ -37,10 +37,12 @@ manager.
 
 4. `release.yml` sees a version on `main` without a release and a changelog
    section for it, then:
-   - builds the NSIS installer on `windows-11-arm` with GenieX bundled
-     (`runtime/geniex.json`),
+   - builds the NSIS installer on `windows-11-arm` (Calcine only: GenieX is
+     downloaded on first launch, see below), and the Linux `.deb` on
+     `ubuntu-24.04-arm` (`build-linux.yml`, which both release workflows call),
    - signs it with Authenticode through SignPath (once configured, below),
-   - signs the update and writes `latest.json` for the Stable channel,
+   - signs the updates and writes `latest.json` for the Stable channel
+     (Windows and Linux),
    - attaches `SHA256SUMS`, a CycloneDX SBOM and a build provenance
      attestation (`gh attestation verify <file> -R eraflo/Calcine`),
    - publishes `vX.Y.Z` as the latest release, and offers it on the Beta
@@ -52,17 +54,26 @@ Pushes to `main` that don't change the version publish nothing.
 
 Pushes to `dev` only run the checks (no installer). To publish a beta, run
 **Actions › Prerelease › Run workflow** on `dev`. Each beta is a GitHub
-pre-release with the installer and `SHA256SUMS`; the fixed pre-release
+pre-release with the installer, the `.deb` and `SHA256SUMS`; the fixed pre-release
 `beta-channel` holds `latest-beta.json`, which the Beta channel reads.
 
-The Windows ARM64 build runs in CI only for `main` and pull requests to it.
+The Windows and Linux ARM64 builds run in CI only for `main` and pull
+requests to it. The Rust checks run on x86_64 Linux for every push.
 
-## GenieX bundled in the installer
+## GenieX installed on first launch
+
+Installers contain Calcine only (on Linux, GenieX's official archive is
+unpacked to `~/.local/share/geniex-cli`, checked against its own pin). GenieX includes Qualcomm's proprietary
+runtimes (QAIRT), which can't be signed or redistributed under SignPath
+Foundation's terms, so the welcome screen downloads the official installer
+from Qualcomm and checks it against the SHA-256 pinned in
+`runtime/geniex.json`, built into Calcine.
 
 `geniex-bump.yml` checks Qualcomm's release index daily. For a new stable
 GenieX it verifies the installer (size and SHA-256 from the manifest),
 installs it on a Windows ARM64 runner, checks `geniex version`, and opens a
-PR to `dev` updating `runtime/geniex.json`. PRs opened by workflows don't
+PR to `dev` updating `runtime/geniex.json`. CI checks that the pinned
+installer is still published (`scripts/check-geniex.ts`). PRs opened by workflows don't
 start CI: close and reopen the PR to run the checks.
 
 Users can also update GenieX from the app (Hardware › GenieX runtime), on the

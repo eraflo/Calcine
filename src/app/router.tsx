@@ -6,6 +6,7 @@ import {
   redirect,
 } from "@tanstack/react-router";
 import type { ReactNode } from "react";
+import { BenchmarkPage } from "@/features/benchmark/benchmark-page";
 import { ChatPage } from "@/features/chat/chat-page";
 import { DiscoverPage } from "@/features/discover/discover-page";
 import { HardwarePage } from "@/features/hardware/hardware-page";
@@ -37,6 +38,7 @@ const routeTree = rootRoute.addChildren([
   page("/discover", DiscoverPage),
   page("/server", ServerPage),
   page("/hardware", HardwarePage),
+  page("/benchmark", BenchmarkPage),
   page("/settings", SettingsPage),
   page("/welcome", WelcomePage),
 ]);

@@ -1,8 +1,9 @@
 //! Live load: CPU and memory from `sysinfo`, NPU and GPU from the OS.
 
-use calcine_core::hardware::{HardwareUsage, MemoryInfo};
+use calcine_core::hardware::{EnergyReading, HardwareUsage, MemoryInfo};
 use sysinfo::{CpuRefreshKind, MemoryRefreshKind, System};
 
+use crate::power::PowerMeter;
 #[cfg(windows)]
 use crate::windows::gpu_engines::GpuEngines;
 
@@ -12,6 +13,7 @@ pub(crate) struct UsageSampler {
     system: System,
     #[cfg(windows)]
     engines: Option<GpuEngines>,
+    power: PowerMeter,
 }
 
 impl UsageSampler {
@@ -24,6 +26,7 @@ impl UsageSampler {
             engines: GpuEngines::open()
                 .inspect_err(|err| tracing::warn!(%err, "NPU and GPU load won't be shown"))
                 .ok(),
+            power: PowerMeter::open(),
         }
     }
 
@@ -41,7 +44,12 @@ impl UsageSampler {
                 total_bytes: self.system.total_memory(),
                 available_bytes: self.system.available_memory(),
             },
+            power: self.power.draw(),
         }
+    }
+
+    pub(crate) fn energy(&self) -> Option<EnergyReading> {
+        self.power.system_energy()
     }
 
     #[cfg(windows)]

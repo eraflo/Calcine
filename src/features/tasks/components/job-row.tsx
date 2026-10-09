@@ -4,6 +4,7 @@ import {
   CirclePause,
   Download,
   FolderInput,
+  Gauge,
   RotateCw,
   X,
 } from "lucide-react";
@@ -12,7 +13,7 @@ import { Progress } from "@/components/ui/progress";
 import { useT } from "@/i18n";
 import type { Job } from "@/lib/api";
 import { useCancelJob, useDismissJob, useImportModel, usePullByName } from "../api";
-import { jobTitle, percent, progressLabel } from "../lib/format";
+import { jobTitle, percent, progressLabel, type TasksT } from "../lib/format";
 import { messages } from "../messages";
 
 export function JobRow({ job }: { job: Job }) {
@@ -23,7 +24,8 @@ export function JobRow({ job }: { job: Job }) {
   const retryImport = useImportModel();
   const title = jobTitle(job, t);
   const importing = job.kind.type === "import";
-  const installing = job.kind.type === "install_runtime" || job.kind.type === "update_app";
+  // Started again from the Benchmark page, with its settings.
+  const retriable = job.kind.type === "pull" || job.kind.type === "import";
   const running = job.state.state === "running";
   // The GenieX installer can't be stopped halfway.
   const cancellable = running && job.progress?.phase !== "installing";
@@ -73,21 +75,12 @@ export function JobRow({ job }: { job: Job }) {
       )}
       {job.state.state === "running" && (
         <>
-          <Progress
-            value={percent(job)}
-            label={
-              job.kind.type === "install_runtime"
-                ? t("installingGeniex", { version: job.kind.version })
-                : t(importing ? "importing" : "downloading", { model: title })
-            }
-          />
+          <Progress value={percent(job)} label={runningLabel(job, title, t)} />
           <p className="text-xs text-muted-foreground tabular-nums">{progressLabel(job, t)}</p>
         </>
       )}
       {job.state.state === "succeeded" && (
-        <p className="text-xs text-muted-foreground">
-          {t(installing ? "geniexInstalled" : importing ? "imported" : "downloaded")}
-        </p>
+        <p className="text-xs text-muted-foreground">{doneLabel(job, t)}</p>
       )}
       {(job.state.state === "cancelled" || job.state.state === "failed") && (
         <div className="flex items-start gap-2">
@@ -97,7 +90,7 @@ export function JobRow({ job }: { job: Job }) {
               : job.state.message}
           </p>
           {/* GenieX installs are started again from the Hardware page. */}
-          {!installing && (
+          {retriable && (
             <Button
               size="sm"
               variant="secondary"
@@ -114,11 +107,47 @@ export function JobRow({ job }: { job: Job }) {
   );
 }
 
+function runningLabel(job: Job, title: string, t: TasksT) {
+  switch (job.kind.type) {
+    case "install_runtime":
+      return t("installingGeniex", { version: job.kind.version });
+    case "install_bench":
+      return t("downloadingBenchTool");
+    case "benchmark":
+      return t("benchmarking", { model: title });
+    case "energy_profile":
+      return t("measuringEnergy", { model: title });
+    case "import":
+      return t("importing", { model: title });
+    default:
+      return t("downloading", { model: title });
+  }
+}
+
+function doneLabel(job: Job, t: TasksT) {
+  switch (job.kind.type) {
+    case "install_runtime":
+    case "update_app":
+      return t("geniexInstalled");
+    case "install_bench":
+      return t("benchToolReady");
+    case "benchmark":
+    case "energy_profile":
+      return t("benchmarked");
+    case "import":
+      return t("imported");
+    default:
+      return t("downloaded");
+  }
+}
+
 function StateIcon({ job }: { job: Job }) {
   switch (job.state.state) {
     case "running":
       return job.kind.type === "import" ? (
         <FolderInput className="size-4 shrink-0 text-primary" />
+      ) : job.kind.type === "benchmark" || job.kind.type === "energy_profile" ? (
+        <Gauge className="size-4 shrink-0 text-primary" />
       ) : (
         <Download className="size-4 shrink-0 text-primary" />
       );

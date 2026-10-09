@@ -14,8 +14,10 @@ import { modelsQuery, useCleanModels } from "@/features/library/api";
 import { type LanguagePreference, useLanguage, useT } from "@/i18n";
 import { commands, unwrap } from "@/lib/api";
 import { formatBytes, totalBytes } from "@/lib/format";
+import { isWindows } from "@/lib/platform";
 import { useTheme } from "@/stores/theme";
 import { appInfoQuery } from "./api";
+import { NetworkCard } from "./components/network-card";
 import { LocalApiCard, StartupCard } from "./components/system-cards";
 import { UpdatesCard } from "./components/updates-card";
 import { messages } from "./messages";
@@ -27,6 +29,7 @@ export function SettingsPage() {
       <AppearanceCard />
       <StartupCard />
       <LocalApiCard />
+      <NetworkCard />
       <StorageCard />
       <UpdatesCard />
       <AboutCard />
@@ -58,9 +61,11 @@ function AppearanceCard() {
             ]}
           />
         </Row>
-        <Row label={t("mica")} hint={t("micaHint")}>
-          <Switch checked={mica} onCheckedChange={setMica} aria-label={t("mica")} />
-        </Row>
+        {isWindows && (
+          <Row label={t("mica")} hint={t("micaHint")}>
+            <Switch checked={mica} onCheckedChange={setMica} aria-label={t("mica")} />
+          </Row>
+        )}
         <Row label={t("language")} hint={t("languageHint")}>
           <SegmentedControl<LanguagePreference>
             name="language"

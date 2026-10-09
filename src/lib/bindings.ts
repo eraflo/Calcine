@@ -16,6 +16,11 @@ export const commands = {
 	 *  links to the sites Calcine itself links to are opened.
 	 */
 	openUrl: (url: string) => typedError<null, ApiError>(__TAURI_INVOKE("open_url", { url })),
+	/**
+	 *  Save an export where the user picks in the system dialog. Returns the
+	 *  saved path, or `None` when the user cancels.
+	 */
+	saveExport: (fileName: string, contents: string, format: ExportFormat) => typedError<string | null, ApiError>(__TAURI_INVOKE("save_export", { fileName, contents, format })),
 	/**  Whether Calcine starts with Windows (in the tray). */
 	autostartEnabled: () => typedError<boolean, ApiError>(__TAURI_INVOKE("autostart_enabled")),
 	setAutostart: (enabled: boolean) => typedError<null, ApiError>(__TAURI_INVOKE("set_autostart", { enabled })),
@@ -85,10 +90,26 @@ export const commands = {
 	 *  spawned on the Tokio runtime.
 	 */
 	installRuntime: (source: InstallSource) => typedError<number, ApiError>(__TAURI_INVOKE("install_runtime", { source })),
+	/**  The GenieX version Calcine was tested with, installed on first launch. */
+	recommendedRuntime: () => __TAURI_INVOKE<RuntimeRelease>("recommended_runtime"),
 	/**  GenieX installers kept on this PC, newest first. */
 	cachedRuntimes: () => __TAURI_INVOKE<CachedInstaller[]>("cached_runtimes"),
 	/**  Every known job, newest first. */
 	listJobs: () => __TAURI_INVOKE<Job[]>("list_jobs"),
+	/**  Whether `geniex-bench` is downloaded, and for which GenieX. */
+	benchTool: () => typedError<BenchTool, ApiError>(__TAURI_INVOKE("bench_tool")),
+	/**  Download `geniex-bench` for the installed GenieX, as a job. */
+	installBenchTool: () => typedError<number, ApiError>(__TAURI_INVOKE("install_bench_tool")),
+	/**  Benchmark a model on each requested compute unit, as a job. */
+	startBenchmark: (request: BenchRequest) => typedError<number, ApiError>(__TAURI_INVOKE("start_benchmark", { request })),
+	/**
+	 *  Measure a model's speed and energy in each requested power mode, as a
+	 *  job. Needs a device with energy metering.
+	 */
+	startEnergyProfile: (request: EnergyRequest) => typedError<number, ApiError>(__TAURI_INVOKE("start_energy_profile", { request })),
+	/**  Past results, newest first. */
+	benchHistory: () => __TAURI_INVOKE<BenchResult[]>("bench_history"),
+	forgetBenchResults: (ids: string[]) => typedError<null, ApiError>(__TAURI_INVOKE("forget_bench_results", { ids })),
 	/**  Ask a running job to stop. Returns `false` if it already finished. */
 	cancelJob: (id: number) => __TAURI_INVOKE<boolean>("cancel_job", { id }),
 	/**  Remove a finished job from the list. */
@@ -100,6 +121,15 @@ export const commands = {
 	stopServer: () => typedError<null, ApiError>(__TAURI_INVOKE("stop_server")),
 	/**  Recent output of `geniex serve`. */
 	serverLogs: () => __TAURI_INVOKE<string[]>("server_logs"),
+	/**
+	 *  How much of the model's context window a chat request takes. `request`
+	 *  is the request's JSON, as sent to `/v1/chat/completions`.
+	 */
+	contextUsage: (model: string, request: string) => typedError<ContextUsage, ApiError>(__TAURI_INVOKE("context_usage", { model, request })),
+	/**  What `geniex serve` starts with: model unload delay, context window. */
+	serverOptions: () => __TAURI_INVOKE<ServerOptions>("server_options"),
+	/**  Save new server options. A running GenieX restarts to apply them. */
+	setServerOptions: (options: ServerOptions) => typedError<null, ApiError>(__TAURI_INVOKE("set_server_options", { options })),
 	setRequireApiKey: (require: boolean) => typedError<null, ApiError>(__TAURI_INVOKE("set_require_api_key", { require })),
 	/**  The port and allowed browser origins of the local API. */
 	gatewaySettings: () => __TAURI_INVOKE<GatewaySettings>("gateway_settings"),
@@ -107,6 +137,43 @@ export const commands = {
 	setGatewayPort: (port: number) => typedError<null, ApiError>(__TAURI_INVOKE("set_gateway_port", { port })),
 	/**  Browser origins allowed to call the local API (local web apps). */
 	setAllowedOrigins: (origins: string[]) => typedError<null, ApiError>(__TAURI_INVOKE("set_allowed_origins", { origins })),
+	/**  Also answer Ollama apps on port 11434, without a key (inference only). */
+	setOllamaPort: (enabled: boolean) => typedError<null, ApiError>(__TAURI_INVOKE("set_ollama_port", { enabled })),
+	/**
+	 *  Answer other devices on the local network over HTTPS, or stop. `allowed`
+	 *  lists addresses or ranges; empty means private networks.
+	 */
+	setNetwork: (enabled: boolean, port: number, allowed: string[]) => typedError<null, ApiError>(__TAURI_INVOKE("set_network", { enabled, port, allowed })),
+	/**
+	 *  Make a new certificate for the network port. Devices that trusted the
+	 *  old one must trust the new one.
+	 */
+	renewNetworkCertificate: () => typedError<null, ApiError>(__TAURI_INVOKE("renew_network_certificate")),
+	/**
+	 *  Show the network port's certificate (`certificate.pem`) in Explorer, to
+	 *  copy it to other devices.
+	 */
+	showNetworkCertificate: () => typedError<null, ApiError>(__TAURI_INVOKE("show_network_certificate")),
+	/**  Let a key be used from other devices on the local network, or not. */
+	setApiKeyNetwork: (id: string, network: boolean) => typedError<{
+	id: string,
+	name: string,
+	/**  The first characters, to recognize a key: `calcine_3f9a…`. */
+	preview: string,
+	scopes: KeyScope[],
+	/**
+	 *  May send local file paths and URLs (images, audio, grammars) for
+	 *  GenieX to read. Off by default: it lets the app read any file.
+	 */
+	allowLocalFiles: boolean,
+	/**
+	 *  May be used from other devices, on the local network port. Off by
+	 *  default: most apps run on this PC.
+	 */
+	network?: boolean,
+	createdAtMs: number,
+	lastUsedAtMs: number | null,
+} | null, ApiError>(__TAURI_INVOKE("set_api_key_network", { id, network })),
 	/**  Recent API requests, newest first. */
 	listRequests: () => __TAURI_INVOKE<RequestEntry[]>("list_requests"),
 	listApiKeys: () => __TAURI_INVOKE<ApiKeyInfo[]>("list_api_keys"),
@@ -147,6 +214,11 @@ export type ApiKeyInfo = {
 	 *  GenieX to read. Off by default: it lets the app read any file.
 	 */
 	allowLocalFiles: boolean,
+	/**
+	 *  May be used from other devices, on the local network port. Off by
+	 *  default: most apps run on this PC.
+	 */
+	network?: boolean,
 	createdAtMs: number,
 	lastUsedAtMs: number | null,
 };
@@ -179,6 +251,89 @@ export type BackendKind =
 "geniex" | 
 /**  In-memory fake data (`CALCINE_BACKEND=mock`). */
 "mock";
+
+/**  What one compute unit measured. */
+export type BenchMeasure = {
+	ttftMs: BenchStat,
+	prefillTps: BenchStat,
+	decodeTps: BenchStat,
+	/**  Median tokens actually generated (a model may stop early). */
+	generatedTokens: number | null,
+	/**  Prompt tokens processed. QAIRT pads them to a multiple of 128. */
+	promptTokens: number | null,
+	geniexVersion: string,
+	/**  Power and energy, for energy profiles. */
+	energy?: EnergyMeasure | null,
+};
+
+/**  What to measure. One run per compute unit. */
+export type BenchRequest = {
+	/**  GenieX id, `org/model:precision`. */
+	model: string,
+	runtime: Runtime,
+	units: ComputeUnit[],
+	/**  Prompt length, in random tokens. */
+	promptTokens: number,
+	/**  Tokens generated per repetition. */
+	generatedTokens: number,
+	/**  Measured repetitions, after one warmup. */
+	repetitions: number,
+	/**  HTP power mode (`burst`, `balanced`, …). */
+	powerMode: string,
+	/**
+	 *  Speculative decoding method (`ngram-cache`, `draft-simple`, …),
+	 *  llama.cpp only.
+	 */
+	specType?: string | null,
+	/**  Draft model for the `draft-*` methods (GenieX id). */
+	draftModel?: string | null,
+};
+
+/**  One compute unit's result in the history. */
+export type BenchResult = {
+	id: string,
+	/**  Results measured together share a session. */
+	sessionId: string,
+	startedAtMs: number,
+	model: string,
+	runtime: Runtime,
+	unit: ComputeUnit,
+	promptTokens: number,
+	generatedTokens: number,
+	repetitions: number,
+	powerMode: string,
+	specType?: string | null,
+	draftModel?: string | null,
+	source?: BenchSource,
+	/**  `None` when the run failed. */
+	measure: BenchMeasure | null,
+	error: string | null,
+};
+
+/**  What measured a result. */
+export type BenchSource = 
+/**  Qualcomm's `geniex-bench`, on a random prompt. */
+"geniex_bench" | 
+/**  An energy profile, through `geniex serve`. */
+"energy_profile";
+
+/**  A measured value across repetitions. */
+export type BenchStat = {
+	median: number | null,
+	min: number | null,
+	max: number | null,
+	stdev: number | null,
+};
+
+/**  Whether the benchmark tool is ready. */
+export type BenchTool = {
+	/**  Version installed for Calcine, if any. */
+	installed: string | null,
+	/**  The version matching the installed GenieX, the one to install. */
+	wanted: string | null,
+	/**  Download size of `wanted`, when known. */
+	downloadBytes: number | null,
+};
 
 /**  An installer kept on disk, to reinstall without downloading. */
 export type CachedInstaller = {
@@ -217,6 +372,13 @@ export type ComputeUnit =
 /**  Split between units. */
 "hybrid";
 
+/**  How full a conversation is. */
+export type ContextUsage = {
+	tokens: TokenCount,
+	/**  The model's context window, when known. */
+	window: number | null,
+};
+
 /**  A freshly created key. `token` is only ever returned here. */
 export type CreatedApiKey = {
 	token: string,
@@ -230,8 +392,43 @@ export type DiskSpace = {
 	availableBytes: number,
 };
 
+/**  What energy a power mode used. */
+export type EnergyMeasure = {
+	/**  The whole system, idle with the model loaded, just before. */
+	idleWatts: number | null,
+	/**  The whole system while generating (median). */
+	activeWatts: number | null,
+	/**
+	 *  Energy above idle per generated token, the prompt included (median):
+	 *  what generating costs.
+	 */
+	joulesPerToken: number | null,
+	/**
+	 *  Energy of the whole system per generated token (median): what the
+	 *  battery sees, the screen and everything else included.
+	 */
+	systemJoulesPerToken?: number | null,
+};
+
+/**
+ *  Which model to profile, on which units, in which power modes. Every unit
+ *  is measured in every mode.
+ */
+export type EnergyRequest = {
+	model: string,
+	runtime: Runtime,
+	/**  The NPU for AI Hub models; llama.cpp models can use any unit. */
+	units: ComputeUnit[],
+	powerModes: string[],
+	generatedTokens: number,
+	repetitions: number,
+};
+
 /**  Stable, machine-readable error category exposed to the frontend. */
 export type ErrorKind = "runtime_not_found" | "command" | "timeout" | "parse" | "invalid_input" | "cancelled" | "network" | "not_implemented" | "io";
+
+/**  What an export contains, for the save dialog's file type. */
+export type ExportFormat = "markdown" | "csv";
 
 /**  How Calcine's own UI talks to the gateway. */
 export type GatewayConnection = {
@@ -250,6 +447,25 @@ export type GatewaySettings = {
 	requireApiKey?: boolean,
 	/**  Extra browser origins allowed to call the API (e.g. a local web UI). */
 	allowedOrigins?: string[],
+	/**
+	 *  Also answer on Ollama's port, where callers need no key (inference
+	 *  only), for apps that only speak Ollama.
+	 */
+	ollamaPortEnabled?: boolean,
+	/**  Ollama's port, 11434. Configurable for tests. */
+	ollamaPort?: number,
+	/**
+	 *  Also answer other devices on the local network, over HTTPS, with
+	 *  keys allowed on the network.
+	 */
+	networkEnabled?: boolean,
+	/**  The network port, 18443 by default. */
+	networkPort?: number,
+	/**
+	 *  Who may connect over the network: addresses or ranges like
+	 *  `192.168.1.0/24`. Empty means private networks.
+	 */
+	networkAllowed?: string[],
 };
 
 /**  What the Server page shows. */
@@ -263,6 +479,14 @@ export type GatewayStatus = {
 	activeRequests: number,
 	queuedRequests: number,
 	requireApiKey: boolean,
+	/**  Where Ollama apps connect, when the Ollama port is on and listening. */
+	ollamaUrl: string | null,
+	/**  Why the Ollama port isn't listening (taken by Ollama itself, ...). */
+	ollamaError: string | null,
+	/**  Where other devices connect, when the network port is listening. */
+	network: NetworkStatus | null,
+	/**  Why the network port isn't listening. */
+	networkError: string | null,
 };
 
 /**  The gateway or the inference server changed state. */
@@ -287,6 +511,8 @@ export type HardwareUsage = {
 	/**  Hexagon NPU, 0-100. `None` when the OS doesn't report it. */
 	npuPercent: number | null,
 	memory: MemoryInfo,
+	/**  Power drawn, on devices with energy metering. */
+	power: PowerDraw | null,
 };
 
 /**  The Qualcomm AI Hub catalog, optionally filtered for one chipset. */
@@ -353,10 +579,18 @@ export type JobKind =
 /**  Installing, updating or rolling back GenieX itself. */
 { type: "install_runtime"; version: string } | 
 /**  Downloading and installing a newer Calcine. */
-{ type: "update_app"; version: string };
+{ type: "update_app"; version: string } | 
+/**  Downloading the benchmark tool (`geniex-bench`). */
+{ type: "install_bench"; version: string } | 
+/**  Benchmarking a model on one or more compute units. */
+{ type: "benchmark"; model: string } | 
+/**  Measuring a model's speed and energy in several power modes. */
+{ type: "energy_profile"; model: string };
 
 /**  What a multi-step job is doing right now. */
-export type JobPhase = "downloading" | "verifying" | "installing";
+export type JobPhase = "downloading" | "verifying" | "installing" | 
+/**  Running one benchmark measurement. */
+"measuring";
 
 export type JobProgress = {
 	doneBytes: number,
@@ -364,9 +598,18 @@ export type JobProgress = {
 	bytesPerSecond: number | null,
 	/**  Set by jobs with several steps (installing GenieX). */
 	phase: JobPhase | null,
+	/**  Set by jobs that repeat a step (one benchmark per compute unit). */
+	step: JobStep | null,
 };
 
 export type JobState = { state: "running" } | { state: "succeeded" } | { state: "cancelled" } | { state: "failed"; message: string };
+
+/**  Where a job made of several steps is. */
+export type JobStep = {
+	/**  1-based. */
+	current: number,
+	total: number,
+};
 
 /**  A job started, progressed or finished. */
 export type JobUpdated = Job;
@@ -429,11 +672,34 @@ export type ModelType = "llm" | "vlm" |
 /**  A type this version of Calcine doesn't know about yet. */
 "unknown";
 
+/**  The network port, as other devices see it. */
+export type NetworkStatus = {
+	/**  Base URL for other devices, e.g. `https://192.168.1.20:18443/v1`. */
+	baseUrl: string,
+	/**  This PC's name on the network, for clients that prefer it. */
+	hostName: string | null,
+	/**  SHA-256 of the certificate, for clients to pin. */
+	fingerprint: string,
+	/**  The certificate as a `.pem` file, for clients to import. */
+	certificatePath: string,
+};
+
 /**  What to create. */
 export type NewApiKey = {
 	name: string,
 	scopes: KeyScope[],
 	allowLocalFiles: boolean,
+	network?: boolean,
+};
+
+/**
+ *  Power drawn since the previous sample, in watts. Snapdragon X meters the
+ *  CPU clusters, the GPU and the whole system, not the NPU on its own.
+ */
+export type PowerDraw = {
+	systemWatts: number | null,
+	cpuWatts: number | null,
+	gpuWatts: number | null,
 };
 
 export type Processor = {
@@ -567,12 +833,39 @@ export type RuntimeUpdateCheck = {
 	publisherSigned: boolean,
 };
 
+/**  Defaults `geniex serve` starts with. Changing them restarts the server. */
+export type ServerOptions = {
+	/**  Unload the model after this many idle seconds (`--keepalive`). */
+	keepaliveSecs?: number,
+	/**
+	 *  Context window of llama.cpp models, in tokens (`--nctx`). AI Hub
+	 *  models have theirs compiled in.
+	 */
+	contextSize?: number,
+};
+
 /**  Lifecycle of the inference server process. */
 export type ServerState = { state: "stopped" } | { state: "starting" } | 
 /**  Accepting requests at `url` (loopback, internal port). */
 { state: "ready"; url: string; startedAtMs: number } | 
 /**  The process exited or never became ready. */
 { state: "failed"; message: string };
+
+/**  Tokens a chat request takes. */
+export type TokenCount = {
+	/**  Each message, in order, with its share of the chat template. */
+	perMessage: number[],
+	/**
+	 *  The rest of the prompt: tools, the start of the reply, the default
+	 *  system prompt GenieX adds when there's none.
+	 */
+	overhead: number,
+	/**
+	 *  Counted with the model's tokenizer (within a few tokens of what
+	 *  GenieX counts) rather than estimated from the text's length.
+	 */
+	exact: boolean,
+};
 
 /* Tauri Specta runtime */
 async function typedError<T, E>(result: Promise<T>): Promise<{ status: "ok"; data: T } | { status: "error"; error: E }> {

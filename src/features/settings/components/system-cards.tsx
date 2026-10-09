@@ -6,16 +6,20 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/field";
 import { Switch } from "@/components/ui/switch";
+import { gatewayQuery } from "@/features/server/api";
 import { defineMessages, useT } from "@/i18n";
 import { call, commands, unwrap } from "@/lib/api";
+import { isWindows } from "@/lib/platform";
 
 const strings = defineMessages({
   en: {
     startup: "Startup",
     autostart: "Start with Windows",
+    autostartLinux: "Start when you log in",
     autostartHint: "Calcine opens in the tray so apps can use the API right away.",
     api: "Local API",
-    apiHint: "Where other apps reach your models. Calcine only listens on this PC.",
+    apiHint:
+      "Where other apps on this PC reach your models. Other devices connect through Local network, when it's on.",
     port: "Port",
     portHint: "18181 is GenieX's default, so existing GenieX clients work unchanged.",
     apply: "Apply",
@@ -28,14 +32,22 @@ const strings = defineMessages({
     add: "Add",
     removeOrigin: "Remove {origin}",
     invalidOrigin: "{origin} isn't an origin: use the form http://host:port, without a path.",
+    ollama: "Ollama apps",
+    ollamaHint:
+      "Also answer on port 11434, where apps made for Ollama look. They need no key there, but can only run models.",
+    ollamaListening: "Ollama apps can connect to {url}.",
+    ollamaPortTaken:
+      "Port 11434 is already used, probably by Ollama. Quit it to let Calcine answer there.",
   },
   fr: {
     startup: "Démarrage",
     autostart: "Lancer avec Windows",
+    autostartLinux: "Lancer à l'ouverture de session",
     autostartHint:
       "Calcine s'ouvre dans la zone de notification pour que les applis puissent utiliser l'API tout de suite.",
     api: "API locale",
-    apiHint: "Où les autres applis accèdent à vos modèles. Calcine n'écoute que sur ce PC.",
+    apiHint:
+      "Où les autres applis de ce PC accèdent à vos modèles. Les autres appareils passent par Réseau local, quand il est activé.",
     port: "Port",
     portHint:
       "18181 est le port par défaut de GenieX : les clients GenieX existants fonctionnent sans changement.",
@@ -51,15 +63,21 @@ const strings = defineMessages({
     removeOrigin: "Retirer {origin}",
     invalidOrigin:
       "{origin} n'est pas une origine : utilisez la forme http://hôte:port, sans chemin.",
+    ollama: "Applis Ollama",
+    ollamaHint:
+      "Répondre aussi sur le port 11434, où cherchent les applis faites pour Ollama. Elles n'y ont pas besoin de clé, mais ne peuvent qu'exécuter des modèles.",
+    ollamaListening: "Les applis Ollama peuvent se connecter à {url}.",
+    ollamaPortTaken:
+      "Le port 11434 est déjà utilisé, sans doute par Ollama. Quittez-le pour que Calcine y réponde.",
   },
 });
 
-const gatewaySettingsQuery = {
+export const gatewaySettingsQuery = {
   queryKey: ["gateway-settings"],
   queryFn: () => call(commands.gatewaySettings),
 };
 
-/** Start Calcine with Windows, in the tray. */
+/** Start Calcine with the session, in the tray. */
 export function StartupCard() {
   const t = useT(strings);
   const queryClient = useQueryClient();
@@ -80,7 +98,7 @@ export function StartupCard() {
       <CardContent className="flex flex-col gap-2">
         <div className="flex items-center justify-between gap-4">
           <label htmlFor="autostart" className="flex flex-col">
-            <span className="text-sm">{t("autostart")}</span>
+            <span className="text-sm">{t(isWindows ? "autostart" : "autostartLinux")}</span>
             <span className="text-[11px] text-muted-foreground">{t("autostartHint")}</span>
           </label>
           <Switch
@@ -124,6 +142,11 @@ export function LocalApiCard() {
     mutationFn: (origins: string[]) => unwrap(() => commands.setAllowedOrigins(origins)),
     onSettled: refresh,
   });
+  const saveOllama = useMutation({
+    mutationFn: (enabled: boolean) => unwrap(() => commands.setOllamaPort(enabled)),
+    onSettled: refresh,
+  });
+  const { data: status } = useQuery(gatewayQuery);
 
   const origins = settings.data?.allowedOrigins ?? [];
   const portNumber = Number(port);
@@ -220,6 +243,36 @@ export function LocalApiCard() {
           <p className="text-[11px] text-muted-foreground">{t("originsHint")}</p>
           {(invalid || saveOrigins.isError) && (
             <p className="text-xs text-destructive">{invalid ?? saveOrigins.error?.message}</p>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center justify-between gap-4">
+            <label htmlFor="ollama-port" className="flex flex-col">
+              <span className="text-sm">{t("ollama")}</span>
+              <span className="text-[11px] text-muted-foreground">{t("ollamaHint")}</span>
+            </label>
+            <Switch
+              id="ollama-port"
+              checked={settings.data?.ollamaPortEnabled ?? false}
+              disabled={!settings.data || saveOllama.isPending}
+              onCheckedChange={(enabled) => saveOllama.mutate(enabled)}
+            />
+          </div>
+          {settings.data?.ollamaPortEnabled && status?.ollamaUrl && (
+            <p className="text-xs text-success">
+              {t("ollamaListening", { url: status.ollamaUrl })}
+            </p>
+          )}
+          {settings.data?.ollamaPortEnabled && status?.ollamaError && (
+            <p className="text-xs text-warning">
+              {status.ollamaError.includes("already used")
+                ? t("ollamaPortTaken")
+                : status.ollamaError}
+            </p>
+          )}
+          {saveOllama.isError && (
+            <p className="text-xs text-destructive">{saveOllama.error.message}</p>
           )}
         </div>
       </CardContent>

@@ -3,7 +3,7 @@ use calcine_core::hardware::{HardwareInfo, HardwareUsage};
 use calcine_core::jobs::JobId;
 use calcine_core::models::Chipset;
 use calcine_core::runtime::{
-    CachedInstaller, InstallSource, ReleaseChannel, RuntimeInfo, RuntimeUpdateCheck,
+    CachedInstaller, InstallSource, ReleaseChannel, RuntimeInfo, RuntimeRelease, RuntimeUpdateCheck,
 };
 use tauri::State;
 
@@ -51,6 +51,13 @@ pub async fn hardware_info(services: State<'_, Services>) -> ApiResult<HardwareI
 #[specta::specta]
 pub async fn hardware_usage(services: State<'_, Services>) -> ApiResult<HardwareUsage> {
     Ok(services.hardware.usage().await?)
+}
+
+/// The GenieX version Calcine was tested with, installed on first launch.
+#[tauri::command]
+#[specta::specta]
+pub fn recommended_runtime() -> RuntimeRelease {
+    crate::setup::pinned_release()
 }
 
 /// The newest GenieX on `channel`, compared with the installed one.

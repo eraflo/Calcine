@@ -10,12 +10,14 @@ pub enum Caller {
     App(ApiKeyInfo),
     /// No key, accepted because keys aren't required (compatibility mode).
     Anonymous,
+    /// No key, on the Ollama port: Ollama clients can't send one.
+    OllamaClient,
 }
 
 impl Caller {
     pub fn can_infer(&self) -> bool {
         match self {
-            Self::Calcine | Self::Anonymous => true,
+            Self::Calcine | Self::Anonymous | Self::OllamaClient => true,
             Self::App(key) => key.scopes.contains(&KeyScope::Inference),
         }
     }
@@ -24,7 +26,7 @@ impl Caller {
         match self {
             Self::Calcine => true,
             Self::App(key) => key.scopes.contains(&KeyScope::Manage),
-            Self::Anonymous => false,
+            Self::Anonymous | Self::OllamaClient => false,
         }
     }
 
@@ -33,7 +35,7 @@ impl Caller {
         match self {
             Self::Calcine => true,
             Self::App(key) => key.allow_local_files,
-            Self::Anonymous => false,
+            Self::Anonymous | Self::OllamaClient => false,
         }
     }
 
@@ -43,6 +45,7 @@ impl Caller {
             Self::Calcine => "Calcine".into(),
             Self::App(key) => key.name.clone(),
             Self::Anonymous => "No key".into(),
+            Self::OllamaClient => "Ollama app".into(),
         }
     }
 }

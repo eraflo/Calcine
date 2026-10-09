@@ -44,8 +44,22 @@ fn message(job: &Job, strings: &Strings) -> Option<(String, String)> {
         JobKind::InstallRuntime { version } => {
             (version, &strings.geniex_update, strings.version_installed)
         }
-        // Calcine restarts into the new version: nothing to announce.
-        JobKind::UpdateApp { .. } => return None,
+        JobKind::Benchmark { model } | JobKind::EnergyProfile { model } => {
+            return match &job.state {
+                JobState::Succeeded => Some((
+                    strings.benchmark.done.to_owned(),
+                    format!("{model}{}", strings.results_ready),
+                )),
+                JobState::Failed { message } => Some((
+                    strings.benchmark.failed.to_owned(),
+                    format!("{model}: {message}"),
+                )),
+                JobState::Running | JobState::Cancelled => None,
+            };
+        }
+        // Calcine restarts into the new version: nothing to announce. The
+        // benchmark tool downloads while its page is open.
+        JobKind::UpdateApp { .. } | JobKind::InstallBench { .. } => return None,
     };
     match &job.state {
         JobState::Succeeded => Some((messages.done.to_owned(), format!("{subject} {success}"))),

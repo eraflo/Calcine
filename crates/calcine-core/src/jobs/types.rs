@@ -17,6 +17,12 @@ pub enum JobKind {
     InstallRuntime { version: String },
     /// Downloading and installing a newer Calcine.
     UpdateApp { version: String },
+    /// Downloading the benchmark tool (`geniex-bench`).
+    InstallBench { version: String },
+    /// Benchmarking a model on one or more compute units.
+    Benchmark { model: String },
+    /// Measuring a model's speed and energy in several power modes.
+    EnergyProfile { model: String },
 }
 
 /// What a multi-step job is doing right now.
@@ -26,6 +32,17 @@ pub enum JobPhase {
     Downloading,
     Verifying,
     Installing,
+    /// Running one benchmark measurement.
+    Measuring,
+}
+
+/// Where a job made of several steps is.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct JobStep {
+    /// 1-based.
+    pub current: u32,
+    pub total: u32,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
@@ -45,6 +62,8 @@ pub struct JobProgress {
     pub bytes_per_second: Option<u64>,
     /// Set by jobs with several steps (installing GenieX).
     pub phase: Option<JobPhase>,
+    /// Set by jobs that repeat a step (one benchmark per compute unit).
+    pub step: Option<JobStep>,
 }
 
 /// A snapshot of one job, as sent to the UI.

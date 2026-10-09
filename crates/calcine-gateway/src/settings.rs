@@ -17,6 +17,19 @@ pub struct GatewaySettings {
     pub require_api_key: bool,
     /// Extra browser origins allowed to call the API (e.g. a local web UI).
     pub allowed_origins: Vec<String>,
+    /// Also answer on Ollama's port, where callers need no key (inference
+    /// only), for apps that only speak Ollama.
+    pub ollama_port_enabled: bool,
+    /// Ollama's port, 11434. Configurable for tests.
+    pub ollama_port: u16,
+    /// Also answer other devices on the local network, over HTTPS, with
+    /// keys allowed on the network.
+    pub network_enabled: bool,
+    /// The network port, 18443 by default.
+    pub network_port: u16,
+    /// Who may connect over the network: addresses or ranges like
+    /// `192.168.1.0/24`. Empty means private networks.
+    pub network_allowed: Vec<String>,
 }
 
 impl Default for GatewaySettings {
@@ -25,6 +38,11 @@ impl Default for GatewaySettings {
             port: DEFAULT_PORT,
             require_api_key: true,
             allowed_origins: Vec::new(),
+            ollama_port_enabled: false,
+            ollama_port: crate::ollama::OLLAMA_PORT,
+            network_enabled: false,
+            network_port: crate::network::DEFAULT_PORT,
+            network_allowed: Vec::new(),
         }
     }
 }

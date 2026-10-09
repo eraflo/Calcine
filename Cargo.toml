@@ -3,7 +3,7 @@ resolver = "3"
 members = ["crates/*", "src-tauri"]
 
 [workspace.package]
-version = "0.1.0"
+version = "1.0.0"
 edition = "2024"
 rust-version = "1.99"
 license = "MIT"
@@ -55,6 +55,14 @@ hex = "0.4"
 getrandom = "0.4"
 win32job = "2"
 windows-sys = "0.61"
+libc = "0.2"
+# The local network port: TLS with ring (no cmake or nasm needed), a
+# self-signed certificate, HTTP/1.1 and HTTP/2 over it.
+rcgen = { version = "0.14", default-features = false, features = ["crypto", "pem", "ring"] }
+tokio-rustls = { version = "0.26", default-features = false, features = ["logging", "tls12", "ring"] }
+hyper-util = { version = "0.1", features = ["server-auto", "service", "tokio"] }
+# Pure Rust (no Oniguruma or C++): counts tokens with a model's tokenizer.json.
+tokenizers = { version = "0.23.2", default-features = false, features = ["fancy-regex"] }
 
 [workspace.lints.rust]
 # Denied everywhere; the only exception is calcine-hw's Windows performance

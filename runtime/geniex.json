@@ -1,5 +1,5 @@
 {
-  "$comment": "GenieX version bundled in Calcine installers. Bumped by CI (geniex-bump workflow); values come from the official manifest at https://qaihub-public-assets.s3.us-west-2.amazonaws.com/qai-hub-geniex/manifest-<version>.json",
+  "$comment": "GenieX version Calcine was tested with and installs on first launch, per platform (downloaded from Qualcomm, checked against this SHA-256). Bumped by CI (geniex-bump workflow); values come from the official manifest at https://qaihub-public-assets.s3.us-west-2.amazonaws.com/qai-hub-geniex/manifest-<version>.json",
   "version": "v0.8.0",
   "assets": {
     "windows-arm64": {
@@ -7,6 +7,12 @@
       "url": "https://qaihub-public-assets.s3.us-west-2.amazonaws.com/qai-hub-geniex/geniex-cli-setup-windows-arm64-v0.8.0.exe",
       "size": 65196910,
       "sha256": "fcc4d932f371a9b3ad3d08a1b34912fe21a7fdf7c54d47c869250b50d81ec734"
+    },
+    "linux-arm64": {
+      "name": "geniex-cli-linux-arm64-v0.8.0.tar.gz",
+      "url": "https://qaihub-public-assets.s3.us-west-2.amazonaws.com/qai-hub-geniex/geniex-cli-linux-arm64-v0.8.0.tar.gz",
+      "size": 105309808,
+      "sha256": "a8ff7f90850b9f10629bc3c729d0fb93594e8c0b01d31ac5cf5ef9ea7b3e1c37"
     }
   }
 }

@@ -47,14 +47,22 @@ pub fn latest_tag(index_json: &str, channel: ReleaseChannel) -> Result<Option<St
     })
 }
 
-/// The installer for `platform`/`arch` (`windows`/`arm64`) in a release
-/// manifest, or `None` when that release doesn't ship one.
-pub fn release(manifest_json: &str, platform: &str, arch: &str) -> Result<Option<RuntimeRelease>> {
+/// The package of `kind` (`cli-installer` on Windows, `cli-archive` on
+/// Linux) for `platform`/`arch` in a release manifest, or `None` when that
+/// release doesn't ship one.
+pub fn release(
+    manifest_json: &str,
+    platform: &str,
+    arch: &str,
+    kind: &str,
+) -> Result<Option<RuntimeRelease>> {
     let manifest: Manifest = serde_json::from_str(manifest_json)
         .map_err(|err| Error::Parse(format!("unexpected GenieX release manifest: {err}")))?;
-    let Some(asset) = manifest.assets.into_iter().find(|asset| {
-        asset.kind == "cli-installer" && asset.platform == platform && asset.arch == arch
-    }) else {
+    let Some(asset) = manifest
+        .assets
+        .into_iter()
+        .find(|asset| asset.kind == kind && asset.platform == platform && asset.arch == arch)
+    else {
         return Ok(None);
     };
     Ok(Some(RuntimeRelease {
@@ -115,7 +123,9 @@ mod tests {
 
     #[test]
     fn finds_the_windows_arm64_installer() {
-        let release = release(MANIFEST, "windows", "arm64").unwrap().unwrap();
+        let release = release(MANIFEST, "windows", "arm64", "cli-installer")
+            .unwrap()
+            .unwrap();
         assert_eq!(release.version, "v0.8.0");
         assert!(!release.prerelease);
         assert_eq!(
@@ -132,7 +142,10 @@ mod tests {
 
     #[test]
     fn no_installer_for_other_platforms() {
-        assert_eq!(release(MANIFEST, "windows", "x64").unwrap(), None);
+        assert_eq!(
+            release(MANIFEST, "windows", "x64", "cli-installer").unwrap(),
+            None
+        );
     }
 
     #[test]

@@ -9,8 +9,9 @@ export const messages = defineMessages({
     // Runtime step
     runtimeTitle: "GenieX runtime",
     runtimeLooking: "Looking for GenieX…",
-    runtimeMissing:
-      "GenieX wasn't found. Calcine's installer sets it up; you can also install it from the GenieX releases page, then reopen Calcine.",
+    runtimeMissing: "Calcine runs models with GenieX, Qualcomm's runtime. It isn't installed yet.",
+    installRuntime: "Install GenieX {version} ({size})",
+    installRuntimeHint: "Downloaded from Qualcomm and checked before installing.",
     runtimeReady:
       "GenieX {cli} is ready, with QAIRT {qairt} for the NPU and llama.cpp for GGUF models.",
     // Device step
@@ -38,7 +39,9 @@ export const messages = defineMessages({
     runtimeTitle: "Moteur GenieX",
     runtimeLooking: "Recherche de GenieX…",
     runtimeMissing:
-      "GenieX est introuvable. Le programme d'installation de Calcine l'installe ; vous pouvez aussi l'installer depuis la page des versions de GenieX, puis rouvrir Calcine.",
+      "Calcine exécute les modèles avec GenieX, le moteur de Qualcomm. Il n'est pas encore installé.",
+    installRuntime: "Installer GenieX {version} ({size})",
+    installRuntimeHint: "Téléchargé chez Qualcomm et vérifié avant l'installation.",
     runtimeReady:
       "GenieX {cli} est prêt, avec QAIRT {qairt} pour le NPU et llama.cpp pour les modèles GGUF.",
     // Device step

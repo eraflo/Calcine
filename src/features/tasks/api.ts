@@ -36,8 +36,17 @@ export function useJobEvents() {
     events.jobUpdated
       .listen(({ payload: job }) => {
         queryClient.setQueryData<Job[]>(jobsQuery.queryKey, (jobs = []) => upsertJob(jobs, job));
+        // A benchmark records its results even when some units fail.
+        const measuring = job.kind.type === "benchmark" || job.kind.type === "energy_profile";
+        if (measuring && job.state.state !== "running") {
+          void queryClient.invalidateQueries({ queryKey: ["bench-history"] });
+        }
         if (job.state.state === "succeeded") {
-          if (job.kind.type === "install_runtime") {
+          if (job.kind.type === "install_bench") {
+            void queryClient.invalidateQueries({ queryKey: ["bench-tool"] });
+          } else if (measuring) {
+            // Handled above.
+          } else if (job.kind.type === "install_runtime") {
             for (const key of ["runtime", "runtime-update", "cached-runtimes", "models"]) {
               void queryClient.invalidateQueries({ queryKey: [key] });
             }

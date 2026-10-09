@@ -9,8 +9,10 @@ describe("snippet", () => {
     "%s points at the gateway and never embeds a key",
     (language) => {
       const code = snippet(language, BASE, MODEL);
-      expect(code).toContain(BASE);
-      expect(code).toContain(MODEL);
+      // Ollama's API lives at the root, not under /v1.
+      expect(code).toContain(language === "ollama" ? BASE.replace(/\/v1$/, "") : BASE);
+      // Open WebUI lists the models itself.
+      if (language !== "openwebui") expect(code).toContain(MODEL);
       expect(code).toContain("CALCINE_API_KEY");
       expect(code).not.toMatch(/calcine_[0-9a-f]{8}/);
     },

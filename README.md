@@ -13,6 +13,7 @@ chat with them on the Hexagon NPU, and give every app on your PC a secure, OpenA
 [![CI](https://github.com/eraflo/Calcine/actions/workflows/ci.yml/badge.svg)](https://github.com/eraflo/Calcine/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-2dd4bf)](LICENSE)
 ![Windows 11 ARM64](https://img.shields.io/badge/Windows%2011-ARM64-a78bfa)
+![Linux ARM64 preview](https://img.shields.io/badge/Linux-ARM64%20preview-a78bfa)
 
 [**Website**](https://eraflo.github.io/Calcine/) ·
 [**Download**](https://github.com/eraflo/Calcine/releases) ·
@@ -44,10 +45,29 @@ every web page you visit.
   Hugging Face, ModelScope or Docker Hub link, or import a folder.
 - **See the NPU work.** Live NPU, GPU, CPU and memory load, drivers, and a self-test that
   compares speed on each compute unit.
+- **Benchmark properly.** Qualcomm's `geniex-bench`, downloaded and verified for you:
+  time to first token, prompt and generation speed per unit, with warmup, repetitions,
+  history and CSV export.
+- **Measure energy.** On Snapdragon X, the chip's own energy metering shows live power, and
+  energy per token on each compute unit and power mode, so you can pick the most efficient.
+- **Structured output and tools on the NPU.** `response_format` (JSON or a JSON Schema) and
+  `tool_choice` work on every model: Calcine asks for JSON or for the call, checks the reply
+  against the schema and has the model fix it if needed. Agents can rely on them.
+- **Long conversations on the NPU.** AI Hub models have a fixed context window (4096 tokens
+  for most). Calcine counts it with the model's own tokenizer, shows how full it is, and lets
+  the model forget the oldest messages instead of failing, keeping a summary it writes itself.
+  It cuts in steps that keep GenieX's cache useful: the next reply starts in under 0.1 s
+  instead of re-reading the whole conversation.
+- **Works with Ollama apps.** Ollama's API is translated too, and can answer on Ollama's
+  port, 11434, for apps that only speak Ollama.
 - **OpenAI-compatible API.** On `127.0.0.1:18181`, GenieX's default port, with per-app keys,
   a request queue and a request log that never records prompts.
-- **Always up to date.** GenieX ships in the installer and can be updated or rolled back
-  from the app. Calcine updates itself with signed packages.
+- **Share with your other devices.** Optional, over HTTPS with a certificate made on this PC,
+  for keys you allow on the network and private networks only.
+- **Without the window.** `calcine-cli` serves the same API from a terminal or a server,
+  with the app's keys, settings and models, on Windows and on Linux.
+- **Always up to date.** Calcine installs GenieX on first launch, and can update or roll it
+  back. Calcine updates itself with signed packages.
 - **English and French**, light and dark themes, a command palette (<kbd>Ctrl</kbd> <kbd>K</kbd>)
   and a tray icon to keep the API running in the background.
 
@@ -72,14 +92,17 @@ every web page you visit.
 
 ## Get started
 
-1. Download the installer from [Releases](https://github.com/eraflo/Calcine/releases)
-   (Windows 11 on Snapdragon, ARM64). It also installs GenieX.
-2. Open Calcine and download a model: the welcome screen suggests a few that fit your PC.
-3. Chat with it, or create an API key in **Server › API keys** and connect an app.
+1. Download the installer from [Releases](https://github.com/eraflo/Calcine/releases):
+   the `-setup.exe` for Windows 11 on Snapdragon, or the `.deb` for Linux on ARM64
+   (`sudo apt install ./Calcine_<version>_arm64.deb`).
+2. Open Calcine: on first launch it downloads GenieX, Qualcomm's runtime, from Qualcomm
+   and checks it before installing.
+3. Download a model: the welcome screen suggests a few that fit your PC.
+4. Chat with it, or create an API key in **Server › API keys** and connect an app.
 
 > [!NOTE]
-> Calcine is in beta and its installers aren't code-signed yet, so Windows SmartScreen asks
-> for confirmation before installing (**More info › Run anyway**). Releases list SHA-256
+> Calcine's installers aren't code-signed yet, so Windows SmartScreen asks for
+> confirmation before installing (**More info › Run anyway**). Releases list SHA-256
 > checksums, and stable releases also carry an SBOM and a build provenance attestation
 > (`gh attestation verify <file> -R eraflo/Calcine`).
 
@@ -111,6 +134,23 @@ Clients already written for `geniex serve` keep working on the same port. For th
 can't send a key, **Require an API key** can be turned off: keyless callers can then only
 run models.
 
+### Without the window
+
+`calcine-cli` serves the same API from a terminal, with the app's settings, keys and
+models. The installer puts it on your `PATH` (`calcine-cli path remove` takes it off;
+the Linux package installs it in `/usr/bin`). Quit Calcine first (also from the tray),
+since only one of them can answer on a port, or give `calcine-cli` another one with
+`--port`. On a machine without a screen, `calcine-cli geniex install` installs GenieX
+the way the welcome screen does.
+
+```powershell
+calcine-cli keys create "My script"      # prints the key, once
+calcine-cli serve                        # until Ctrl+C
+calcine-cli serve --network              # also other devices, over HTTPS
+calcine-cli geniex install               # GenieX, checked like on first launch
+calcine-cli geniex chipset               # which chipset models are downloaded for
+```
+
 ## How it works
 
 ```mermaid
@@ -128,15 +168,20 @@ flowchart LR
 The gateway listens on loopback only, rejects DNS rebinding and browser origins you
 haven't allowed, checks per-app keys (stored as SHA-256 fingerprints, scoped to inference
 or management), and refuses local file paths and internal URLs in request bodies. GenieX
-itself is never exposed, and a Windows Job Object stops it with Calcine, even after a
-crash. Details in [docs/security-model.md](docs/security-model.md).
+itself is never exposed, and it stops with Calcine, even after a crash (a Job Object on
+Windows, a parent-death signal on Linux). Details in [docs/security-model.md](docs/security-model.md).
 
 ## Requirements
 
-- A Snapdragon PC running Windows 11 on Arm (Linux on ARM64 is planned)
+- A Snapdragon PC running Windows 11 on Arm, or Linux on ARM64 (Ubuntu 24.04 or later)
 - Free memory and disk space for the models you use: Calcine shows what fits before you download
 
-GenieX is installed by the Calcine installer; nothing else is needed.
+Calcine installs GenieX on first launch; nothing else is needed.
+
+On Linux, GenieX runs llama.cpp (GGUF) models on the CPU, and on the Hexagon NPU when the
+kernel exposes the compute DSP (FastRPC). Qualcomm AI Hub builds its Linux NPU models for
+Dragonwing boards (IQ-9075, QCS6490): pick your chipset in **Hardware › Chipset** if
+GenieX can't detect it. The live NPU load and power readings are Windows-only for now.
 
 ## Development
 
@@ -152,11 +197,30 @@ See [CONTRIBUTING.md](CONTRIBUTING.md), [docs/architecture.md](docs/architecture
 [docs/RELEASING.md](docs/RELEASING.md). The website lives in [`site/`](site) and is
 published to GitHub Pages from `main`.
 
+## Privacy
+
+No account, no telemetry: prompts and conversations stay on your PC. Calcine connects to
+the internet to check for updates (which you can turn off), and to download GenieX, models
+and tools when you ask. Every connection is listed in [PRIVACY.md](PRIVACY.md).
+
+## Code signing policy
+
+Calcine has applied to the SignPath Foundation's free code signing program for open-source
+projects. Once accepted: Free code signing provided by [SignPath.io](https://about.signpath.io/), certificate by [SignPath Foundation](https://signpath.org/).
+
+- Committers and reviewers: [eraflo](https://github.com/eraflo)
+- Approvers: [eraflo](https://github.com/eraflo)
+
+Installers are built by GitHub Actions from this repository
+([`release.yml`](.github/workflows/release.yml)), and each release is signed only after a
+manual approval. They contain Calcine only: GenieX is downloaded from Qualcomm on first
+launch. Privacy policy: [PRIVACY.md](PRIVACY.md).
+
 ## License
 
-[MIT](LICENSE). Calcine redistributes GenieX under its BSD 3-Clause license, see
-[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Calcine is an independent project, not
-affiliated with Qualcomm.
+[MIT](LICENSE). Calcine doesn't redistribute GenieX: it downloads Qualcomm's official
+installer (an archive on Linux) on your PC. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Calcine is an
+independent project, not affiliated with Qualcomm.
 
 <sub>Screenshots show Calcine's demo mode (`bun run app:mock`), with sample data shaped like a
 Snapdragon X Elite laptop.</sub>

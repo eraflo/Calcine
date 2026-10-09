@@ -23,10 +23,19 @@ export type StreamStats = {
   completionTokens?: number;
   tokensPerSecond?: number;
   firstTokenMs?: number;
+  /** Tokens guessed by speculative decoding, and how many were kept. */
+  draftTokens?: number;
+  draftAccepted?: number;
   durationMs: number;
 };
 
-export type StreamResult = { content: string; reasoning: string; stats: StreamStats };
+export type StreamResult = {
+  content: string;
+  reasoning: string;
+  stats: StreamStats;
+  /** Messages the gateway left out to fit the context window. */
+  forgotten: number;
+};
 
 type Delta = { content?: string; reasoning?: string };
 
@@ -35,7 +44,7 @@ type Chunk = {
   error?: string | { message?: string };
   choices?: { delta?: { content?: string | null; reasoning_content?: string | null } }[];
   usage?: { prompt_tokens?: number; completion_tokens?: number };
-  timings?: { predicted_per_second?: number };
+  timings?: { predicted_per_second?: number; draft_n?: number; draft_n_accepted?: number };
 };
 
 /** POST a streaming chat completion and report text as it arrives. */
@@ -63,7 +72,12 @@ export async function streamChat({
     throw new Error(await errorMessage(response));
   }
 
-  const result: StreamResult = { content: "", reasoning: "", stats: { durationMs: 0 } };
+  const result: StreamResult = {
+    content: "",
+    reasoning: "",
+    stats: { durationMs: 0 },
+    forgotten: Number(response.headers.get("x-calcine-forgotten-messages") ?? 0) || 0,
+  };
   let failure: string | null = null;
   const parser = createSseParser((data) => {
     if (data === "[DONE]" || !data.startsWith("{")) return;
@@ -91,6 +105,11 @@ export async function streamChat({
     if (chunk.timings?.predicted_per_second) {
       result.stats.tokensPerSecond = chunk.timings.predicted_per_second;
     }
+    // Only present when speculative decoding guessed something.
+    if (chunk.timings?.draft_n) {
+      result.stats.draftTokens = chunk.timings.draft_n;
+      result.stats.draftAccepted = chunk.timings.draft_n_accepted ?? 0;
+    }
   });
 
   const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
@@ -104,7 +123,8 @@ export async function streamChat({
   return result;
 }
 
-async function errorMessage(response: Response): Promise<string> {
+/** The error the local API answered, readable. */
+export async function errorMessage(response: Response): Promise<string> {
   const text = await response.text().catch(() => "");
   try {
     const parsed = JSON.parse(text) as { error?: { message?: string } | string };

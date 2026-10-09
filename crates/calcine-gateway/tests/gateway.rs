@@ -39,6 +39,7 @@ async fn start(settings: GatewaySettings) -> Harness {
             keys: Arc::new(KeyStore::in_memory()),
             settings_path: Some(settings_path),
             builtin_origins: CALCINE_ORIGINS.iter().map(|o| (*o).to_owned()).collect(),
+            network_dir: Some(dir.join("network")),
         },
     );
     gateway.start().await.unwrap();
@@ -66,6 +67,7 @@ impl Harness {
                 name: "Test app".into(),
                 scopes: scopes.to_vec(),
                 allow_local_files,
+                network: false,
             })
             .unwrap()
             .token
@@ -310,6 +312,7 @@ async fn a_taken_port_is_reported() {
             keys: Arc::new(KeyStore::in_memory()),
             settings_path: Some(path),
             builtin_origins: vec![],
+            network_dir: None,
         },
     );
     assert!(gateway.start().await.is_err());
@@ -378,4 +381,583 @@ async fn allowed_origins_are_validated_and_take_effect() {
         .unwrap();
     // Allowed origin: past the Origin check, stopped by the missing key.
     assert_eq!(reply.status(), StatusCode::UNAUTHORIZED);
+}
+
+fn ollama_chat(stream: bool) -> Value {
+    json!({
+        "model": "qualcomm/Qwen3-0.6B:latest",
+        "stream": stream,
+        "messages": [{ "role": "user", "content": "hello" }],
+    })
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn speaks_ollama_on_the_main_port_with_a_key() {
+    let h = start(any_port()).await;
+    let version: Value = h
+        .http
+        .get(format!("{}/api/version", h.base))
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    assert!(version["version"].is_string());
+
+    let anonymous = h
+        .http
+        .get(format!("{}/api/tags", h.base))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(anonymous.status(), StatusCode::UNAUTHORIZED);
+
+    let token = h.key(&[KeyScope::Inference], false);
+    let tags: Value = h
+        .http
+        .get(format!("{}/api/tags", h.base))
+        .bearer_auth(&token)
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    assert!(
+        tags["models"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|m| m["name"] == "qualcomm/Qwen3-4B:W4A16")
+    );
+
+    // Streamed by default, as JSON lines ending with statistics.
+    let response = h
+        .http
+        .post(format!("{}/api/chat", h.base))
+        .bearer_auth(&token)
+        .json(&ollama_chat(true))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(
+        response.headers()[header::CONTENT_TYPE],
+        "application/x-ndjson"
+    );
+    let lines: Vec<Value> = response
+        .text()
+        .await
+        .unwrap()
+        .lines()
+        .map(|line| serde_json::from_str(line).unwrap())
+        .collect();
+    let (last, pieces) = lines.split_last().unwrap();
+    assert_eq!(last["done"], true);
+    assert!(last["eval_count"].as_u64().is_some_and(|count| count > 0));
+    let text: String = pieces
+        .iter()
+        .filter_map(|piece| piece["message"]["content"].as_str())
+        .collect();
+    assert!(text.contains("hello"));
+
+    let whole: Value = h
+        .http
+        .post(format!("{}/api/chat", h.base))
+        .bearer_auth(&token)
+        .json(&ollama_chat(false))
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    assert_eq!(whole["done"], true);
+    assert!(
+        whole["message"]["content"]
+            .as_str()
+            .unwrap()
+            .contains("hello")
+    );
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn ollama_generate_and_unsupported_routes() {
+    let h = start(any_port()).await;
+    let token = h.key(&[KeyScope::Inference], false);
+    let generate: Value = h
+        .http
+        .post(format!("{}/api/generate", h.base))
+        .bearer_auth(&token)
+        .json(&json!({ "model": "qualcomm/Qwen3-0.6B", "prompt": "hello", "stream": false }))
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    assert!(generate["response"].as_str().unwrap().contains("hello"));
+
+    let pull = h
+        .http
+        .post(format!("{}/api/pull", h.base))
+        .bearer_auth(&token)
+        .json(&json!({ "model": "x" }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(pull.status(), StatusCode::NOT_IMPLEMENTED);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn the_ollama_port_needs_no_key_but_only_runs_models() {
+    let h = start(GatewaySettings {
+        ollama_port_enabled: true,
+        ollama_port: 0,
+        ..any_port()
+    })
+    .await;
+    let ollama = h
+        .gateway
+        .status()
+        .ollama_url
+        .expect("Ollama port listening");
+
+    let root = h.http.get(&ollama).send().await.unwrap();
+    assert_eq!(root.text().await.unwrap(), "Ollama is running");
+
+    let tags = h
+        .http
+        .get(format!("{ollama}/api/tags"))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(tags.status(), StatusCode::OK);
+
+    let chat: Value = h
+        .http
+        .post(format!("{ollama}/api/chat"))
+        .json(&ollama_chat(false))
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    assert_eq!(chat["done"], true);
+    let entry = h.gateway.requests().into_iter().next().unwrap();
+    assert_eq!(entry.client, "Ollama app");
+    assert_eq!(entry.path, "/api/chat");
+
+    let manage = h
+        .http
+        .get(format!("{ollama}/calcine/v1/models"))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(manage.status(), StatusCode::FORBIDDEN);
+
+    // The main port still wants a key.
+    let main = h
+        .http
+        .get(format!("{}/api/tags", h.base))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(main.status(), StatusCode::UNAUTHORIZED);
+
+    // Browser pages are refused here too.
+    let page = h
+        .http
+        .get(format!("{ollama}/api/tags"))
+        .header(header::ORIGIN, "https://evil.example")
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(page.status(), StatusCode::FORBIDDEN);
+
+    h.gateway.set_ollama_port(false).await.unwrap();
+    assert!(h.gateway.status().ollama_url.is_none());
+    tokio::time::sleep(Duration::from_millis(200)).await;
+    assert!(
+        h.http
+            .get(format!("{ollama}/api/tags"))
+            .timeout(Duration::from_secs(2))
+            .send()
+            .await
+            .is_err()
+    );
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn enforces_structured_output() {
+    let h = start(any_port()).await;
+    let token = h.key(&[KeyScope::Inference], false);
+    let schema = |required: &str| {
+        json!({
+            "model": "qualcomm/Qwen3-0.6B",
+            "messages": [{ "role": "user", "content": "hello" }],
+            "response_format": { "type": "json_schema", "json_schema": { "name": "r", "schema": {
+                "type": "object",
+                "properties": { "reply": { "type": "string" } },
+                "required": [required],
+            } } },
+        })
+    };
+
+    let ok: Value = h
+        .chat(Some(&token), &schema("reply"))
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    let content: Value =
+        serde_json::from_str(ok["choices"][0]["message"]["content"].as_str().unwrap()).unwrap();
+    assert_eq!(content["reply"], "Mock answer");
+
+    let never = h
+        .chat(Some(&token), &schema("missing"))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(never.status(), StatusCode::UNPROCESSABLE_ENTITY);
+    let error: Value = never.json().await.unwrap();
+    assert!(
+        error["error"]["message"]
+            .as_str()
+            .unwrap()
+            .contains("$.missing is missing")
+    );
+
+    // Streamed clients get the checked JSON as server-sent events.
+    let mut streamed = schema("reply");
+    streamed["stream"] = json!(true);
+    let response = h.chat(Some(&token), &streamed).send().await.unwrap();
+    assert_eq!(
+        response.headers()[header::CONTENT_TYPE],
+        "text/event-stream"
+    );
+    let body = response.text().await.unwrap();
+    assert!(body.contains("Mock answer") && body.trim_end().ends_with("data: [DONE]"));
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn ollama_format_is_enforced_too() {
+    let h = start(any_port()).await;
+    let token = h.key(&[KeyScope::Inference], false);
+    let reply: Value = h
+        .http
+        .post(format!("{}/api/chat", h.base))
+        .bearer_auth(&token)
+        .json(&json!({
+            "model": "qualcomm/Qwen3-0.6B",
+            "stream": false,
+            "messages": [{ "role": "user", "content": "hello" }],
+            "format": { "type": "object", "required": ["reply"] },
+        }))
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    assert_eq!(reply["done"], true);
+    let content: Value =
+        serde_json::from_str(reply["message"]["content"].as_str().unwrap()).unwrap();
+    assert_eq!(content["reply"], "Mock answer");
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn enforces_tool_choice() {
+    let h = start(any_port()).await;
+    let token = h.key(&[KeyScope::Inference], false);
+    let tool = |name: &str, unit: Value| {
+        json!({ "type": "function", "function": { "name": name, "parameters": {
+            "type": "object",
+            "properties": { "city": { "type": "string" }, "unit": unit },
+            "required": ["city"],
+        } } })
+    };
+    let weather = tool("get_weather", json!({ "type": "string" }));
+    let time = tool("get_time", json!({ "type": "string" }));
+    let ask = |tool_choice: Value, tools: Value| {
+        json!({
+            "model": "qualcomm/Qwen3-0.6B",
+            "messages": [{ "role": "user", "content": "Weather in Paris?" }],
+            "tools": tools,
+            "tool_choice": tool_choice,
+        })
+    };
+
+    // A named function is the only one offered, and its call is checked.
+    let named = ask(
+        json!({ "type": "function", "function": { "name": "get_time" } }),
+        json!([weather, time]),
+    );
+    let reply: Value = h
+        .chat(Some(&token), &named)
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    assert_eq!(reply["choices"][0]["finish_reason"], "tool_calls");
+    assert_eq!(
+        reply["choices"][0]["message"]["tool_calls"][0]["function"]["name"],
+        "get_time"
+    );
+
+    // "none" takes the tools away: the model answers in text.
+    let reply: Value = h
+        .chat(Some(&token), &ask(json!("none"), json!([weather])))
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    assert!(reply["choices"][0]["message"].get("tool_calls").is_none());
+    assert!(
+        reply["choices"][0]["message"]["content"]
+            .as_str()
+            .unwrap()
+            .contains("mock backend")
+    );
+
+    // Arguments that never match the parameters: 422, saying why.
+    let strict = tool("get_weather", json!({ "type": "string", "minLength": 10 }));
+    let never = h
+        .chat(Some(&token), &ask(json!("required"), json!([strict])))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(never.status(), StatusCode::UNPROCESSABLE_ENTITY);
+    let error: Value = never.json().await.unwrap();
+    assert!(
+        error["error"]["message"]
+            .as_str()
+            .unwrap()
+            .contains("get_weather: $.unit")
+    );
+
+    // A function that isn't in the tools is the client's mistake.
+    let unknown = ask(
+        json!({ "type": "function", "function": { "name": "search" } }),
+        json!([weather]),
+    );
+    let response = h.chat(Some(&token), &unknown).send().await.unwrap();
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    // Streamed clients get the call as server-sent events.
+    let mut streamed = ask(json!("required"), json!([weather]));
+    streamed["stream"] = json!(true);
+    let body = h
+        .chat(Some(&token), &streamed)
+        .send()
+        .await
+        .unwrap()
+        .text()
+        .await
+        .unwrap();
+    assert!(body.contains("\"tool_calls\"") && body.contains("\"finish_reason\":\"tool_calls\""));
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn forgets_the_oldest_messages_when_asked() {
+    let h = start(any_port()).await;
+    let token = h.key(&[KeyScope::Inference], false);
+    let long = "word ".repeat(1300);
+    let conversation = json!([
+        { "role": "system", "content": "Be brief." },
+        { "role": "user", "content": long },
+        { "role": "assistant", "content": "OK" },
+        { "role": "user", "content": long },
+        { "role": "assistant", "content": "OK" },
+        { "role": "user", "content": "hello" },
+    ]);
+    let ask = |truncation: Option<&str>| {
+        let mut body = json!({ "model": "qualcomm/Qwen3-4B", "messages": conversation });
+        if let Some(truncation) = truncation {
+            body["truncation"] = json!(truncation);
+        }
+        body
+    };
+
+    // Too long for the window: refused, saying how to fix it.
+    let refused = h.chat(Some(&token), &ask(None)).send().await.unwrap();
+    assert_eq!(refused.status(), StatusCode::BAD_REQUEST);
+    let error: Value = refused.json().await.unwrap();
+    assert_eq!(error["error"]["code"], "context_length_exceeded");
+    assert!(
+        error["error"]["message"]
+            .as_str()
+            .unwrap()
+            .contains("truncation")
+    );
+
+    // With truncation, the first exchange goes and the reply comes.
+    let fitted = h
+        .chat(Some(&token), &ask(Some("auto")))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(fitted.status(), StatusCode::OK);
+    assert_eq!(fitted.headers()["x-calcine-forgotten-messages"], "2");
+    let reply: Value = fitted.json().await.unwrap();
+    assert!(reply["choices"][0]["message"]["content"].is_string());
+
+    // A last message that can't fit alone.
+    let huge = json!({
+        "model": "qualcomm/Qwen3-4B",
+        "truncation": "auto",
+        "messages": [{ "role": "user", "content": "word ".repeat(3000) }],
+    });
+    let response = h.chat(Some(&token), &huge).send().await.unwrap();
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    let error: Value = response.json().await.unwrap();
+    assert!(
+        error["error"]["message"]
+            .as_str()
+            .unwrap()
+            .contains("doesn't fit")
+    );
+
+    // Ollama clients get it without asking, as with Ollama.
+    let ollama = h
+        .http
+        .post(format!("{}/api/chat", h.base))
+        .bearer_auth(&token)
+        .json(&json!({ "model": "qualcomm/Qwen3-4B", "stream": false, "messages": conversation }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(ollama.status(), StatusCode::OK);
+}
+
+/// The port in `https://host:port/v1`.
+fn port_of(url: &str) -> u16 {
+    url.rsplit(':')
+        .next()
+        .and_then(|rest| rest.split('/').next())
+        .and_then(|port| port.parse().ok())
+        .unwrap()
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn serves_other_devices_over_https_with_network_keys_only() {
+    let h = start(GatewaySettings {
+        network_enabled: true,
+        network_port: 0,
+        ..any_port()
+    })
+    .await;
+    let network = h
+        .gateway
+        .status()
+        .network
+        .expect("the network port listens");
+    assert_eq!(network.fingerprint.len(), 95);
+    let port = port_of(&network.base_url);
+    // Trust only Calcine's certificate, like a client that imported it.
+    // Changing the network settings cuts open connections on purpose: a
+    // fresh one per request keeps the client from reusing a closed one.
+    let pem = std::fs::read(&network.certificate_path).unwrap();
+    let client = Client::builder()
+        .add_root_certificate(reqwest::Certificate::from_pem(&pem).unwrap())
+        .pool_max_idle_per_host(0)
+        .build()
+        .unwrap();
+    let models = format!("https://localhost:{port}/v1/models");
+    let create = |network: bool, allow_local_files: bool| {
+        h.gateway
+            .keys()
+            .create(NewApiKey {
+                name: "Phone".into(),
+                scopes: vec![KeyScope::Inference],
+                allow_local_files,
+                network,
+            })
+            .unwrap()
+            .token
+    };
+
+    // Plain HTTP isn't spoken there.
+    assert!(
+        h.http
+            .get(format!("http://localhost:{port}/v1/models"))
+            .send()
+            .await
+            .is_err()
+    );
+
+    let status = |token: Option<String>| {
+        let request = client.get(&models);
+        let request = match token {
+            Some(token) => request.bearer_auth(token),
+            None => request,
+        };
+        async move { request.send().await.unwrap().status() }
+    };
+    assert_eq!(status(None).await, StatusCode::UNAUTHORIZED);
+    assert_eq!(
+        status(Some(create(false, false))).await,
+        StatusCode::FORBIDDEN
+    );
+    assert_eq!(status(Some(create(true, false))).await, StatusCode::OK);
+    // Calcine's own token only works from its window on this PC.
+    let internal = h.gateway.keys().internal_token().to_owned();
+    assert_eq!(status(Some(internal)).await, StatusCode::UNAUTHORIZED);
+
+    // A path from another device would name a file on this PC.
+    let reaching = client
+        .post(format!("https://localhost:{port}/v1/chat/completions"))
+        .bearer_auth(create(true, true))
+        .json(&json!({
+            "model": "qualcomm/Qwen3-4B",
+            "messages": [{ "role": "user", "content": [
+                { "type": "image_url", "image_url": { "url": "C:/Windows/win.ini" } },
+            ] }],
+        }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(reaching.status(), StatusCode::FORBIDDEN);
+
+    // Addresses outside the allowed ranges are turned away.
+    h.gateway
+        .set_network(true, port, vec!["10.0.0.0/8".into()])
+        .await
+        .unwrap();
+    assert_eq!(
+        status(Some(create(true, false))).await,
+        StatusCode::FORBIDDEN
+    );
+    assert!(
+        h.gateway
+            .set_network(true, port, vec!["not an address".into()])
+            .await
+            .is_err()
+    );
+
+    // Too many invalid keys: the address waits.
+    h.gateway.set_network(true, port, vec![]).await.unwrap();
+    for _ in 0..10 {
+        assert_eq!(
+            status(Some("calcine_wrong".into())).await,
+            StatusCode::UNAUTHORIZED
+        );
+    }
+    assert_eq!(
+        status(Some(create(true, false))).await,
+        StatusCode::TOO_MANY_REQUESTS
+    );
+
+    // Off: nothing listens there anymore.
+    h.gateway.set_network(false, port, vec![]).await.unwrap();
+    assert!(h.gateway.status().network.is_none());
+    assert!(client.get(&models).send().await.is_err());
 }

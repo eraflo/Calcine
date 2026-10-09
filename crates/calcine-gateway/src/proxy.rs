@@ -12,28 +12,51 @@ use tokio::sync::{OwnedSemaphorePermit, mpsc};
 use tokio_stream::wrappers::ReceiverStream;
 
 use crate::caller::Caller;
-use crate::error::{api_error, upstream_error, upstream_message};
+use crate::error::{api_error, is_context_error, upstream_error, upstream_message};
 use crate::log::{RequestEntry, RequestLog, SseUsage, Usage};
 use crate::security::sanitize;
 use crate::state::{ActiveRequest, AppState};
 
 /// One request in flight: where it's logged, when it started, and its turn
 /// in the queue (released when this is dropped).
-struct Exchange {
-    log: Arc<RequestLog>,
-    id: u32,
-    started: Instant,
+pub(crate) struct Exchange {
+    pub log: Arc<RequestLog>,
+    pub id: u32,
+    pub started: Instant,
     _turn: (OwnedSemaphorePermit, ActiveRequest),
 }
 
 impl Exchange {
-    fn fail(&self, status: StatusCode, message: &str) -> Response {
+    /// Log a failure. The caller answers in its own error format.
+    pub fn log_failure(&self, status: StatusCode, message: &str) {
         self.log.update(self.id, |entry| {
             entry.status = Some(status.as_u16());
             entry.duration_ms = Some(elapsed_ms(self.started));
             entry.error = Some(message.to_owned());
         });
-        api_error(status, "server_error", message)
+    }
+}
+
+/// Why a request didn't reach GenieX.
+#[derive(Debug)]
+pub(crate) struct Refused {
+    pub status: StatusCode,
+    pub kind: &'static str,
+    pub message: String,
+}
+
+impl Refused {
+    fn new(status: StatusCode, kind: &'static str, message: impl Into<String>) -> Self {
+        Self {
+            status,
+            kind,
+            message: message.into(),
+        }
+    }
+
+    /// In the OpenAI error format.
+    pub fn into_response(self) -> Response {
+        api_error(self.status, self.kind, &self.message)
     }
 }
 
@@ -43,13 +66,6 @@ pub async fn inference(
     path: &'static str,
     body: Bytes,
 ) -> Response {
-    if !caller.can_infer() {
-        return api_error(
-            StatusCode::FORBIDDEN,
-            "permission_error",
-            "this API key can't run models",
-        );
-    }
     let json: Value = match serde_json::from_slice(&body) {
         Ok(json) => json,
         Err(err) => {
@@ -60,8 +76,41 @@ pub async fn inference(
             );
         }
     };
-    if let Err(reason) = sanitize::check_body(&json, caller.allows_local_files()) {
-        return api_error(StatusCode::FORBIDDEN, "permission_error", &reason);
+    let stream = json.get("stream").and_then(Value::as_bool).unwrap_or(false);
+    let (exchange, response) = match send(&app, &caller, path, path, &json, body).await {
+        Ok(sent) => sent,
+        Err(refused) => return refused.into_response(),
+    };
+    if stream && response.status().is_success() {
+        streamed(exchange, response)
+    } else {
+        buffered(exchange, response).await
+    }
+}
+
+/// Check, log and queue a request, then send `body` (the JSON `json`) to
+/// GenieX at `upstream_path`. The request log shows `logged_path`.
+pub(crate) async fn send(
+    app: &Arc<AppState>,
+    caller: &Caller,
+    logged_path: &'static str,
+    upstream_path: &'static str,
+    json: &Value,
+    body: Bytes,
+) -> Result<(Exchange, reqwest::Response), Refused> {
+    if !caller.can_infer() {
+        return Err(Refused::new(
+            StatusCode::FORBIDDEN,
+            "permission_error",
+            "this API key can't run models",
+        ));
+    }
+    if let Err(reason) = sanitize::check_body(json, caller.allows_local_files()) {
+        return Err(Refused::new(
+            StatusCode::FORBIDDEN,
+            "permission_error",
+            reason,
+        ));
     }
 
     let model = json.get("model").and_then(Value::as_str).map(str::to_owned);
@@ -69,7 +118,7 @@ pub async fn inference(
     let id = app.log.start(RequestEntry::new(
         caller.label(),
         "POST",
-        path,
+        logged_path,
         model,
         stream,
     ));
@@ -78,11 +127,11 @@ pub async fn inference(
     // GenieX runs one inference at a time: wait in line.
     app.enter_queue();
     let Ok(permit) = app.queue.clone().acquire_owned().await else {
-        return api_error(
+        return Err(Refused::new(
             StatusCode::SERVICE_UNAVAILABLE,
             "server_error",
             "the gateway is shutting down",
-        );
+        ));
     };
     app.leave_queue_and_start();
     let exchange = Exchange {
@@ -95,34 +144,81 @@ pub async fn inference(
     let upstream = match app.services.server.ensure_running().await {
         Ok(url) => url,
         Err(err) => {
-            return exchange.fail(
+            let message = format!("GenieX couldn't start: {err}");
+            exchange.log_failure(StatusCode::SERVICE_UNAVAILABLE, &message);
+            return Err(Refused::new(
                 StatusCode::SERVICE_UNAVAILABLE,
-                &format!("GenieX couldn't start: {err}"),
-            );
+                "server_error",
+                message,
+            ));
         }
     };
-    let response = match app
-        .http
-        .post(format!("{upstream}{path}"))
-        .header(header::CONTENT_TYPE, "application/json")
-        .body(body)
-        .send()
-        .await
-    {
-        Ok(response) => response,
+    let post = |body: Bytes| {
+        app.http
+            .post(format!("{upstream}{upstream_path}"))
+            .header(header::CONTENT_TYPE, "application/json")
+            .body(body)
+            .send()
+    };
+    match post(body.clone()).await {
+        Ok(response) if response.status() == StatusCode::BAD_REQUEST => {
+            let bytes = response.bytes().await.unwrap_or_default();
+            if !is_context_error(&bytes) {
+                return Ok((exchange, rebuilt(StatusCode::BAD_REQUEST, bytes)));
+            }
+            // GenieX 0.8 counts the conversation still in its cache against
+            // the window when the new one doesn't continue it (a regenerated
+            // reply, another client): a prompt that fits is refused. A
+            // one-token request in between empties the cache.
+            clear_cache(app, &upstream, json).await;
+            match post(body).await {
+                Ok(response) => Ok((exchange, response)),
+                Err(_) => Ok((exchange, rebuilt(StatusCode::BAD_REQUEST, bytes))),
+            }
+        }
+        Ok(response) => Ok((exchange, response)),
         Err(err) => {
-            return exchange.fail(
+            let message = format!("couldn't reach GenieX: {err}");
+            exchange.log_failure(StatusCode::BAD_GATEWAY, &message);
+            Err(Refused::new(
                 StatusCode::BAD_GATEWAY,
-                &format!("couldn't reach GenieX: {err}"),
-            );
+                "server_error",
+                message,
+            ))
         }
-    };
-
-    if stream && response.status().is_success() {
-        streamed(exchange, response)
-    } else {
-        buffered(exchange, response).await
     }
+}
+
+/// A response already read, to pass on as if it hadn't been.
+fn rebuilt(status: StatusCode, body: Bytes) -> reqwest::Response {
+    let mut response = axum::http::Response::new(body);
+    *response.status_mut() = status;
+    response.headers_mut().insert(
+        header::CONTENT_TYPE,
+        header::HeaderValue::from_static("application/json"),
+    );
+    reqwest::Response::from(response)
+}
+
+/// Run a one-token request so GenieX drops the conversation it caches.
+async fn clear_cache(app: &AppState, upstream: &str, request: &Value) {
+    let Some(model) = request.get("model") else {
+        return;
+    };
+    let reset = serde_json::json!({
+        "model": model,
+        "messages": [{ "role": "user", "content": "." }],
+        "max_tokens": 1,
+        "enable_think": false,
+    });
+    let _ = app
+        .http
+        .post(format!("{upstream}/v1/chat/completions"))
+        .header(header::CONTENT_TYPE, "application/json")
+        .body(reset.to_string())
+        .send()
+        .await;
+    tracing::info!("cleared GenieX's cached conversation to retry a prompt it refused");
 }
 
 /// Non-streaming responses and errors: read fully, log, pass on.
@@ -193,6 +289,6 @@ fn streamed(exchange: Exchange, response: reqwest::Response) -> Response {
         .into_response()
 }
 
-fn elapsed_ms(since: Instant) -> u64 {
+pub(crate) fn elapsed_ms(since: Instant) -> u64 {
     u64::try_from(since.elapsed().as_millis()).unwrap_or(u64::MAX)
 }

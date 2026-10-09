@@ -4,4 +4,7 @@ mod probe;
 mod types;
 
 pub use probe::HardwareProbe;
-pub use types::{Accelerator, DiskSpace, HardwareInfo, HardwareUsage, MemoryInfo, Processor};
+pub use types::{
+    Accelerator, DiskSpace, EnergyReading, HardwareInfo, HardwareUsage, MemoryInfo, PowerDraw,
+    Processor,
+};

@@ -8,6 +8,8 @@
 //! - `models`, `directory`, `runtime`, `hardware`, `server`: the service
 //!   trait implementations
 
+mod bench;
+mod context;
 mod data;
 mod directory;
 mod hardware;
@@ -21,6 +23,7 @@ pub use server::MockServer;
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use std::time::{Duration, Instant};
 
+use calcine_core::bench::BenchResult;
 use calcine_core::jobs::JobManager;
 use calcine_core::models::LocalModel;
 use calcine_core::{BackendKind, Services};
@@ -36,6 +39,9 @@ pub struct MockBackend {
     version: Mutex<String>,
     /// Drives the simulated hardware load.
     started: Instant,
+    /// "Installed" benchmark tool version.
+    bench_tool: Mutex<Option<String>>,
+    bench_history: Mutex<Vec<BenchResult>>,
 }
 
 impl Default for MockBackend {
@@ -46,6 +52,8 @@ impl Default for MockBackend {
             chipset: Mutex::new(None),
             version: Mutex::new(data::runtime_info().cli_version),
             started: Instant::now(),
+            bench_tool: Mutex::new(None),
+            bench_history: Mutex::new(Vec::new()),
         }
     }
 }
@@ -71,7 +79,9 @@ impl MockBackend {
             directory: backend.clone(),
             runtime: backend.clone(),
             hardware: backend.clone(),
-            installer: backend,
+            installer: backend.clone(),
+            bench: backend.clone(),
+            context: backend,
             server: Arc::new(MockServer::default()),
             jobs: JobManager::new(),
         }
@@ -278,5 +288,108 @@ mod server_tests {
         assert!(body.trim_end().ends_with("data:[DONE]"));
         server.stop().await.unwrap();
         assert_eq!(*server.state().borrow(), ServerState::Stopped);
+    }
+}
+
+#[cfg(test)]
+mod bench_tests {
+    use std::time::Duration;
+
+    use calcine_core::Services;
+    use calcine_core::jobs::JobState;
+
+    use super::MockBackend;
+
+    async fn wait(services: &Services, id: calcine_core::jobs::JobId) -> JobState {
+        let mut events = services.jobs.subscribe();
+        while services
+            .jobs
+            .get(id)
+            .is_some_and(|job| job.state == JobState::Running)
+        {
+            let _ = tokio::time::timeout(Duration::from_secs(1), events.recv()).await;
+        }
+        services.jobs.get(id).unwrap().state
+    }
+
+    #[tokio::test]
+    async fn profiles_energy_through_the_server() {
+        use calcine_core::bench::{BenchSource, EnergyRequest};
+        use calcine_core::models::{ComputeUnit, Runtime};
+
+        let services = MockBackend::services();
+        let request = EnergyRequest {
+            model: "qualcomm/Qwen3-4B".into(),
+            runtime: Runtime::Qairt,
+            units: vec![ComputeUnit::Npu],
+            power_modes: vec!["power_saver".into()],
+            generated_tokens: 128,
+            repetitions: 1,
+        };
+        let job = services.start_energy_profile(request.clone()).unwrap();
+        assert!(
+            services.start_energy_profile(request).is_err(),
+            "one at a time"
+        );
+        assert_eq!(wait(&services, job).await, JobState::Succeeded);
+
+        let history = services.bench.history();
+        let result = &history[0];
+        assert_eq!(result.source, BenchSource::EnergyProfile);
+        assert_eq!(result.power_mode, "power_saver");
+        let measure = result.measure.as_ref().unwrap();
+        assert_eq!(measure.decode_tps.median, 22.0);
+        let energy = measure.energy.unwrap();
+        // The mock idles at 8 W and adds 2 W while generating in power_saver.
+        assert!((energy.idle_watts - 8.0).abs() < 0.1, "{energy:?}");
+        assert!(energy.active_watts > energy.idle_watts, "{energy:?}");
+        assert!(energy.joules_per_token > 0.0, "{energy:?}");
+    }
+
+    #[tokio::test]
+    async fn benchmarks_each_unit_and_keeps_failures() {
+        use calcine_core::bench::BenchRequest;
+        use calcine_core::models::{ComputeUnit, Runtime};
+
+        let services = MockBackend::default()
+            .with_pull_duration(Duration::from_millis(30))
+            .into_services();
+        assert!(!services.bench.tool().await.unwrap().is_ready());
+        let install = services.start_bench_install("v0.8.0".into());
+        assert_eq!(wait(&services, install).await, JobState::Succeeded);
+        assert!(services.bench.tool().await.unwrap().is_ready());
+
+        let request = BenchRequest {
+            model: "qualcomm/Qwen3-4B:W4A16".into(),
+            runtime: Runtime::Qairt,
+            units: vec![ComputeUnit::Npu, ComputeUnit::Gpu],
+            prompt_tokens: 512,
+            generated_tokens: 128,
+            repetitions: 3,
+            power_mode: "burst".into(),
+            spec_type: None,
+            draft_model: None,
+        };
+        let job = services.start_benchmark(request.clone()).unwrap();
+        assert!(services.start_benchmark(request).is_err(), "one at a time");
+        assert_eq!(wait(&services, job).await, JobState::Succeeded);
+
+        let history = services.bench.history();
+        assert_eq!(history.len(), 2);
+        let npu = history.iter().find(|r| r.unit == ComputeUnit::Npu).unwrap();
+        assert!(
+            npu.measure
+                .as_ref()
+                .is_some_and(|m| m.decode_tps.median > 0.0)
+        );
+        let gpu = history.iter().find(|r| r.unit == ComputeUnit::Gpu).unwrap();
+        assert!(gpu.measure.is_none() && gpu.error.is_some());
+        assert_eq!(npu.session_id, gpu.session_id);
+
+        services
+            .bench
+            .forget(std::slice::from_ref(&npu.id))
+            .unwrap();
+        assert_eq!(services.bench.history().len(), 1);
     }
 }

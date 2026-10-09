@@ -29,11 +29,12 @@ Security of the gateway is described in [security-model.md](security-model.md).
 | Crate | Role | Depends on Tauri? |
 |---|---|---|
 | `crates/calcine-core` | Domain types, model references (pasted names and links), service traits (`ModelStore`, `ModelCatalog`, `RuntimeManager`, `HardwareProbe`), the `JobManager` for long-running work, errors, `Services` | No |
-| `crates/calcine-geniex` | GenieX CLI adapter: discovery, command runner, `pull` with live progress, `geniex serve` supervisor, output parsers tested on real captures (`tests/fixtures/`), installing and updating GenieX (`update/`: release index, verified download, signature, silent installer, cache for rolling back) | No |
-| `crates/calcine-gateway` | Local HTTP API (axum): Host/Origin/API-key checks, body sanitizing, OpenAI-compatible proxy with streaming and a one-at-a-time queue, request log, `/calcine/v1` management API | No |
+| `crates/calcine-geniex` | GenieX CLI adapter: discovery, command runner (`platform.rs`: what differs on Linux, `LD_LIBRARY_PATH`, parent-death signal, archive install), `pull` with live progress, `geniex serve` supervisor, output parsers tested on real captures (`tests/fixtures/`), installing and updating GenieX (`update/`: release index, verified download, signature, silent installer, cache for rolling back), context windows and token counts with each model's `tokenizer.json` (`context.rs`) | No |
+| `crates/calcine-gateway` | Local HTTP API (axum): Host/Origin/API-key checks, optional local network port (`network/`: HTTPS with rustls and a self-signed certificate, allowed address ranges, key-guessing limiter), body sanitizing, OpenAI-compatible proxy with streaming and a one-at-a-time queue, request log, `/calcine/v1` management API | No |
 | `crates/calcine-hub` | Hub lookups over HTTPS: Hugging Face search, precisions with sizes (named like GenieX), AI Hub chipsets (`ModelDirectory`) | No |
-| `crates/calcine-hw` | Hardware probe: CPU, memory and disk (sysinfo), NPU/GPU and drivers (Windows WMI), live NPU/GPU load (performance counters) | No |
+| `crates/calcine-hw` | Hardware probe: CPU, memory and disk (sysinfo), NPU/GPU and drivers (Windows WMI; on Linux the FastRPC device, the `msm`/KGSL GPU and the device tree's SoC), live NPU/GPU load (performance counters), power and energy from the SoC's energy metering (`Energy Meter` counters, found by their English names through PerfLib) | No |
 | `crates/calcine-mock` | In-memory backend with simulated downloads, for UI work and tests | No |
+| `src-tauri/src/cli.rs`, `src-tauri/src/bin/calcine-cli.rs` | `calcine-cli`: a console program (the app is a windowed one) built from the same crate: `serve` runs the same services and gateway as the window (`setup::build`), `keys` manages API keys | Tauri runtime only |
 | `src-tauri` | Desktop shell: builds `Services`, exposes commands, exports TypeScript bindings | Yes |
 
 Backend selection: `CALCINE_BACKEND=mock` uses the mock, anything else uses GenieX.
@@ -63,7 +64,7 @@ calcine-gateway/src/
 
 calcine-hub/src/    hf.rs (Hugging Face payloads) · quant.rs (precision names) · aihub.rs (chipsets)
 
-calcine-hw/src/     snapshot.rs · usage.rs (live load) · system.rs (sysinfo)
+calcine-hw/src/     snapshot.rs · usage.rs (live load) · power.rs (power, energy) · system.rs (sysinfo)
                     windows/ devices.rs (WMI) · gpu_engines.rs (PDH, the only `unsafe` code)
 calcine-mock/src/   data.rs (sample data) · models.rs · directory.rs · runtime.rs · hardware.rs · server.rs
 
@@ -71,7 +72,7 @@ src-tauri/
 ├─ src/ipc/      mod.rs (bindings builder) · commands/ (one file per domain) · events.rs · error.rs
 ├─ src/setup/    services.rs (pick the backend) · gateway.rs · start and shutdown
 ├─ src/desktop/  tray.rs · window behaviour · notifications.rs · locale.rs · process.rs (Job Object)
-├─ windows/      installer-hooks.nsh (installs GenieX) · test-manifest.xml
+├─ windows/      license-and-privacy.txt (installer license page) · test-manifest.xml
 └─ tests/        tests that link Tauri (bindings export)
 ```
 

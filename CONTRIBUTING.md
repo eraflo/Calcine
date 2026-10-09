@@ -32,10 +32,12 @@ Common scopes: `app`, `ui`, `chat`, `models`, `discover`, `server`, `gateway`,
 
 ## Local setup
 
-Requirements: Windows 11 ARM64 on a Snapdragon device (for real inference),
-[rustup](https://rustup.rs) (the pinned toolchain in `rust-toolchain.toml` is
-installed automatically), the Visual Studio C++ build tools, and
-[bun](https://bun.sh).
+Requirements: a Snapdragon device for real inference, running Windows 11 ARM64
+(with the Visual Studio C++ build tools) or Linux ARM64 (with
+[Tauri's system dependencies](https://v2.tauri.app/start/prerequisites/#linux)
+and `ocl-icd-libopencl1`), [rustup](https://rustup.rs) (the pinned toolchain in
+`rust-toolchain.toml` is installed automatically) and [bun](https://bun.sh).
+The mock (`bun run app:mock`) runs anywhere.
 
 ```bash
 bun install

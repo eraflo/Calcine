@@ -1,7 +1,13 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { Attachment } from "./lib/attachments";
-import { type ChatSettings, DEFAULT_SETTINGS, type MediaPart, POWER_MODES } from "./lib/request";
+import {
+  type ChatSettings,
+  DEFAULT_SETTINGS,
+  type MediaPart,
+  POWER_MODES,
+  withDefaults,
+} from "./lib/request";
 import type { StreamStats } from "./lib/sse";
 
 export type ChatMessage = {
@@ -23,7 +29,15 @@ export type Conversation = {
   modelId: string;
   messages: ChatMessage[];
   updatedAt: number;
+  /** The first message the model still sees, when the conversation
+   * outgrew its context window. */
+  contextFrom?: string;
+  /** What came before `contextFrom`, summarized by the model. */
+  summary?: string;
 };
+
+/** A system prompt saved for reuse. */
+export type SavedPrompt = { id: string; name: string; text: string };
 
 type ChatState = {
   conversations: Conversation[];
@@ -37,7 +51,12 @@ type ChatState = {
   setModel: (id: string, modelId: string) => void;
   addMessage: (id: string, message: ChatMessage) => void;
   updateMessage: (id: string, messageId: string, patch: Partial<ChatMessage>) => void;
+  /** Where the model's view starts, and the summary of what's before. */
+  setContext: (id: string, context: Pick<Conversation, "contextFrom" | "summary">) => void;
   setSettings: (patch: Partial<ChatSettings>) => void;
+  prompts: SavedPrompt[];
+  savePrompt: (name: string, text: string) => void;
+  removePrompt: (id: string) => void;
 };
 
 const newId = () => crypto.randomUUID();
@@ -100,13 +119,28 @@ export const useChat = create<ChatState>()(
               : c,
           ),
         })),
+      setContext: (id, context) =>
+        set((state) => ({
+          conversations: state.conversations.map((c) => (c.id === id ? { ...c, ...context } : c)),
+        })),
       setSettings: (patch) => set((state) => ({ settings: { ...state.settings, ...patch } })),
+      prompts: [],
+      // Saving under an existing name replaces that prompt.
+      savePrompt: (name, text) =>
+        set((state) => ({
+          prompts: [
+            ...state.prompts.filter((prompt) => prompt.name !== name),
+            { id: newId(), name, text },
+          ],
+        })),
+      removePrompt: (id) =>
+        set((state) => ({ prompts: state.prompts.filter((prompt) => prompt.id !== id) })),
     }),
     {
       name: "calcine.chat",
-      version: 2,
+      version: 5,
       migrate: (persisted, version) => {
-        const state = persisted as Pick<ChatState, "conversations" | "settings">;
+        const state = persisted as Pick<ChatState, "conversations" | "settings" | "prompts">;
         if (version < 2) {
           // Titles are shown translated when empty; power modes lost their labels.
           state.conversations = state.conversations.map((c) =>
@@ -116,6 +150,9 @@ export const useChat = create<ChatState>()(
             state.settings = { ...state.settings, powerMode: DEFAULT_SETTINGS.powerMode };
           }
         }
+        // New settings get their defaults.
+        state.settings = withDefaults(state.settings);
+        state.prompts ??= [];
         return state as ChatState;
       },
     },
@@ -139,7 +176,10 @@ type LiveReply = {
   messageId: string | null;
   content: string;
   reasoning: string;
+  /** Work before the reply starts. */
+  status: "summarizing" | null;
   start: (conversationId: string, messageId: string) => void;
+  setStatus: (status: LiveReply["status"]) => void;
   append: (delta: { content?: string; reasoning?: string }) => void;
   clear: () => void;
 };
@@ -149,14 +189,17 @@ export const useLiveReply = create<LiveReply>()((set) => ({
   messageId: null,
   content: "",
   reasoning: "",
+  status: null,
   start: (conversationId, messageId) =>
-    set({ conversationId, messageId, content: "", reasoning: "" }),
+    set({ conversationId, messageId, content: "", reasoning: "", status: null }),
+  setStatus: (status) => set({ status }),
   append: (delta) =>
     set((state) => ({
       content: state.content + (delta.content ?? ""),
       reasoning: state.reasoning + (delta.reasoning ?? ""),
     })),
-  clear: () => set({ conversationId: null, messageId: null, content: "", reasoning: "" }),
+  clear: () =>
+    set({ conversationId: null, messageId: null, content: "", reasoning: "", status: null }),
 }));
 
 export { newId };

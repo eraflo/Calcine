@@ -8,6 +8,7 @@ import {
   type GatewayStatus,
   type NewApiKey,
   type RequestEntry,
+  type ServerOptions,
   unwrap,
 } from "@/lib/api";
 
@@ -34,6 +35,20 @@ export const serverLogsQuery = queryOptions({
   queryFn: () => call(commands.serverLogs),
   refetchInterval: 2_000,
 });
+
+export const serverOptionsQuery = queryOptions({
+  queryKey: ["server-options"],
+  queryFn: () => call(commands.serverOptions),
+});
+
+/** Save the `geniex serve` options; a running GenieX restarts with them. */
+export function useSetServerOptions() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (options: ServerOptions) => unwrap(() => commands.setServerOptions(options)),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: serverOptionsQuery.queryKey }),
+  });
+}
 
 /** How the app's own UI reaches the gateway (base URL + per-launch token). */
 export const connectionQuery = queryOptions({

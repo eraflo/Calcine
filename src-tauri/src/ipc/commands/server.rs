@@ -1,15 +1,19 @@
 use std::sync::Arc;
 
 use calcine_core::Services;
+use calcine_core::context::ContextUsage;
+use calcine_core::runtime::ServerOptions;
 use calcine_gateway::{
     ApiKeyInfo, CreatedApiKey, Gateway, GatewaySettings, GatewayStatus, KeyError, NewApiKey,
     RequestEntry,
 };
 use serde::Serialize;
 use specta::Type;
-use tauri::State;
+use tauri::{AppHandle, State};
+use tauri_plugin_opener::OpenerExt;
 
 use crate::ipc::error::{ApiError, ApiResult};
+use crate::setup::ServerOptionsFile;
 
 /// How Calcine's own UI talks to the gateway.
 #[derive(Debug, Serialize, Type)]
@@ -56,6 +60,40 @@ pub fn server_logs(services: State<'_, Services>) -> Vec<String> {
     services.server.logs()
 }
 
+/// How much of the model's context window a chat request takes. `request`
+/// is the request's JSON, as sent to `/v1/chat/completions`.
+#[tauri::command]
+#[specta::specta]
+pub async fn context_usage(
+    services: State<'_, Services>,
+    model: String,
+    request: String,
+) -> ApiResult<ContextUsage> {
+    let request: serde_json::Value = serde_json::from_str(&request)
+        .map_err(|err| ApiError::invalid_input(format!("request isn't JSON: {err}")))?;
+    Ok(services.context_usage(&model, &request).await?)
+}
+
+/// What `geniex serve` starts with: model unload delay, context window.
+#[tauri::command]
+#[specta::specta]
+pub fn server_options(services: State<'_, Services>) -> ServerOptions {
+    services.server.options()
+}
+
+/// Save new server options. A running GenieX restarts to apply them.
+#[tauri::command]
+#[specta::specta]
+pub async fn set_server_options(
+    services: State<'_, Services>,
+    file: State<'_, ServerOptionsFile>,
+    options: ServerOptions,
+) -> ApiResult<()> {
+    options.validate().map_err(ApiError::invalid_input)?;
+    file.save(options).map_err(ApiError::io)?;
+    Ok(services.server.set_options(options).await?)
+}
+
 #[tauri::command]
 #[specta::specta]
 pub async fn set_require_api_key(gateway: State<'_, Arc<Gateway>>, require: bool) -> ApiResult<()> {
@@ -94,6 +132,17 @@ pub fn revoke_api_key(gateway: State<'_, Arc<Gateway>>, id: String) -> ApiResult
     gateway.keys().revoke(&id).map_err(key_error)
 }
 
+/// Let a key be used from other devices on the local network, or not.
+#[tauri::command]
+#[specta::specta]
+pub fn set_api_key_network(
+    gateway: State<'_, Arc<Gateway>>,
+    id: String,
+    network: bool,
+) -> ApiResult<Option<ApiKeyInfo>> {
+    gateway.keys().set_network(&id, network).map_err(key_error)
+}
+
 fn key_error(err: KeyError) -> ApiError {
     match err {
         KeyError::MissingName | KeyError::NoScope => ApiError::invalid_input(err.to_string()),
@@ -128,4 +177,48 @@ pub fn set_allowed_origins(
     gateway
         .set_allowed_origins(origins)
         .map_err(ApiError::invalid_input)
+}
+
+/// Also answer Ollama apps on port 11434, without a key (inference only).
+#[tauri::command]
+#[specta::specta]
+pub async fn set_ollama_port(gateway: State<'_, Arc<Gateway>>, enabled: bool) -> ApiResult<()> {
+    gateway.set_ollama_port(enabled).await.map_err(ApiError::io)
+}
+
+/// Answer other devices on the local network over HTTPS, or stop. `allowed`
+/// lists addresses or ranges; empty means private networks.
+#[tauri::command]
+#[specta::specta]
+pub async fn set_network(
+    gateway: State<'_, Arc<Gateway>>,
+    enabled: bool,
+    port: u16,
+    allowed: Vec<String>,
+) -> ApiResult<()> {
+    gateway
+        .set_network(enabled, port, allowed)
+        .await
+        .map_err(ApiError::invalid_input)
+}
+
+/// Show the network port's certificate (`certificate.pem`) in Explorer, to
+/// copy it to other devices.
+#[tauri::command]
+#[specta::specta]
+pub fn show_network_certificate(app: AppHandle, gateway: State<'_, Arc<Gateway>>) -> ApiResult<()> {
+    let path = gateway
+        .status()
+        .network
+        .map(|network| network.certificate_path)
+        .ok_or_else(|| ApiError::invalid_input("the local network port is off".into()))?;
+    app.opener().reveal_item_in_dir(path).map_err(ApiError::io)
+}
+
+/// Make a new certificate for the network port. Devices that trusted the
+/// old one must trust the new one.
+#[tauri::command]
+#[specta::specta]
+pub async fn renew_network_certificate(gateway: State<'_, Arc<Gateway>>) -> ApiResult<()> {
+    gateway.renew_certificate().await.map_err(ApiError::io)
 }

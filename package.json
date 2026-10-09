@@ -1,7 +1,7 @@
 {
   "name": "calcine",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Desktop app and local API gateway for Qualcomm GenieX",
   "license": "MIT",
   "type": "module",
@@ -11,15 +11,14 @@
     "app:mock": "bun scripts/dev-mock.ts",
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "build:release": "bun run fetch:geniex && tauri build --config src-tauri/tauri.release.conf.json",
+    "build:release": "tauri build --config src-tauri/tauri.release.conf.json",
     "preview": "vite preview",
     "tauri": "tauri",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "typecheck": "tsc -b",
     "test": "vitest run",
-    "test:watch": "vitest",
-    "fetch:geniex": "bun scripts/fetch-geniex.ts"
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.3.0",

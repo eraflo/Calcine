@@ -57,10 +57,10 @@ async fn lists_the_ai_hub_catalog_for_this_device() {
 #[tokio::test]
 #[ignore = "needs a local GenieX install"]
 async fn serve_starts_answers_and_stops() {
-    use calcine_core::runtime::{InferenceServer, ServerState};
-    use calcine_geniex::{GeniexServer, ServeOptions};
+    use calcine_core::runtime::{InferenceServer, ServerOptions, ServerState};
+    use calcine_geniex::GeniexServer;
 
-    let server = GeniexServer::new(Geniex::default(), ServeOptions::default());
+    let server = GeniexServer::new(Geniex::default(), ServerOptions::default());
     let url = server
         .ensure_running()
         .await

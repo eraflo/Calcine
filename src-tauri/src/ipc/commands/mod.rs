@@ -5,6 +5,7 @@
 #![allow(clippy::needless_pass_by_value)]
 
 pub mod app;
+pub mod bench;
 pub mod jobs;
 pub mod models;
 pub mod runtime;

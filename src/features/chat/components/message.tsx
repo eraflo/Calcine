@@ -10,6 +10,7 @@ import { useT } from "@/i18n";
 import { formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { Attachment } from "../lib/attachments";
+import { prettyJson } from "../lib/request";
 import type { StreamStats } from "../lib/sse";
 import { messages } from "../messages";
 import { type ChatMessage, useMediaPayloads } from "../store";
@@ -20,7 +21,7 @@ export function Message({
   live,
 }: {
   message: ChatMessage;
-  live?: { content: string; reasoning: string };
+  live?: { content: string; reasoning: string; status?: "summarizing" | null };
 }) {
   const t = useT(messages);
   const content = live?.content ?? message.content;
@@ -49,7 +50,15 @@ export function Message({
   return (
     <div className="group flex flex-col gap-2">
       {reasoning && <Reasoning text={reasoning} active={thinking} />}
-      {content ? <MarkdownBody text={content} /> : live && !reasoning ? <TypingDots /> : null}
+      {content ? (
+        <MarkdownBody text={asMarkdown(content)} />
+      ) : live?.status === "summarizing" ? (
+        <p className="animate-pulse text-xs text-muted-foreground" role="status">
+          {t("summarizing")}
+        </p>
+      ) : live && !reasoning ? (
+        <TypingDots />
+      ) : null}
       {message.error && (
         <p className="flex items-start gap-1.5 text-sm text-destructive">
           <CircleAlert className="mt-0.5 size-4 shrink-0" />
@@ -58,6 +67,11 @@ export function Message({
             {message.error.includes("Model loading failed") && (
               <span className="mt-1 block text-xs text-muted-foreground">
                 {t("loadFailedHint")}
+              </span>
+            )}
+            {message.error.includes("context window") && (
+              <span className="mt-1 block text-xs text-muted-foreground">
+                {t("contextErrorHint")}
               </span>
             )}
           </span>
@@ -127,6 +141,12 @@ function Reasoning({ text, active }: { text: string; active: boolean }) {
   );
 }
 
+/** JSON replies (structured output) show as a formatted code block. */
+function asMarkdown(content: string): string {
+  const json = prettyJson(content);
+  return json === null ? content : `\`\`\`json\n${json}\n\`\`\``;
+}
+
 const MarkdownBody = memo(function MarkdownBody({ text }: { text: string }) {
   return (
     <div className="markdown text-sm leading-relaxed">
@@ -143,6 +163,12 @@ function Stats({ stats }: { stats: StreamStats }) {
       t("tokensPerSecond", { value: formatNumber(stats.tokensPerSecond, 0) }),
     stats.firstTokenMs !== undefined &&
       t("firstToken", { value: formatNumber(stats.firstTokenMs / 1000, 1) }),
+    stats.draftTokens &&
+      t("draftsAccepted", {
+        accepted: String(stats.draftAccepted ?? 0),
+        drafted: String(stats.draftTokens),
+        percent: formatNumber(((stats.draftAccepted ?? 0) / stats.draftTokens) * 100, 0),
+      }),
   ].filter(Boolean);
   return <span className="tabular-nums">{parts.join(" · ")}</span>;
 }

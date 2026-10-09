@@ -46,10 +46,13 @@ pub struct Strings {
     pub download: JobMessages,
     pub import: JobMessages,
     pub geniex_update: JobMessages,
+    pub benchmark: JobMessages,
     /// After a model name: "… is ready to use."
     pub model_ready: &'static str,
     /// After a version: "… is installed."
     pub version_installed: &'static str,
+    /// After a model name: "…: results are on the Benchmark page."
+    pub results_ready: &'static str,
 }
 
 impl Language {
@@ -70,8 +73,13 @@ impl Language {
                     done: "GenieX updated",
                     failed: "GenieX update failed",
                 },
+                benchmark: JobMessages {
+                    done: "Benchmark finished",
+                    failed: "Benchmark failed",
+                },
                 model_ready: "is ready to use.",
                 version_installed: "is installed.",
+                results_ready: ": results are on the Benchmark page.",
             },
             Self::Fr => Strings {
                 open: "Ouvrir Calcine",
@@ -88,8 +96,13 @@ impl Language {
                     done: "GenieX mis à jour",
                     failed: "Échec de la mise à jour de GenieX",
                 },
+                benchmark: JobMessages {
+                    done: "Benchmark terminé",
+                    failed: "Échec du benchmark",
+                },
                 model_ready: "est prêt à l'emploi.",
                 version_installed: "est installé.",
+                results_ready: " : les résultats sont sur la page Benchmark.",
             },
         }
     }

@@ -1,6 +1,16 @@
 import { describe, expect, it } from "vitest";
 import type { LocalModel } from "@/lib/api";
-import { buildChatRequest, DEFAULT_SETTINGS, toCurl } from "./request";
+import {
+  activePreset,
+  buildChatRequest,
+  DEFAULT_SETTINGS,
+  PRESETS,
+  parseSchema,
+  prettyJson,
+  stopIndex,
+  toCurl,
+  withDefaults,
+} from "./request";
 
 const model = (runtime: LocalModel["runtime"]): LocalModel => ({
   name: "m/x",
@@ -40,6 +50,150 @@ describe("buildChatRequest", () => {
     expect(buildChatRequest(model("qairt"), "m/x", DEFAULT_SETTINGS, hello)).not.toHaveProperty(
       "power_mode",
     );
+  });
+});
+
+describe("optional settings", () => {
+  const llama = model("llama_cpp");
+
+  it("leaves GenieX's defaults alone unless set", () => {
+    const body = buildChatRequest(llama, "m/x", DEFAULT_SETTINGS, hello);
+    for (const key of ["top_p", "top_k", "min_p", "seed", "stop", "ngl"]) {
+      expect(body).not.toHaveProperty(key);
+    }
+  });
+
+  it("sends samplers and stop sequences to every model", () => {
+    const settings = {
+      ...DEFAULT_SETTINGS,
+      topP: 0.9,
+      topK: 40,
+      minP: 0,
+      repetitionPenalty: 1.1,
+      presencePenalty: 0.5,
+      frequencyPenalty: -0.5,
+      stop: ["\n\n", ""],
+    };
+    expect(buildChatRequest(model("qairt"), "m/x", settings, hello)).toMatchObject({
+      top_p: 0.9,
+      top_k: 40,
+      min_p: 0,
+      repetition_penalty: 1.1,
+      presence_penalty: 0.5,
+      frequency_penalty: -0.5,
+      stop: ["\n\n"],
+    });
+  });
+
+  it("sends the seed and offloaded layers to llama.cpp models only", () => {
+    const settings = { ...DEFAULT_SETTINGS, seed: 7, gpuLayers: 0 };
+    expect(buildChatRequest(llama, "m/x", settings, hello)).toMatchObject({ seed: 7, ngl: 0 });
+    const qairt = buildChatRequest(model("qairt"), "m/x", settings, hello);
+    expect(qairt).not.toHaveProperty("seed");
+    expect(qairt).not.toHaveProperty("ngl");
+  });
+});
+
+describe("vision encoder", () => {
+  it("is sent to llama.cpp vision models only, as a GenieX device name", () => {
+    const settings = { ...DEFAULT_SETTINGS, visionCompute: "npu" as const };
+    const vlm = { ...model("llama_cpp"), modelType: "vlm" as const };
+    expect(buildChatRequest(vlm, "m/x", settings, hello)).toHaveProperty("vit_compute", "HTP0");
+    expect(
+      buildChatRequest(vlm, "m/x", { ...settings, visionCompute: "cpu" }, hello),
+    ).toHaveProperty("vit_compute", "CPU");
+    expect(buildChatRequest(model("llama_cpp"), "m/x", settings, hello)).not.toHaveProperty(
+      "vit_compute",
+    );
+    expect(buildChatRequest(vlm, "m/x", DEFAULT_SETTINGS, hello)).not.toHaveProperty("vit_compute");
+  });
+});
+
+describe("speculative decoding", () => {
+  const llama = model("llama_cpp");
+
+  it("sends n-gram methods alone and draft methods with their model", () => {
+    const ngram = { ...DEFAULT_SETTINGS, specType: "ngram-cache" as const, draftMax: 8 };
+    expect(buildChatRequest(llama, "m/x", ngram, hello)).toMatchObject({
+      spec_type: "ngram-cache",
+      spec_n_max: 8,
+    });
+    expect(buildChatRequest(llama, "m/x", ngram, hello)).not.toHaveProperty("spec_draft_model");
+
+    const draft = {
+      ...DEFAULT_SETTINGS,
+      specType: "draft-simple" as const,
+      draftModel: "a/b:Q4_0",
+    };
+    expect(buildChatRequest(llama, "m/x", draft, hello)).toMatchObject({
+      spec_type: "draft-simple",
+      spec_draft_model: "a/b:Q4_0",
+    });
+  });
+
+  it("leaves it out without a draft model, and for AI Hub models", () => {
+    const missing = { ...DEFAULT_SETTINGS, specType: "draft-simple" as const };
+    expect(buildChatRequest(llama, "m/x", missing, hello)).not.toHaveProperty("spec_type");
+    const ngram = { ...DEFAULT_SETTINGS, specType: "ngram-simple" as const };
+    expect(buildChatRequest(model("qairt"), "m/x", ngram, hello)).not.toHaveProperty("spec_type");
+  });
+});
+
+describe("output format", () => {
+  it("asks for JSON or a schema, on every model", () => {
+    const json = { ...DEFAULT_SETTINGS, outputFormat: "json" as const };
+    expect(buildChatRequest(model("qairt"), "m/x", json, hello)).toHaveProperty("response_format", {
+      type: "json_object",
+    });
+    const schema = {
+      ...DEFAULT_SETTINGS,
+      outputFormat: "schema" as const,
+      jsonSchema: '{"type":"object"}',
+    };
+    expect(buildChatRequest(model("qairt"), "m/x", schema, hello)).toMatchObject({
+      response_format: { type: "json_schema", json_schema: { schema: { type: "object" } } },
+    });
+  });
+
+  it("sends nothing for text or an invalid schema", () => {
+    expect(buildChatRequest(model("qairt"), "m/x", DEFAULT_SETTINGS, hello)).not.toHaveProperty(
+      "response_format",
+    );
+    const broken = { ...DEFAULT_SETTINGS, outputFormat: "schema" as const, jsonSchema: "{" };
+    expect(buildChatRequest(model("qairt"), "m/x", broken, hello)).not.toHaveProperty(
+      "response_format",
+    );
+    expect(parseSchema("[1]")).toEqual({ error: "not-object" });
+  });
+
+  it("pretty-prints JSON replies only", () => {
+    expect(prettyJson('{"a":1}')).toBe('{\n  "a": 1\n}');
+    expect(prettyJson("Hello {not json}")).toBeNull();
+  });
+});
+
+describe("stopIndex", () => {
+  it("finds the earliest stop sequence", () => {
+    expect(stopIndex("one. two\n\nthree", ["\n\n", "."])).toBe(3);
+    expect(stopIndex("no stop here", ["END", ""])).toBeNull();
+    expect(stopIndex("anything", [])).toBeNull();
+  });
+});
+
+describe("presets", () => {
+  it("recognizes the preset the settings match", () => {
+    expect(activePreset(DEFAULT_SETTINGS)).toBe("balanced");
+    expect(activePreset({ ...DEFAULT_SETTINGS, ...PRESETS.creative })).toBe("creative");
+    expect(activePreset({ ...DEFAULT_SETTINGS, temperature: 0.4 })).toBeNull();
+  });
+
+  it("fills settings saved before a field existed", () => {
+    const old = { systemPrompt: "Hi", temperature: 0.3 } as Partial<typeof DEFAULT_SETTINGS>;
+    expect(withDefaults(old)).toEqual({
+      ...DEFAULT_SETTINGS,
+      systemPrompt: "Hi",
+      temperature: 0.3,
+    });
   });
 });
 

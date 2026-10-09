@@ -7,7 +7,7 @@ mod types;
 mod update;
 
 pub use manager::RuntimeManager;
-pub use server::{InferenceServer, ServerState};
+pub use server::{InferenceServer, ServerOptions, ServerState};
 pub use types::RuntimeInfo;
 pub use update::{
     CachedInstaller, InstallSource, InstallerAsset, ReleaseChannel, RuntimeInstaller,

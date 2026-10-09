@@ -14,6 +14,10 @@ const status = (overrides: Partial<GatewayStatus> = {}): GatewayStatus => ({
   activeRequests: 0,
   queuedRequests: 0,
   requireApiKey: true,
+  ollamaUrl: null,
+  ollamaError: null,
+  network: null,
+  networkError: null,
   ...overrides,
 });
 

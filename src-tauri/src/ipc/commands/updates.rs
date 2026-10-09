@@ -117,6 +117,7 @@ pub async fn install_app_update(
                         total_bytes: total,
                         bytes_per_second: None,
                         phase: Some(JobPhase::Downloading),
+                        step: None,
                     });
                 },
                 || {},

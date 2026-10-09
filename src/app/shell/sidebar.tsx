@@ -73,7 +73,11 @@ function RuntimeStatus() {
   const t = useT(messages);
   const { data, error, isPending } = useQuery(runtimeQuery);
   const channel = useUpdates((state) => state.geniexChannel);
-  const { data: update } = useQuery({ ...runtimeUpdateQuery(channel), enabled: Boolean(data) });
+  const autoCheck = useUpdates((state) => state.autoCheck);
+  const { data: update } = useQuery({
+    ...runtimeUpdateQuery(channel),
+    enabled: Boolean(data) && autoCheck,
+  });
   const kind = error instanceof CalcineError ? error.kind : undefined;
 
   const [tone, label] = isPending

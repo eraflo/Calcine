@@ -58,6 +58,7 @@ impl RuntimeInstaller for MockBackend {
                     total_bytes: Some(INSTALLER_BYTES),
                     bytes_per_second: Some(INSTALLER_BYTES / 4),
                     phase: Some(JobPhase::Downloading),
+                    step: None,
                 });
                 tokio::select! {
                     () = tokio::time::sleep(tick) => {}

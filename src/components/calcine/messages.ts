@@ -19,7 +19,8 @@ export const messages = defineMessages({
       "This page needs Calcine's backend, which isn't available in a regular browser. Run <code>bun run app</code> or <code>bun run app:mock</code>.",
     geniexMissing: "GenieX isn't installed",
     geniexMissingHint:
-      "Calcine's installer sets up GenieX for you. In development, install it from the <strong>GenieX releases</strong> page, then refresh.",
+      "Calcine runs models with GenieX, Qualcomm's runtime. Install it from the <strong>welcome screen</strong>.",
+    setUpGeniex: "Set up GenieX",
     somethingWrong: "Something went wrong",
   },
   fr: {
@@ -37,7 +38,8 @@ export const messages = defineMessages({
       "Cette page a besoin du backend de Calcine, indisponible dans un navigateur classique. Lancez <code>bun run app</code> ou <code>bun run app:mock</code>.",
     geniexMissing: "GenieX n'est pas installé",
     geniexMissingHint:
-      "L'installeur de Calcine installe GenieX pour vous. En développement, installez-le depuis la page <strong>GenieX releases</strong>, puis actualisez.",
+      "Calcine exécute les modèles avec GenieX, le moteur de Qualcomm. Installez-le depuis l'<strong>écran d'accueil</strong>.",
+    setUpGeniex: "Installer GenieX",
     somethingWrong: "Une erreur est survenue",
   },
 });

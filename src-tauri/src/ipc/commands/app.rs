@@ -1,9 +1,10 @@
 use calcine_core::{BackendKind, Services};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use specta::Type;
 use tauri::{AppHandle, State};
 
 use tauri_plugin_autostart::ManagerExt;
+use tauri_plugin_dialog::DialogExt;
 use tauri_plugin_opener::OpenerExt;
 
 use crate::desktop::locale::{Language, Locale};
@@ -74,4 +75,91 @@ pub fn set_autostart(app: AppHandle, enabled: bool) -> ApiResult<()> {
         launcher.disable()
     }
     .map_err(ApiError::io)
+}
+
+/// Exports larger than this are refused (a conversation is a few hundred KB).
+const MAX_EXPORT_BYTES: usize = 16 << 20;
+
+/// What an export contains, for the save dialog's file type.
+#[derive(Debug, Clone, Copy, Deserialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum ExportFormat {
+    Markdown,
+    Csv,
+}
+
+impl ExportFormat {
+    fn filter(self) -> (&'static str, &'static str) {
+        match self {
+            Self::Markdown => ("Markdown", "md"),
+            Self::Csv => ("CSV", "csv"),
+        }
+    }
+}
+
+/// Save an export where the user picks in the system dialog. Returns the
+/// saved path, or `None` when the user cancels.
+#[tauri::command]
+#[specta::specta]
+pub async fn save_export(
+    app: AppHandle,
+    file_name: String,
+    contents: String,
+    format: ExportFormat,
+) -> ApiResult<Option<String>> {
+    if contents.len() > MAX_EXPORT_BYTES {
+        return Err(ApiError::invalid_input("this export is too large".into()));
+    }
+    let (label, extension) = format.filter();
+    let (sender, receiver) = tokio::sync::oneshot::channel();
+    app.dialog()
+        .file()
+        .set_file_name(export_file_name(&file_name, extension))
+        .add_filter(label, &[extension])
+        .save_file(move |path| {
+            let _ = sender.send(path);
+        });
+    let Some(path) = receiver.await.ok().flatten() else {
+        return Ok(None);
+    };
+    let path = path.into_path().map_err(ApiError::io)?;
+    tokio::fs::write(&path, contents)
+        .await
+        .map_err(ApiError::io)?;
+    Ok(Some(path.display().to_string()))
+}
+
+/// A safe Windows file name ending in `.extension`.
+fn export_file_name(name: &str, extension: &str) -> String {
+    let cleaned: String = name
+        .chars()
+        .map(|c| {
+            if c.is_control() || r#"<>:"/\|?*"#.contains(c) {
+                ' '
+            } else {
+                c
+            }
+        })
+        .collect();
+    let words = cleaned.split_whitespace().collect::<Vec<_>>().join(" ");
+    let stem: String = words.trim_end_matches('.').chars().take(80).collect();
+    let stem = stem.trim_end();
+    if stem.is_empty() {
+        format!("Calcine.{extension}")
+    } else {
+        format!("{stem}.{extension}")
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::export_file_name;
+
+    #[test]
+    fn makes_safe_file_names() {
+        assert_eq!(export_file_name("What's 2/3?", "md"), "What's 2 3.md");
+        assert_eq!(export_file_name("  \u{7}  ", "csv"), "Calcine.csv");
+        assert_eq!(export_file_name("notes...", "md"), "notes.md");
+        assert_eq!(export_file_name(&"a".repeat(200), "md").len(), 83);
+    }
 }
