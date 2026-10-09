@@ -30,6 +30,7 @@ export function CreateKeyDialog({
   const [name, setName] = useState("");
   const [scopes, setScopes] = useState<KeyScope[]>(["inference"]);
   const [allowLocalFiles, setAllowLocalFiles] = useState(false);
+  const [network, setNetwork] = useState(false);
   const [created, setCreated] = useState<CreatedApiKey | null>(null);
 
   const close = (next: boolean) => {
@@ -45,7 +46,7 @@ export function CreateKeyDialog({
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    create.mutate({ name, scopes, allowLocalFiles }, { onSuccess: setCreated });
+    create.mutate({ name, scopes, allowLocalFiles, network }, { onSuccess: setCreated });
   };
 
   const toggle = (scope: KeyScope, on: boolean) =>
@@ -105,6 +106,18 @@ export function CreateKeyDialog({
                   </span>
                 </label>
               ))}
+              <label className="flex cursor-pointer items-start gap-2.5 text-sm">
+                <input
+                  type="checkbox"
+                  checked={network}
+                  onChange={(event) => setNetwork(event.target.checked)}
+                  className="mt-0.5 accent-[var(--primary)]"
+                />
+                <span>
+                  {t("networkLabel")}
+                  <span className="block text-xs text-muted-foreground">{t("networkHint")}</span>
+                </span>
+              </label>
               <label className="flex cursor-pointer items-start gap-2.5 text-sm">
                 <input
                   type="checkbox"

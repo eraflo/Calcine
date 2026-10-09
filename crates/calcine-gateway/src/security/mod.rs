@@ -9,11 +9,17 @@
 //!    On the Ollama port, callers without a key get the same limited rights:
 //!    Ollama clients can't send one.
 //!
+//! The local network port replaces the `Host` check with the client's
+//! address (allowed ranges, too many invalid keys), always needs a key
+//! allowed on the network, and never lets it reach local files.
+//!
 //! Bodies are then checked per route (see [`sanitize`]).
 
 pub mod sanitize;
 
+use std::net::IpAddr;
 use std::sync::Arc;
+use std::time::Instant;
 
 use axum::extract::{Request, State};
 use axum::http::{HeaderMap, HeaderValue, Method, StatusCode, header};
@@ -22,6 +28,7 @@ use axum::response::{IntoResponse, Response};
 
 use crate::caller::Caller;
 use crate::error::api_error;
+use crate::network::{Peer, allow};
 use crate::state::AppState;
 
 /// Paths that answer without a key (liveness only, no data).
@@ -34,6 +41,8 @@ pub enum Listener {
     Main,
     /// Ollama's port, for apps that only speak Ollama.
     Ollama { port: u16 },
+    /// The local network port, over HTTPS, for other devices.
+    Network { port: u16 },
 }
 
 pub async fn guard(State(app): State<Arc<AppState>>, mut request: Request, next: Next) -> Response {
@@ -42,17 +51,27 @@ pub async fn guard(State(app): State<Arc<AppState>>, mut request: Request, next:
         .get::<Listener>()
         .copied()
         .unwrap_or(Listener::Main);
-    let port = match listener {
-        Listener::Main => app.port,
-        Listener::Ollama { port } => port,
+    let peer = match listener {
+        // Other devices: HTTPS, any host name, from allowed addresses only.
+        Listener::Network { .. } => match admit(&app, &request) {
+            Ok(peer) => Some(peer),
+            Err(refused) => return *refused,
+        },
+        Listener::Main | Listener::Ollama { .. } => {
+            let port = match listener {
+                Listener::Ollama { port } => port,
+                _ => app.port,
+            };
+            if !host_allowed(request.headers(), port) {
+                return api_error(
+                    StatusCode::BAD_REQUEST,
+                    "invalid_request_error",
+                    "unexpected Host header",
+                );
+            }
+            None
+        }
     };
-    if !host_allowed(request.headers(), port) {
-        return api_error(
-            StatusCode::BAD_REQUEST,
-            "invalid_request_error",
-            "unexpected Host header",
-        );
-    }
 
     let origin = request
         .headers()
@@ -76,38 +95,106 @@ pub async fn guard(State(app): State<Arc<AppState>>, mut request: Request, next:
     }
 
     if !PUBLIC_PATHS.contains(&request.uri().path()) {
-        let caller = match bearer_token(request.headers()) {
-            Some(token) => match app.keys.authenticate(token) {
-                Some(caller) => caller,
-                None => {
-                    return with_cors(
-                        api_error(
-                            StatusCode::UNAUTHORIZED,
-                            "authentication_error",
-                            "invalid API key",
-                        ),
-                        origin.as_deref(),
-                    );
-                }
-            },
-            None if matches!(listener, Listener::Ollama { .. }) => Caller::OllamaClient,
-            None if !app.settings().require_api_key => Caller::Anonymous,
-            None => {
-                return with_cors(
-                    api_error(
-                        StatusCode::UNAUTHORIZED,
-                        "authentication_error",
-                        "missing API key. Create one in Calcine (Server → API keys) and send it as \
-                         `Authorization: Bearer <key>`.",
-                    ),
-                    origin.as_deref(),
-                );
+        match identify(&app, listener, request.headers(), peer) {
+            Ok(caller) => {
+                request.extensions_mut().insert(caller);
             }
-        };
-        request.extensions_mut().insert(caller);
+            Err(refused) => return with_cors(*refused, origin.as_deref()),
+        }
     }
 
     with_cors(next.run(request).await, origin.as_deref())
+}
+
+/// The address of a network request, when it may connect at all.
+fn admit(app: &AppState, request: &Request) -> Result<IpAddr, Box<Response>> {
+    let Some(Peer(peer)) = request.extensions().get::<Peer>().copied() else {
+        return Err(Box::new(api_error(
+            StatusCode::FORBIDDEN,
+            "permission_error",
+            "unknown client address",
+        )));
+    };
+    let address = peer.ip();
+    let allowed = allow::ranges(&app.settings().network_allowed)
+        .iter()
+        .any(|range| range.contains(address));
+    if !allowed {
+        return Err(Box::new(api_error(
+            StatusCode::FORBIDDEN,
+            "permission_error",
+            &format!(
+                "Calcine doesn't accept connections from {address}. Allow it in Calcine \
+                 (Settings → Local API → Local network)."
+            ),
+        )));
+    }
+    if let Some(wait) = app.limiter.blocked(address, Instant::now()) {
+        return Err(Box::new(api_error(
+            StatusCode::TOO_MANY_REQUESTS,
+            "rate_limit_error",
+            &format!(
+                "too many invalid API keys from {address}: try again in {} minutes",
+                wait.as_secs().div_ceil(60)
+            ),
+        )));
+    }
+    Ok(address)
+}
+
+/// Who is calling, or why they're refused. Over the network a key is always
+/// needed, it must be allowed there, and it never reaches local files.
+fn identify(
+    app: &AppState,
+    listener: Listener,
+    headers: &HeaderMap,
+    peer: Option<IpAddr>,
+) -> Result<Caller, Box<Response>> {
+    let network = matches!(listener, Listener::Network { .. });
+    let invalid = || {
+        if let Some(address) = peer {
+            app.limiter.failed(address, Instant::now());
+        }
+        Box::new(api_error(
+            StatusCode::UNAUTHORIZED,
+            "authentication_error",
+            "invalid API key",
+        ))
+    };
+    let Some(token) = bearer_token(headers) else {
+        return match listener {
+            Listener::Ollama { .. } => Ok(Caller::OllamaClient),
+            Listener::Main if !app.settings().require_api_key => Ok(Caller::Anonymous),
+            _ => Err(Box::new(api_error(
+                StatusCode::UNAUTHORIZED,
+                "authentication_error",
+                "missing API key. Create one in Calcine (Server → API keys) and send it as \
+                 `Authorization: Bearer <key>`.",
+            ))),
+        };
+    };
+    match app.keys.authenticate(token) {
+        // Calcine's own token is for its window on this PC.
+        Some(Caller::Calcine) if network => Err(invalid()),
+        Some(Caller::App(mut key)) if network => {
+            if let Some(address) = peer {
+                app.limiter.succeeded(address);
+            }
+            if !key.network {
+                return Err(Box::new(api_error(
+                    StatusCode::FORBIDDEN,
+                    "permission_error",
+                    "this API key can't be used from other devices. Allow it in Calcine \
+                     (Server → API keys).",
+                )));
+            }
+            // A path from another device would name a file on this PC.
+            key.allow_local_files = false;
+            Ok(Caller::App(key))
+        }
+        Some(caller) => Ok(caller),
+        None => Err(invalid()),
+    }
 }
 
 /// A browser origin: `http(s)://host[:port]`, nothing after.

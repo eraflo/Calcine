@@ -69,6 +69,10 @@ export const messages = defineMessages({
     manageModels: "Manage models",
     manageModelsHint: "Download and remove models, follow downloads.",
     localFiles: "Local files",
+    networkBadge: "Other devices",
+    networkLabel: "From other devices",
+    networkHint:
+      "Also works on the local network port, when it's on (Settings → Local network). Never with local files.",
     revoke: "Revoke",
     revokeKey: "Revoke {name}",
     revokeTitle: "Revoke {name}?",
@@ -173,6 +177,10 @@ export const messages = defineMessages({
     manageModels: "Gérer les modèles",
     manageModelsHint: "Télécharger et supprimer des modèles, suivre les téléchargements.",
     localFiles: "Fichiers locaux",
+    networkBadge: "Autres appareils",
+    networkLabel: "Depuis d'autres appareils",
+    networkHint:
+      "Fonctionne aussi sur le port du réseau local, quand il est activé (Réglages → Réseau local). Jamais avec les fichiers locaux.",
     revoke: "Révoquer",
     revokeKey: "Révoquer {name}",
     revokeTitle: "Révoquer {name} ?",

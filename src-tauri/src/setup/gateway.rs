@@ -25,6 +25,7 @@ pub fn create(services: Services, data_dir: &Path) -> Gateway {
             keys: Arc::new(keys),
             settings_path: Some(data_dir.join("gateway.json")),
             builtin_origins: origins,
+            network_dir: Some(data_dir.join("network")),
         },
     )
 }

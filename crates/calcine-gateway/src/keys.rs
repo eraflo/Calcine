@@ -36,6 +36,10 @@ pub struct ApiKeyInfo {
     /// May send local file paths and URLs (images, audio, grammars) for
     /// GenieX to read. Off by default: it lets the app read any file.
     pub allow_local_files: bool,
+    /// May be used from other devices, on the local network port. Off by
+    /// default: most apps run on this PC.
+    #[serde(default)]
+    pub network: bool,
     pub created_at_ms: u64,
     pub last_used_at_ms: Option<u64>,
 }
@@ -47,6 +51,8 @@ pub struct NewApiKey {
     pub name: String,
     pub scopes: Vec<KeyScope>,
     pub allow_local_files: bool,
+    #[serde(default)]
+    pub network: bool,
 }
 
 /// A freshly created key. `token` is only ever returned here.
@@ -139,6 +145,7 @@ impl KeyStore {
             preview: format!("{}…", &token[..TOKEN_PREFIX.len() + 4]),
             scopes,
             allow_local_files: request.allow_local_files,
+            network: request.network,
             created_at_ms: now_ms(),
             last_used_at_ms: None,
         };
@@ -162,6 +169,22 @@ impl KeyStore {
             self.persist()?;
         }
         Ok(removed)
+    }
+
+    /// Let a key be used from other devices, or not. `None` when there's
+    /// no such key.
+    pub fn set_network(&self, id: &str, network: bool) -> Result<Option<ApiKeyInfo>, KeyError> {
+        let changed = {
+            let mut keys = self.lock();
+            keys.iter_mut().find(|key| key.info.id == id).map(|key| {
+                key.info.network = network;
+                key.info.clone()
+            })
+        };
+        if changed.is_some() {
+            self.persist()?;
+        }
+        Ok(changed)
     }
 
     /// Who is calling with `token`, if anyone.
@@ -243,6 +266,7 @@ mod tests {
             name: name.into(),
             scopes: vec![KeyScope::Inference],
             allow_local_files: false,
+            network: false,
         }
     }
 

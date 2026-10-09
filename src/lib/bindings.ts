@@ -139,6 +139,41 @@ export const commands = {
 	setAllowedOrigins: (origins: string[]) => typedError<null, ApiError>(__TAURI_INVOKE("set_allowed_origins", { origins })),
 	/**  Also answer Ollama apps on port 11434, without a key (inference only). */
 	setOllamaPort: (enabled: boolean) => typedError<null, ApiError>(__TAURI_INVOKE("set_ollama_port", { enabled })),
+	/**
+	 *  Answer other devices on the local network over HTTPS, or stop. `allowed`
+	 *  lists addresses or ranges; empty means private networks.
+	 */
+	setNetwork: (enabled: boolean, port: number, allowed: string[]) => typedError<null, ApiError>(__TAURI_INVOKE("set_network", { enabled, port, allowed })),
+	/**
+	 *  Make a new certificate for the network port. Devices that trusted the
+	 *  old one must trust the new one.
+	 */
+	renewNetworkCertificate: () => typedError<null, ApiError>(__TAURI_INVOKE("renew_network_certificate")),
+	/**
+	 *  Show the network port's certificate (`certificate.pem`) in Explorer, to
+	 *  copy it to other devices.
+	 */
+	showNetworkCertificate: () => typedError<null, ApiError>(__TAURI_INVOKE("show_network_certificate")),
+	/**  Let a key be used from other devices on the local network, or not. */
+	setApiKeyNetwork: (id: string, network: boolean) => typedError<{
+	id: string,
+	name: string,
+	/**  The first characters, to recognize a key: `calcine_3f9a…`. */
+	preview: string,
+	scopes: KeyScope[],
+	/**
+	 *  May send local file paths and URLs (images, audio, grammars) for
+	 *  GenieX to read. Off by default: it lets the app read any file.
+	 */
+	allowLocalFiles: boolean,
+	/**
+	 *  May be used from other devices, on the local network port. Off by
+	 *  default: most apps run on this PC.
+	 */
+	network?: boolean,
+	createdAtMs: number,
+	lastUsedAtMs: number | null,
+} | null, ApiError>(__TAURI_INVOKE("set_api_key_network", { id, network })),
 	/**  Recent API requests, newest first. */
 	listRequests: () => __TAURI_INVOKE<RequestEntry[]>("list_requests"),
 	listApiKeys: () => __TAURI_INVOKE<ApiKeyInfo[]>("list_api_keys"),
@@ -179,6 +214,11 @@ export type ApiKeyInfo = {
 	 *  GenieX to read. Off by default: it lets the app read any file.
 	 */
 	allowLocalFiles: boolean,
+	/**
+	 *  May be used from other devices, on the local network port. Off by
+	 *  default: most apps run on this PC.
+	 */
+	network?: boolean,
 	createdAtMs: number,
 	lastUsedAtMs: number | null,
 };
@@ -414,6 +454,18 @@ export type GatewaySettings = {
 	ollamaPortEnabled?: boolean,
 	/**  Ollama's port, 11434. Configurable for tests. */
 	ollamaPort?: number,
+	/**
+	 *  Also answer other devices on the local network, over HTTPS, with
+	 *  keys allowed on the network.
+	 */
+	networkEnabled?: boolean,
+	/**  The network port, 18443 by default. */
+	networkPort?: number,
+	/**
+	 *  Who may connect over the network: addresses or ranges like
+	 *  `192.168.1.0/24`. Empty means private networks.
+	 */
+	networkAllowed?: string[],
 };
 
 /**  What the Server page shows. */
@@ -431,6 +483,10 @@ export type GatewayStatus = {
 	ollamaUrl: string | null,
 	/**  Why the Ollama port isn't listening (taken by Ollama itself, ...). */
 	ollamaError: string | null,
+	/**  Where other devices connect, when the network port is listening. */
+	network: NetworkStatus | null,
+	/**  Why the network port isn't listening. */
+	networkError: string | null,
 };
 
 /**  The gateway or the inference server changed state. */
@@ -616,11 +672,24 @@ export type ModelType = "llm" | "vlm" |
 /**  A type this version of Calcine doesn't know about yet. */
 "unknown";
 
+/**  The network port, as other devices see it. */
+export type NetworkStatus = {
+	/**  Base URL for other devices, e.g. `https://192.168.1.20:18443/v1`. */
+	baseUrl: string,
+	/**  This PC's name on the network, for clients that prefer it. */
+	hostName: string | null,
+	/**  SHA-256 of the certificate, for clients to pin. */
+	fingerprint: string,
+	/**  The certificate as a `.pem` file, for clients to import. */
+	certificatePath: string,
+};
+
 /**  What to create. */
 export type NewApiKey = {
 	name: string,
 	scopes: KeyScope[],
 	allowLocalFiles: boolean,
+	network?: boolean,
 };
 
 /**

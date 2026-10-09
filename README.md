@@ -61,6 +61,8 @@ every web page you visit.
   port, 11434, for apps that only speak Ollama.
 - **OpenAI-compatible API.** On `127.0.0.1:18181`, GenieX's default port, with per-app keys,
   a request queue and a request log that never records prompts.
+- **Share with your other devices.** Optional, over HTTPS with a certificate made on this PC,
+  for keys you allow on the network and private networks only.
 - **Always up to date.** Calcine installs GenieX on first launch, and can update or roll it
   back. Calcine updates itself with signed packages.
 - **English and French**, light and dark themes, a command palette (<kbd>Ctrl</kbd> <kbd>K</kbd>)

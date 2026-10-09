@@ -39,6 +39,7 @@ async fn start(settings: GatewaySettings) -> Harness {
             keys: Arc::new(KeyStore::in_memory()),
             settings_path: Some(settings_path),
             builtin_origins: CALCINE_ORIGINS.iter().map(|o| (*o).to_owned()).collect(),
+            network_dir: Some(dir.join("network")),
         },
     );
     gateway.start().await.unwrap();
@@ -66,6 +67,7 @@ impl Harness {
                 name: "Test app".into(),
                 scopes: scopes.to_vec(),
                 allow_local_files,
+                network: false,
             })
             .unwrap()
             .token
@@ -310,6 +312,7 @@ async fn a_taken_port_is_reported() {
             keys: Arc::new(KeyStore::in_memory()),
             settings_path: Some(path),
             builtin_origins: vec![],
+            network_dir: None,
         },
     );
     assert!(gateway.start().await.is_err());
@@ -833,4 +836,125 @@ async fn forgets_the_oldest_messages_when_asked() {
         .await
         .unwrap();
     assert_eq!(ollama.status(), StatusCode::OK);
+}
+
+/// The port in `https://host:port/v1`.
+fn port_of(url: &str) -> u16 {
+    url.rsplit(':')
+        .next()
+        .and_then(|rest| rest.split('/').next())
+        .and_then(|port| port.parse().ok())
+        .unwrap()
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn serves_other_devices_over_https_with_network_keys_only() {
+    let h = start(GatewaySettings {
+        network_enabled: true,
+        network_port: 0,
+        ..any_port()
+    })
+    .await;
+    let network = h
+        .gateway
+        .status()
+        .network
+        .expect("the network port listens");
+    assert_eq!(network.fingerprint.len(), 95);
+    let port = port_of(&network.base_url);
+    // Trust only Calcine's certificate, like a client that imported it.
+    let pem = std::fs::read(&network.certificate_path).unwrap();
+    let client = Client::builder()
+        .add_root_certificate(reqwest::Certificate::from_pem(&pem).unwrap())
+        .build()
+        .unwrap();
+    let models = format!("https://localhost:{port}/v1/models");
+    let create = |network: bool, allow_local_files: bool| {
+        h.gateway
+            .keys()
+            .create(NewApiKey {
+                name: "Phone".into(),
+                scopes: vec![KeyScope::Inference],
+                allow_local_files,
+                network,
+            })
+            .unwrap()
+            .token
+    };
+
+    // Plain HTTP isn't spoken there.
+    assert!(
+        h.http
+            .get(format!("http://localhost:{port}/v1/models"))
+            .send()
+            .await
+            .is_err()
+    );
+
+    let status = |token: Option<String>| {
+        let request = client.get(&models);
+        let request = match token {
+            Some(token) => request.bearer_auth(token),
+            None => request,
+        };
+        async move { request.send().await.unwrap().status() }
+    };
+    assert_eq!(status(None).await, StatusCode::UNAUTHORIZED);
+    assert_eq!(
+        status(Some(create(false, false))).await,
+        StatusCode::FORBIDDEN
+    );
+    assert_eq!(status(Some(create(true, false))).await, StatusCode::OK);
+    // Calcine's own token only works from its window on this PC.
+    let internal = h.gateway.keys().internal_token().to_owned();
+    assert_eq!(status(Some(internal)).await, StatusCode::UNAUTHORIZED);
+
+    // A path from another device would name a file on this PC.
+    let reaching = client
+        .post(format!("https://localhost:{port}/v1/chat/completions"))
+        .bearer_auth(create(true, true))
+        .json(&json!({
+            "model": "qualcomm/Qwen3-4B",
+            "messages": [{ "role": "user", "content": [
+                { "type": "image_url", "image_url": { "url": "C:/Windows/win.ini" } },
+            ] }],
+        }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(reaching.status(), StatusCode::FORBIDDEN);
+
+    // Addresses outside the allowed ranges are turned away.
+    h.gateway
+        .set_network(true, port, vec!["10.0.0.0/8".into()])
+        .await
+        .unwrap();
+    assert_eq!(
+        status(Some(create(true, false))).await,
+        StatusCode::FORBIDDEN
+    );
+    assert!(
+        h.gateway
+            .set_network(true, port, vec!["not an address".into()])
+            .await
+            .is_err()
+    );
+
+    // Too many invalid keys: the address waits.
+    h.gateway.set_network(true, port, vec![]).await.unwrap();
+    for _ in 0..10 {
+        assert_eq!(
+            status(Some("calcine_wrong".into())).await,
+            StatusCode::UNAUTHORIZED
+        );
+    }
+    assert_eq!(
+        status(Some(create(true, false))).await,
+        StatusCode::TOO_MANY_REQUESTS
+    );
+
+    // Off: nothing listens there anymore.
+    h.gateway.set_network(false, port, vec![]).await.unwrap();
+    assert!(h.gateway.status().network.is_none());
+    assert!(client.get(&models).send().await.is_err());
 }

@@ -16,6 +16,8 @@ calcine-core.workspace = true
 futures-util.workspace = true
 getrandom.workspace = true
 hex.workspace = true
+hyper-util.workspace = true
+rcgen.workspace = true
 reqwest.workspace = true
 serde.workspace = true
 serde_json.workspace = true
@@ -23,12 +25,13 @@ sha2.workspace = true
 specta.workspace = true
 thiserror.workspace = true
 tokio = { workspace = true, features = ["net", "sync", "time", "macros", "rt"] }
+tokio-rustls.workspace = true
 tokio-stream.workspace = true
 tracing.workspace = true
 
 [dev-dependencies]
 calcine-mock.workspace = true
-reqwest = { workspace = true, features = ["json"] }
+reqwest = { workspace = true, features = ["json", "native-tls"] }
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 
 [lints]

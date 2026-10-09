@@ -22,6 +22,14 @@ pub struct GatewaySettings {
     pub ollama_port_enabled: bool,
     /// Ollama's port, 11434. Configurable for tests.
     pub ollama_port: u16,
+    /// Also answer other devices on the local network, over HTTPS, with
+    /// keys allowed on the network.
+    pub network_enabled: bool,
+    /// The network port, 18443 by default.
+    pub network_port: u16,
+    /// Who may connect over the network: addresses or ranges like
+    /// `192.168.1.0/24`. Empty means private networks.
+    pub network_allowed: Vec<String>,
 }
 
 impl Default for GatewaySettings {
@@ -32,6 +40,9 @@ impl Default for GatewaySettings {
             allowed_origins: Vec::new(),
             ollama_port_enabled: false,
             ollama_port: crate::ollama::OLLAMA_PORT,
+            network_enabled: false,
+            network_port: crate::network::DEFAULT_PORT,
+            network_allowed: Vec::new(),
         }
     }
 }

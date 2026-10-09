@@ -25,7 +25,7 @@ pub fn router(app: Arc<AppState>, listener: Listener) -> Router {
         .merge(manage::router())
         .merge(ollama::router());
     let routes = match listener {
-        Listener::Main => routes,
+        Listener::Main | Listener::Network { .. } => routes,
         Listener::Ollama { .. } => routes.route("/", get(ollama::root)),
     };
     routes

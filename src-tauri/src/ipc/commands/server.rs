@@ -9,7 +9,8 @@ use calcine_gateway::{
 };
 use serde::Serialize;
 use specta::Type;
-use tauri::State;
+use tauri::{AppHandle, State};
+use tauri_plugin_opener::OpenerExt;
 
 use crate::ipc::error::{ApiError, ApiResult};
 use crate::setup::ServerOptionsFile;
@@ -131,6 +132,17 @@ pub fn revoke_api_key(gateway: State<'_, Arc<Gateway>>, id: String) -> ApiResult
     gateway.keys().revoke(&id).map_err(key_error)
 }
 
+/// Let a key be used from other devices on the local network, or not.
+#[tauri::command]
+#[specta::specta]
+pub fn set_api_key_network(
+    gateway: State<'_, Arc<Gateway>>,
+    id: String,
+    network: bool,
+) -> ApiResult<Option<ApiKeyInfo>> {
+    gateway.keys().set_network(&id, network).map_err(key_error)
+}
+
 fn key_error(err: KeyError) -> ApiError {
     match err {
         KeyError::MissingName | KeyError::NoScope => ApiError::invalid_input(err.to_string()),
@@ -172,4 +184,41 @@ pub fn set_allowed_origins(
 #[specta::specta]
 pub async fn set_ollama_port(gateway: State<'_, Arc<Gateway>>, enabled: bool) -> ApiResult<()> {
     gateway.set_ollama_port(enabled).await.map_err(ApiError::io)
+}
+
+/// Answer other devices on the local network over HTTPS, or stop. `allowed`
+/// lists addresses or ranges; empty means private networks.
+#[tauri::command]
+#[specta::specta]
+pub async fn set_network(
+    gateway: State<'_, Arc<Gateway>>,
+    enabled: bool,
+    port: u16,
+    allowed: Vec<String>,
+) -> ApiResult<()> {
+    gateway
+        .set_network(enabled, port, allowed)
+        .await
+        .map_err(ApiError::invalid_input)
+}
+
+/// Show the network port's certificate (`certificate.pem`) in Explorer, to
+/// copy it to other devices.
+#[tauri::command]
+#[specta::specta]
+pub fn show_network_certificate(app: AppHandle, gateway: State<'_, Arc<Gateway>>) -> ApiResult<()> {
+    let path = gateway
+        .status()
+        .network
+        .map(|network| network.certificate_path)
+        .ok_or_else(|| ApiError::invalid_input("the local network port is off".into()))?;
+    app.opener().reveal_item_in_dir(path).map_err(ApiError::io)
+}
+
+/// Make a new certificate for the network port. Devices that trusted the
+/// old one must trust the new one.
+#[tauri::command]
+#[specta::specta]
+pub async fn renew_network_certificate(gateway: State<'_, Arc<Gateway>>) -> ApiResult<()> {
+    gateway.renew_certificate().await.map_err(ApiError::io)
 }

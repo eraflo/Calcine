@@ -15,6 +15,7 @@ mod context;
 mod error;
 pub mod keys;
 pub mod log;
+pub mod network;
 pub mod ollama;
 mod proxy;
 mod routes;
@@ -37,7 +38,7 @@ use crate::log::RequestLog;
 use crate::security::Listener;
 pub use crate::settings::GatewaySettings;
 use crate::state::AppState;
-pub use crate::state::GatewayStatus;
+pub use crate::state::{GatewayStatus, NetworkStatus};
 
 /// Browser origins of Calcine's own webview (production and `tauri dev`).
 pub const CALCINE_ORIGINS: &[&str] = &[
@@ -53,6 +54,9 @@ pub struct GatewayOptions {
     pub settings_path: Option<PathBuf>,
     /// Origins always allowed (Calcine's own UI).
     pub builtin_origins: Vec<String>,
+    /// Where the network port's certificate is kept (`None`: no network
+    /// port).
+    pub network_dir: Option<PathBuf>,
 }
 
 #[derive(Debug)]
@@ -63,6 +67,7 @@ pub struct Gateway {
     settings: Arc<RwLock<GatewaySettings>>,
     settings_path: Option<PathBuf>,
     builtin_origins: Vec<String>,
+    network_dir: Option<PathBuf>,
     status: watch::Sender<GatewayStatus>,
     running: tokio::sync::Mutex<Option<Running>>,
 }
@@ -75,6 +80,8 @@ struct Running {
     watcher: tokio::task::AbortHandle,
     /// Stops the Ollama port, when it's on.
     ollama: Option<oneshot::Sender<()>>,
+    /// Stops the network port, when it's on.
+    network: Option<oneshot::Sender<()>>,
 }
 
 impl Running {
@@ -83,6 +90,9 @@ impl Running {
         let _ = self.shutdown.send(());
         if let Some(ollama) = self.ollama {
             let _ = ollama.send(());
+        }
+        if let Some(network) = self.network {
+            let _ = network.send(());
         }
     }
 }
@@ -104,6 +114,8 @@ impl Gateway {
             require_api_key: settings.require_api_key,
             ollama_url: None,
             ollama_error: None,
+            network: None,
+            network_error: None,
         };
         Self {
             services,
@@ -112,6 +124,7 @@ impl Gateway {
             settings: Arc::new(RwLock::new(settings)),
             settings_path: options.settings_path,
             builtin_origins: options.builtin_origins,
+            network_dir: options.network_dir,
             status: watch::Sender::new(status),
             running: tokio::sync::Mutex::new(None),
         }
@@ -163,6 +176,11 @@ impl Gateway {
         } else {
             None
         };
+        let network = if self.settings().network_enabled {
+            self.serve_network(&app)
+        } else {
+            None
+        };
 
         // Mirror inference-server transitions into the gateway status.
         let watcher = app.clone();
@@ -180,6 +198,7 @@ impl Gateway {
             shutdown,
             watcher,
             ollama,
+            network,
         })
     }
 
@@ -215,6 +234,125 @@ impl Gateway {
         });
         tracing::info!(port, "Ollama-compatible port listening");
         Some(stop)
+    }
+
+    /// Listen on the network port over HTTPS, with the same state as the
+    /// main port. Problems (no certificate, port taken) go to the status.
+    fn serve_network(&self, app: &Arc<AppState>) -> Option<oneshot::Sender<()>> {
+        let fail = |message: String| {
+            tracing::warn!(%message, "network port not listening");
+            self.status.send_modify(|status| {
+                status.network = None;
+                status.network_error = Some(message);
+            });
+            None
+        };
+        let Some(dir) = &self.network_dir else {
+            return fail("there's no folder to keep the certificate in".into());
+        };
+        let names = network::local_names();
+        let identity = match network::tls::Identity::load_or_create(dir, &names) {
+            Ok(identity) => identity,
+            Err(message) => return fail(message),
+        };
+        let acceptor = match identity.acceptor() {
+            Ok(acceptor) => acceptor,
+            Err(message) => return fail(message),
+        };
+        let wanted = self.settings().network_port;
+        // Bound synchronously so a taken port shows at once.
+        let listener = match std::net::TcpListener::bind(("0.0.0.0", wanted)).and_then(|listener| {
+            listener.set_nonblocking(true)?;
+            tokio::net::TcpListener::from_std(listener)
+        }) {
+            Ok(listener) => listener,
+            Err(err) if err.kind() == std::io::ErrorKind::AddrInUse => {
+                return fail(format!(
+                    "Port {wanted} is already used by another program. Choose another one."
+                ));
+            }
+            Err(err) => return fail(format!("Couldn't listen on port {wanted}: {err}")),
+        };
+        let port = listener.local_addr().map_or(wanted, |addr| addr.port());
+        let stop = network::spawn(
+            listener,
+            acceptor,
+            routes::router(app.clone(), Listener::Network { port }),
+        );
+        let host = network::local_address()
+            .map(|address| address.to_string())
+            .or_else(|| names.first().cloned())
+            .unwrap_or_else(|| "localhost".into());
+        self.status.send_modify(|status| {
+            status.network = Some(NetworkStatus {
+                base_url: format!("https://{host}:{port}/v1"),
+                host_name: names.first().cloned(),
+                fingerprint: identity.fingerprint(),
+                certificate_path: network::tls::Identity::pem_path(dir).display().to_string(),
+            });
+            status.network_error = None;
+        });
+        tracing::info!(port, "network port listening");
+        Some(stop)
+    }
+
+    /// Turn the network port on or off, on `port`, for the addresses in
+    /// `allowed` (empty: private networks). Takes effect immediately.
+    pub async fn set_network(
+        &self,
+        enabled: bool,
+        port: u16,
+        allowed: Vec<String>,
+    ) -> Result<(), String> {
+        let allowed: Vec<String> = allowed
+            .iter()
+            .map(|range| range.trim().to_owned())
+            .filter(|range| !range.is_empty())
+            .collect();
+        for range in &allowed {
+            network::allow::Range::parse(range)?;
+        }
+        if port == 0 {
+            return Err("choose a port between 1 and 65535".into());
+        }
+        self.update_settings(|settings| {
+            settings.network_enabled = enabled;
+            settings.network_port = port;
+            settings.network_allowed = allowed;
+        })
+        .map_err(|err| err.to_string())?;
+        self.restart_network().await;
+        Ok(())
+    }
+
+    /// Make a new certificate (other devices must trust it again), and use
+    /// it right away.
+    pub async fn renew_certificate(&self) -> Result<(), String> {
+        let dir = self
+            .network_dir
+            .as_ref()
+            .ok_or("there's no folder to keep the certificate in")?;
+        network::tls::Identity::create(dir, &network::local_names())?;
+        self.restart_network().await;
+        Ok(())
+    }
+
+    async fn restart_network(&self) {
+        let mut running = self.running.lock().await;
+        let Some(current) = running.as_mut() else {
+            return;
+        };
+        if let Some(stop) = current.network.take() {
+            let _ = stop.send(());
+        }
+        self.status.send_modify(|status| {
+            status.network = None;
+            status.network_error = None;
+        });
+        if self.settings().network_enabled {
+            let app = current.app.clone();
+            current.network = self.serve_network(&app);
+        }
     }
 
     /// Answer Ollama apps on port 11434, or stop. Takes effect immediately.

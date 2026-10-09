@@ -16,7 +16,8 @@ const strings = defineMessages({
     autostart: "Start with Windows",
     autostartHint: "Calcine opens in the tray so apps can use the API right away.",
     api: "Local API",
-    apiHint: "Where other apps reach your models. Calcine only listens on this PC.",
+    apiHint:
+      "Where other apps on this PC reach your models. Other devices connect through Local network, when it's on.",
     port: "Port",
     portHint: "18181 is GenieX's default, so existing GenieX clients work unchanged.",
     apply: "Apply",
@@ -42,7 +43,8 @@ const strings = defineMessages({
     autostartHint:
       "Calcine s'ouvre dans la zone de notification pour que les applis puissent utiliser l'API tout de suite.",
     api: "API locale",
-    apiHint: "Où les autres applis accèdent à vos modèles. Calcine n'écoute que sur ce PC.",
+    apiHint:
+      "Où les autres applis de ce PC accèdent à vos modèles. Les autres appareils passent par Réseau local, quand il est activé.",
     port: "Port",
     portHint:
       "18181 est le port par défaut de GenieX : les clients GenieX existants fonctionnent sans changement.",
@@ -67,7 +69,7 @@ const strings = defineMessages({
   },
 });
 
-const gatewaySettingsQuery = {
+export const gatewaySettingsQuery = {
   queryKey: ["gateway-settings"],
   queryFn: () => call(commands.gatewaySettings),
 };

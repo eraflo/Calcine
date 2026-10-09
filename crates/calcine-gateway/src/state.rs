@@ -11,6 +11,7 @@ use tokio::sync::{Semaphore, watch};
 
 use crate::keys::KeyStore;
 use crate::log::RequestLog;
+use crate::network::limiter::Limiter;
 use crate::settings::GatewaySettings;
 
 /// What the Server page shows.
@@ -30,6 +31,24 @@ pub struct GatewayStatus {
     pub ollama_url: Option<String>,
     /// Why the Ollama port isn't listening (taken by Ollama itself, ...).
     pub ollama_error: Option<String>,
+    /// Where other devices connect, when the network port is listening.
+    pub network: Option<NetworkStatus>,
+    /// Why the network port isn't listening.
+    pub network_error: Option<String>,
+}
+
+/// The network port, as other devices see it.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct NetworkStatus {
+    /// Base URL for other devices, e.g. `https://192.168.1.20:18443/v1`.
+    pub base_url: String,
+    /// This PC's name on the network, for clients that prefer it.
+    pub host_name: Option<String>,
+    /// SHA-256 of the certificate, for clients to pin.
+    pub fingerprint: String,
+    /// The certificate as a `.pem` file, for clients to import.
+    pub certificate_path: String,
 }
 
 #[derive(Debug)]
@@ -41,6 +60,8 @@ pub struct AppState {
     /// GenieX runs one inference at a time; waiting here makes the queue visible.
     pub queue: Arc<Semaphore>,
     pub port: u16,
+    /// Turns away network addresses that send too many invalid keys.
+    pub limiter: Limiter,
     settings: Arc<RwLock<GatewaySettings>>,
     builtin_origins: Vec<String>,
     active: AtomicU32,
@@ -65,6 +86,7 @@ impl AppState {
             http: reqwest::Client::new(),
             queue: Arc::new(Semaphore::new(1)),
             port,
+            limiter: Limiter::default(),
             settings,
             builtin_origins,
             active: AtomicU32::new(0),

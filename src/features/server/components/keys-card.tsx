@@ -83,6 +83,7 @@ export function KeysCard() {
                   {key.scopes.includes("inference") && <Badge>{t("runModels")}</Badge>}
                   {key.scopes.includes("manage") && <Badge tone="info">{t("manageModels")}</Badge>}
                   {key.allowLocalFiles && <Badge tone="warning">{t("localFiles")}</Badge>}
+                  {key.network && <Badge tone="success">{t("networkBadge")}</Badge>}
                 </div>
                 <Button
                   size="icon"
