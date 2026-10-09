@@ -1,4 +1,11 @@
-import type { BenchResult, ComputeUnit, LocalModel, RequestEntry, Runtime } from "@/lib/api";
+import type {
+  BenchResult,
+  BenchSource,
+  ComputeUnit,
+  LocalModel,
+  RequestEntry,
+  Runtime,
+} from "@/lib/api";
 
 /** Units in the order they're shown: NPU first, CPU last. */
 export const UNIT_ORDER: readonly ComputeUnit[] = ["npu", "hybrid", "gpu", "cpu"];
@@ -30,6 +37,7 @@ export type Session = {
   powerMode: string;
   specType: string | null;
   draftModel: string | null;
+  source: BenchSource;
   results: BenchResult[];
 };
 
@@ -53,6 +61,7 @@ export function sessions(history: readonly BenchResult[]): Session[] {
         powerMode: result.powerMode,
         specType: result.specType ?? null,
         draftModel: result.draftModel ?? null,
+        source: result.source ?? "geniex_bench",
         results: [result],
       });
     }
@@ -99,7 +108,8 @@ export function best(results: readonly BenchResult[], metric: Metric): BenchResu
 export function leaderboard(history: readonly BenchResult[]) {
   const latest = new Map<string, BenchResult>();
   for (const result of history) {
-    if (!result.measure) continue;
+    // Energy profiles use another prompt: their speeds don't compare.
+    if (!result.measure || result.source === "energy_profile") continue;
     const key = `${result.model}|${result.specType ?? ""}|${result.unit}`;
     const seen = latest.get(key);
     if (!seen || result.startedAtMs > seen.startedAtMs) latest.set(key, result);
@@ -137,6 +147,10 @@ export function toCsv(history: readonly BenchResult[]): string {
     "prefill_tps_stdev",
     "decode_tps_median",
     "decode_tps_stdev",
+    "source",
+    "idle_watts",
+    "active_watts",
+    "joules_per_token",
     "geniex_version",
     "error",
   ];
@@ -163,6 +177,10 @@ export function toCsv(history: readonly BenchResult[]): string {
       measure?.prefillTps.stdev,
       measure?.decodeTps.median,
       measure?.decodeTps.stdev,
+      result.source ?? "geniex_bench",
+      measure?.energy?.idleWatts,
+      measure?.energy?.activeWatts,
+      measure?.energy?.joulesPerToken,
       measure?.geniexVersion,
       result.error,
     ]
@@ -207,4 +225,68 @@ function middle(values: readonly (number | null)[]): number | null {
   return known.length % 2
     ? (known[half] ?? null)
     : ((known[half - 1] ?? 0) + (known[half] ?? 0)) / 2;
+}
+
+/** GenieX's power modes, fastest first (as `POWER_MODES` in the backend). */
+export const POWER_MODE_ORDER = [
+  "burst",
+  "sustained_high_performance",
+  "high_performance",
+  "balanced",
+  "low_balanced",
+  "high_power_saver",
+  "power_saver",
+  "low_power_saver",
+] as const;
+
+/** One unit and power mode of an energy profile. */
+export type EnergyRow = {
+  result: BenchResult;
+  unit: ComputeUnit;
+  mode: string;
+  decodeTps: number;
+  activeWatts: number;
+  /** What generating adds to the idle draw. */
+  extraWatts: number;
+  joulesPerToken: number;
+  /** The whole system's energy per token, screen and all. */
+  systemJoulesPerToken: number;
+  tokensPerJoule: number;
+};
+
+/** An energy profile's measurements, NPU first, then fastest mode first.
+ * Failed ones are left out. */
+export function energyRows(results: readonly BenchResult[]): EnergyRow[] {
+  return results
+    .flatMap((result) => {
+      const energy = result.measure?.energy;
+      if (!result.measure || !energy) return [];
+      return [
+        {
+          result,
+          unit: result.unit,
+          mode: result.powerMode,
+          decodeTps: result.measure.decodeTps.median,
+          activeWatts: energy.activeWatts,
+          extraWatts: Math.max(0, energy.activeWatts - energy.idleWatts),
+          joulesPerToken: energy.joulesPerToken,
+          systemJoulesPerToken: energy.systemJoulesPerToken,
+          tokensPerJoule: energy.joulesPerToken > 0 ? 1 / energy.joulesPerToken : 0,
+        },
+      ];
+    })
+    .sort(
+      (a, b) =>
+        UNIT_ORDER.indexOf(a.unit) - UNIT_ORDER.indexOf(b.unit) ||
+        POWER_MODE_ORDER.indexOf(a.mode as (typeof POWER_MODE_ORDER)[number]) -
+          POWER_MODE_ORDER.indexOf(b.mode as (typeof POWER_MODE_ORDER)[number]),
+    );
+}
+
+/** The unit and mode that generate the most tokens per joule. */
+export function mostEfficient(rows: readonly EnergyRow[]): EnergyRow | null {
+  return rows.reduce<EnergyRow | null>(
+    (winner, row) => (!winner || row.tokensPerJoule > winner.tokensPerJoule ? row : winner),
+    null,
+  );
 }

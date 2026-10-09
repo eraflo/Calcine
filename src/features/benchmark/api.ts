@@ -1,6 +1,6 @@
 import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { jobsQuery } from "@/features/tasks/api";
-import { type BenchRequest, call, commands, type Job, unwrap } from "@/lib/api";
+import { type BenchRequest, call, commands, type EnergyRequest, type Job, unwrap } from "@/lib/api";
 import { useUi } from "@/stores/ui";
 
 export const benchToolQuery = queryOptions({
@@ -14,7 +14,9 @@ export const benchHistoryQuery = queryOptions({
 });
 
 /** The running benchmark or tool download, if any. */
-export function useRunningJob(type: "benchmark" | "install_bench"): Job | undefined {
+export function useRunningJob(
+  type: "benchmark" | "install_bench" | "energy_profile",
+): Job | undefined {
   const { data: jobs = [] } = useQuery(jobsQuery);
   return jobs.find((job) => job.kind.type === type && job.state.state === "running");
 }
@@ -30,6 +32,12 @@ export function useInstallBenchTool() {
 export function useStartBenchmark() {
   return useMutation({
     mutationFn: (request: BenchRequest) => unwrap(() => commands.startBenchmark(request)),
+  });
+}
+
+export function useStartEnergyProfile() {
+  return useMutation({
+    mutationFn: (request: EnergyRequest) => unwrap(() => commands.startEnergyProfile(request)),
   });
 }
 

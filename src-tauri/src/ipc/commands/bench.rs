@@ -1,5 +1,5 @@
 use calcine_core::Services;
-use calcine_core::bench::{BenchRequest, BenchResult, BenchTool};
+use calcine_core::bench::{BenchRequest, BenchResult, BenchTool, EnergyRequest};
 use calcine_core::jobs::JobId;
 use tauri::State;
 
@@ -31,6 +31,17 @@ pub async fn start_benchmark(
     request: BenchRequest,
 ) -> ApiResult<JobId> {
     Ok(services.start_benchmark(request)?)
+}
+
+/// Measure a model's speed and energy in each requested power mode, as a
+/// job. Needs a device with energy metering.
+#[tauri::command]
+#[specta::specta]
+pub async fn start_energy_profile(
+    services: State<'_, Services>,
+    request: EnergyRequest,
+) -> ApiResult<JobId> {
+    Ok(services.start_energy_profile(request)?)
 }
 
 /// Past results, newest first.

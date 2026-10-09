@@ -313,6 +313,40 @@ mod bench_tests {
     }
 
     #[tokio::test]
+    async fn profiles_energy_through_the_server() {
+        use calcine_core::bench::{BenchSource, EnergyRequest};
+        use calcine_core::models::{ComputeUnit, Runtime};
+
+        let services = MockBackend::services();
+        let request = EnergyRequest {
+            model: "qualcomm/Qwen3-4B".into(),
+            runtime: Runtime::Qairt,
+            units: vec![ComputeUnit::Npu],
+            power_modes: vec!["power_saver".into()],
+            generated_tokens: 128,
+            repetitions: 1,
+        };
+        let job = services.start_energy_profile(request.clone()).unwrap();
+        assert!(
+            services.start_energy_profile(request).is_err(),
+            "one at a time"
+        );
+        assert_eq!(wait(&services, job).await, JobState::Succeeded);
+
+        let history = services.bench.history();
+        let result = &history[0];
+        assert_eq!(result.source, BenchSource::EnergyProfile);
+        assert_eq!(result.power_mode, "power_saver");
+        let measure = result.measure.as_ref().unwrap();
+        assert_eq!(measure.decode_tps.median, 22.0);
+        let energy = measure.energy.unwrap();
+        // The mock idles at 8 W and adds 2 W while generating in power_saver.
+        assert!((energy.idle_watts - 8.0).abs() < 0.1, "{energy:?}");
+        assert!(energy.active_watts > energy.idle_watts, "{energy:?}");
+        assert!(energy.joules_per_token > 0.0, "{energy:?}");
+    }
+
+    #[tokio::test]
     async fn benchmarks_each_unit_and_keeps_failures() {
         use calcine_core::bench::BenchRequest;
         use calcine_core::models::{ComputeUnit, Runtime};

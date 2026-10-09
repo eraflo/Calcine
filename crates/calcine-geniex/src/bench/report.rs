@@ -40,6 +40,7 @@ pub fn parse(json: &str) -> Result<BenchMeasure> {
             .and_then(Value::as_str)
             .unwrap_or_default()
             .to_owned(),
+        energy: None,
     })
 }
 

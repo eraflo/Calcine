@@ -44,7 +44,7 @@ fn message(job: &Job, strings: &Strings) -> Option<(String, String)> {
         JobKind::InstallRuntime { version } => {
             (version, &strings.geniex_update, strings.version_installed)
         }
-        JobKind::Benchmark { model } => {
+        JobKind::Benchmark { model } | JobKind::EnergyProfile { model } => {
             return match &job.state {
                 JobState::Succeeded => Some((
                     strings.benchmark.done.to_owned(),

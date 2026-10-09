@@ -32,7 +32,7 @@ Security of the gateway is described in [security-model.md](security-model.md).
 | `crates/calcine-geniex` | GenieX CLI adapter: discovery, command runner, `pull` with live progress, `geniex serve` supervisor, output parsers tested on real captures (`tests/fixtures/`), installing and updating GenieX (`update/`: release index, verified download, signature, silent installer, cache for rolling back), context windows and token counts with each model's `tokenizer.json` (`context.rs`) | No |
 | `crates/calcine-gateway` | Local HTTP API (axum): Host/Origin/API-key checks, body sanitizing, OpenAI-compatible proxy with streaming and a one-at-a-time queue, request log, `/calcine/v1` management API | No |
 | `crates/calcine-hub` | Hub lookups over HTTPS: Hugging Face search, precisions with sizes (named like GenieX), AI Hub chipsets (`ModelDirectory`) | No |
-| `crates/calcine-hw` | Hardware probe: CPU, memory and disk (sysinfo), NPU/GPU and drivers (Windows WMI), live NPU/GPU load (performance counters) | No |
+| `crates/calcine-hw` | Hardware probe: CPU, memory and disk (sysinfo), NPU/GPU and drivers (Windows WMI), live NPU/GPU load (performance counters), power and energy from the SoC's energy metering (`Energy Meter` counters, found by their English names through PerfLib) | No |
 | `crates/calcine-mock` | In-memory backend with simulated downloads, for UI work and tests | No |
 | `src-tauri` | Desktop shell: builds `Services`, exposes commands, exports TypeScript bindings | Yes |
 
@@ -63,7 +63,7 @@ calcine-gateway/src/
 
 calcine-hub/src/    hf.rs (Hugging Face payloads) · quant.rs (precision names) · aihub.rs (chipsets)
 
-calcine-hw/src/     snapshot.rs · usage.rs (live load) · system.rs (sysinfo)
+calcine-hw/src/     snapshot.rs · usage.rs (live load) · power.rs (power, energy) · system.rs (sysinfo)
                     windows/ devices.rs (WMI) · gpu_engines.rs (PDH, the only `unsafe` code)
 calcine-mock/src/   data.rs (sample data) · models.rs · directory.rs · runtime.rs · hardware.rs · server.rs
 

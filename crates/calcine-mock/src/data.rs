@@ -3,7 +3,7 @@
 use std::path::Path;
 
 use calcine_core::hardware::{
-    Accelerator, DiskSpace, HardwareInfo, HardwareUsage, MemoryInfo, Processor,
+    Accelerator, DiskSpace, HardwareInfo, HardwareUsage, MemoryInfo, PowerDraw, Processor,
 };
 use calcine_core::models::{
     Chipset, ComputeUnit, HubCatalog, HubModel, LocalModel, ModelHub, ModelType, RemoteModel,
@@ -117,6 +117,9 @@ pub(crate) fn hardware(models_dir: Option<&Path>) -> HardwareInfo {
     }
 }
 
+/// What the mock device draws doing nothing.
+pub(crate) const IDLE_WATTS: f64 = 8.0;
+
 /// Gentle waves so the gauges move: the NPU works in bursts, like during
 /// generation.
 #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
@@ -136,6 +139,11 @@ pub(crate) fn usage(seconds: f32) -> HardwareUsage {
             total_bytes: 32 * GIB,
             available_bytes: (18 * GIB).saturating_sub(busy_mib << 20),
         },
+        power: Some(PowerDraw {
+            system_watts: IDLE_WATTS as f32 + npu / 100.0 * 7.0,
+            cpu_watts: Some(wave(7.0, 1.2, 3.5)),
+            gpu_watts: Some(wave(11.0, 0.0, 0.4)),
+        }),
     }
 }
 

@@ -102,6 +102,11 @@ export const commands = {
 	installBenchTool: () => typedError<number, ApiError>(__TAURI_INVOKE("install_bench_tool")),
 	/**  Benchmark a model on each requested compute unit, as a job. */
 	startBenchmark: (request: BenchRequest) => typedError<number, ApiError>(__TAURI_INVOKE("start_benchmark", { request })),
+	/**
+	 *  Measure a model's speed and energy in each requested power mode, as a
+	 *  job. Needs a device with energy metering.
+	 */
+	startEnergyProfile: (request: EnergyRequest) => typedError<number, ApiError>(__TAURI_INVOKE("start_energy_profile", { request })),
 	/**  Past results, newest first. */
 	benchHistory: () => __TAURI_INVOKE<BenchResult[]>("bench_history"),
 	forgetBenchResults: (ids: string[]) => typedError<null, ApiError>(__TAURI_INVOKE("forget_bench_results", { ids })),
@@ -217,6 +222,8 @@ export type BenchMeasure = {
 	/**  Prompt tokens processed. QAIRT pads them to a multiple of 128. */
 	promptTokens: number | null,
 	geniexVersion: string,
+	/**  Power and energy, for energy profiles. */
+	energy?: EnergyMeasure | null,
 };
 
 /**  What to measure. One run per compute unit. */
@@ -257,10 +264,18 @@ export type BenchResult = {
 	powerMode: string,
 	specType?: string | null,
 	draftModel?: string | null,
+	source?: BenchSource,
 	/**  `None` when the run failed. */
 	measure: BenchMeasure | null,
 	error: string | null,
 };
+
+/**  What measured a result. */
+export type BenchSource = 
+/**  Qualcomm's `geniex-bench`, on a random prompt. */
+"geniex_bench" | 
+/**  An energy profile, through `geniex serve`. */
+"energy_profile";
 
 /**  A measured value across repetitions. */
 export type BenchStat = {
@@ -337,6 +352,38 @@ export type DiskSpace = {
 	availableBytes: number,
 };
 
+/**  What energy a power mode used. */
+export type EnergyMeasure = {
+	/**  The whole system, idle with the model loaded, just before. */
+	idleWatts: number | null,
+	/**  The whole system while generating (median). */
+	activeWatts: number | null,
+	/**
+	 *  Energy above idle per generated token, the prompt included (median):
+	 *  what generating costs.
+	 */
+	joulesPerToken: number | null,
+	/**
+	 *  Energy of the whole system per generated token (median): what the
+	 *  battery sees, the screen and everything else included.
+	 */
+	systemJoulesPerToken?: number | null,
+};
+
+/**
+ *  Which model to profile, on which units, in which power modes. Every unit
+ *  is measured in every mode.
+ */
+export type EnergyRequest = {
+	model: string,
+	runtime: Runtime,
+	/**  The NPU for AI Hub models; llama.cpp models can use any unit. */
+	units: ComputeUnit[],
+	powerModes: string[],
+	generatedTokens: number,
+	repetitions: number,
+};
+
 /**  Stable, machine-readable error category exposed to the frontend. */
 export type ErrorKind = "runtime_not_found" | "command" | "timeout" | "parse" | "invalid_input" | "cancelled" | "network" | "not_implemented" | "io";
 
@@ -408,6 +455,8 @@ export type HardwareUsage = {
 	/**  Hexagon NPU, 0-100. `None` when the OS doesn't report it. */
 	npuPercent: number | null,
 	memory: MemoryInfo,
+	/**  Power drawn, on devices with energy metering. */
+	power: PowerDraw | null,
 };
 
 /**  The Qualcomm AI Hub catalog, optionally filtered for one chipset. */
@@ -478,7 +527,9 @@ export type JobKind =
 /**  Downloading the benchmark tool (`geniex-bench`). */
 { type: "install_bench"; version: string } | 
 /**  Benchmarking a model on one or more compute units. */
-{ type: "benchmark"; model: string };
+{ type: "benchmark"; model: string } | 
+/**  Measuring a model's speed and energy in several power modes. */
+{ type: "energy_profile"; model: string };
 
 /**  What a multi-step job is doing right now. */
 export type JobPhase = "downloading" | "verifying" | "installing" | 
@@ -570,6 +621,16 @@ export type NewApiKey = {
 	name: string,
 	scopes: KeyScope[],
 	allowLocalFiles: boolean,
+};
+
+/**
+ *  Power drawn since the previous sample, in watts. Snapdragon X meters the
+ *  CPU clusters, the GPU and the whole system, not the NPU on its own.
+ */
+export type PowerDraw = {
+	systemWatts: number | null,
+	cpuWatts: number | null,
+	gpuWatts: number | null,
 };
 
 export type Processor = {

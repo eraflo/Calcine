@@ -48,6 +48,35 @@ pub struct HardwareUsage {
     /// Hexagon NPU, 0-100. `None` when the OS doesn't report it.
     pub npu_percent: Option<f32>,
     pub memory: MemoryInfo,
+    /// Power drawn, on devices with energy metering.
+    pub power: Option<PowerDraw>,
+}
+
+/// Power drawn since the previous sample, in watts. Snapdragon X meters the
+/// CPU clusters, the GPU and the whole system, not the NPU on its own.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct PowerDraw {
+    pub system_watts: f32,
+    pub cpu_watts: Option<f32>,
+    pub gpu_watts: Option<f32>,
+}
+
+/// Energy the whole system has used since its meter started.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct EnergyReading {
+    pub joules: f64,
+    /// When it was measured, in seconds since the meter started.
+    pub seconds: f64,
+}
+
+impl EnergyReading {
+    /// Average power between `self` and a later reading. `None` when no time
+    /// passed.
+    pub fn watts_until(&self, later: &Self) -> Option<f64> {
+        let seconds = later.seconds - self.seconds;
+        (seconds > 0.0).then(|| (later.joules - self.joules) / seconds)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]

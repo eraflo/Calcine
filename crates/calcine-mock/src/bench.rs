@@ -149,5 +149,6 @@ fn sample(request: &BenchRequest, unit: ComputeUnit, seed: u32) -> BenchMeasure 
         generated_tokens: f64::from(request.generated_tokens),
         prompt_tokens: prompt,
         geniex_version: "v0.8.0".into(),
+        energy: None,
     }
 }

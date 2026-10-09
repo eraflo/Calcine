@@ -5,6 +5,7 @@ import { EmptyState } from "@/components/calcine/feedback/empty-state";
 import { Page } from "@/components/calcine/layout/page";
 import { useT } from "@/i18n";
 import { benchHistoryQuery } from "./api";
+import { EnergyCard } from "./components/energy-card";
 import { HistoryCard, LeaderboardCard, SessionCard, UsageCard } from "./components/results-cards";
 import { RunCard } from "./components/run-card";
 import { ToolCard } from "./components/tool-card";
@@ -14,7 +15,8 @@ import { messages } from "./messages";
 export function BenchmarkPage() {
   const t = useT(messages);
   const { data: history = [] } = useQuery(benchHistoryQuery);
-  const sessions = groupSessions(history);
+  // Energy profiles have their own card.
+  const sessions = groupSessions(history).filter((session) => session.source !== "energy_profile");
   const [selected, setSelected] = useState<string | null>(null);
   const shown = sessions.find((session) => session.id === selected) ?? sessions[0];
 
@@ -29,6 +31,7 @@ export function BenchmarkPage() {
           {t("noResults")}
         </EmptyState>
       )}
+      <EnergyCard />
       <LeaderboardCard history={history} />
       <UsageCard />
       {sessions.length > 0 && (

@@ -21,6 +21,8 @@ pub enum JobKind {
     InstallBench { version: String },
     /// Benchmarking a model on one or more compute units.
     Benchmark { model: String },
+    /// Measuring a model's speed and energy in several power modes.
+    EnergyProfile { model: String },
 }
 
 /// What a multi-step job is doing right now.

@@ -10,6 +10,11 @@ export const messages = defineMessages({
     cores_other: "{count} cores",
     load: "{unit} load",
     loadUnavailable: "Load not reported by Windows",
+    power: "Power",
+    powerSystem: "Whole system",
+    powerParts: "CPU {cpu} · GPU {gpu}",
+    powerHint:
+      "Measured by the chip. The NPU has no meter of its own: its work shows in the whole system's power.",
     memory: "Memory",
     modelStorage: "Model storage",
     used: "{label} used",
@@ -50,6 +55,11 @@ export const messages = defineMessages({
     cores_other: "{count} cœurs",
     load: "Charge {unit}",
     loadUnavailable: "Charge non fournie par Windows",
+    power: "Consommation",
+    powerSystem: "Tout le système",
+    powerParts: "CPU {cpu} · GPU {gpu}",
+    powerHint:
+      "Mesurée par la puce. Le NPU n'a pas de compteur à lui : son travail apparaît dans la consommation de tout le système.",
     memory: "Mémoire",
     modelStorage: "Stockage des modèles",
     used: "{label} utilisée",

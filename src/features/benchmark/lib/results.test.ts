@@ -1,6 +1,15 @@
 import { describe, expect, it } from "vitest";
 import type { BenchResult, RequestEntry } from "@/lib/api";
-import { benchTargets, best, leaderboard, sessions, toCsv, usageByModel } from "./results";
+import {
+  benchTargets,
+  best,
+  energyRows,
+  leaderboard,
+  mostEfficient,
+  sessions,
+  toCsv,
+  usageByModel,
+} from "./results";
 
 const stat = (median: number) => ({ median, min: median, max: median, stdev: 1 });
 
@@ -29,6 +38,7 @@ const result = (
             generatedTokens: 128,
             promptTokens: 512,
             geniexVersion: "v0.8.0",
+            energy: null,
           },
     error: decode === undefined ? "failed" : null,
     ...rest,
@@ -132,5 +142,35 @@ describe("usageByModel", () => {
       tokensPerSecond: 25,
     });
     expect(usage).toHaveLength(2);
+  });
+});
+
+describe("energy profiles", () => {
+  const profile = (mode: string, decode: number, activeWatts: number, joulesPerToken: number) => {
+    const base = result({ id: mode, powerMode: mode, decode, source: "energy_profile" });
+    return {
+      ...base,
+      measure: base.measure && {
+        ...base.measure,
+        energy: { idleWatts: 15, activeWatts, joulesPerToken, systemJoulesPerToken: 0.4 },
+      },
+    };
+  };
+
+  it("lists modes fastest first and finds the most efficient", () => {
+    const rows = energyRows([
+      profile("power_saver", 30, 18, 0.1),
+      profile("burst", 52, 22, 0.135),
+      result({ id: "failed", powerMode: "balanced", source: "energy_profile" }),
+    ]);
+    expect(rows.map((row) => row.mode)).toEqual(["burst", "power_saver"]);
+    expect(rows[0]?.extraWatts).toBe(7);
+    expect(rows[1]?.tokensPerJoule).toBeCloseTo(10);
+    expect(mostEfficient(rows)?.mode).toBe("power_saver");
+    expect(mostEfficient([])).toBeNull();
+  });
+
+  it("keeps energy profiles out of the leaderboard", () => {
+    expect(leaderboard([profile("burst", 52, 22, 0.1)])).toEqual([]);
   });
 });

@@ -2,6 +2,11 @@
 //! speed of a model on each compute unit, measured with warmup and
 //! repetitions on a fixed random prompt, and kept as history.
 
+mod energy;
+
+pub(crate) use energy::measure_mode;
+pub use energy::{EnergyMeasure, EnergyRequest, POWER_MODES};
+
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use specta::Type;
@@ -108,6 +113,42 @@ pub struct BenchStat {
     pub stdev: f64,
 }
 
+impl BenchStat {
+    /// Median, extremes and standard deviation of `values`.
+    pub fn of(values: &[f64]) -> Self {
+        if values.is_empty() {
+            return Self {
+                median: 0.0,
+                min: 0.0,
+                max: 0.0,
+                stdev: 0.0,
+            };
+        }
+        let mut sorted = values.to_vec();
+        sorted.sort_by(f64::total_cmp);
+        let middle = sorted.len() / 2;
+        let median = if sorted.len().is_multiple_of(2) {
+            f64::midpoint(sorted[middle - 1], sorted[middle])
+        } else {
+            sorted[middle]
+        };
+        #[allow(clippy::cast_precision_loss)]
+        let count = values.len() as f64;
+        let mean = values.iter().sum::<f64>() / count;
+        let variance = values
+            .iter()
+            .map(|value| (value - mean).powi(2))
+            .sum::<f64>()
+            / count;
+        Self {
+            median,
+            min: sorted[0],
+            max: sorted[sorted.len() - 1],
+            stdev: variance.sqrt(),
+        }
+    }
+}
+
 /// What one compute unit measured.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
@@ -120,6 +161,20 @@ pub struct BenchMeasure {
     /// Prompt tokens processed. QAIRT pads them to a multiple of 128.
     pub prompt_tokens: f64,
     pub geniex_version: String,
+    /// Power and energy, for energy profiles.
+    #[serde(default)]
+    pub energy: Option<EnergyMeasure>,
+}
+
+/// What measured a result.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum BenchSource {
+    /// Qualcomm's `geniex-bench`, on a random prompt.
+    #[default]
+    GeniexBench,
+    /// An energy profile, through `geniex serve`.
+    EnergyProfile,
 }
 
 /// One compute unit's result in the history.
@@ -141,6 +196,8 @@ pub struct BenchResult {
     pub spec_type: Option<String>,
     #[serde(default)]
     pub draft_model: Option<String>,
+    #[serde(default)]
+    pub source: BenchSource,
     /// `None` when the run failed.
     pub measure: Option<BenchMeasure>,
     pub error: Option<String>,
@@ -282,6 +339,7 @@ mod tests {
             power_mode: "burst".into(),
             spec_type: None,
             draft_model: None,
+            source: BenchSource::GeniexBench,
             measure: None,
             error: None,
         };

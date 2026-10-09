@@ -52,14 +52,17 @@ export function RunCard() {
   const ready = tool?.installed !== null && tool?.installed === tool?.wanted;
 
   // Changing model keeps the units it supports, or falls back to all of them.
+  // Keyed on the runtime: `target` is a new object on every render.
+  const runtime = target?.model.runtime;
   useEffect(() => {
-    if (!target) return;
-    const supported = benchUnits(target.model.runtime);
+    if (!runtime) return;
+    const supported = benchUnits(runtime);
     setUnits((current) => {
       const kept = current.filter((unit) => supported.includes(unit));
+      if (kept.length === current.length) return current;
       return kept.length ? kept : supported;
     });
-  }, [target]);
+  }, [runtime]);
 
   const toggle = (unit: ComputeUnit) =>
     setUnits((current) =>

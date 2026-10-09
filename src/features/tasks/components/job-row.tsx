@@ -115,6 +115,8 @@ function runningLabel(job: Job, title: string, t: TasksT) {
       return t("downloadingBenchTool");
     case "benchmark":
       return t("benchmarking", { model: title });
+    case "energy_profile":
+      return t("measuringEnergy", { model: title });
     case "import":
       return t("importing", { model: title });
     default:
@@ -130,6 +132,7 @@ function doneLabel(job: Job, t: TasksT) {
     case "install_bench":
       return t("benchToolReady");
     case "benchmark":
+    case "energy_profile":
       return t("benchmarked");
     case "import":
       return t("imported");
@@ -143,7 +146,7 @@ function StateIcon({ job }: { job: Job }) {
     case "running":
       return job.kind.type === "import" ? (
         <FolderInput className="size-4 shrink-0 text-primary" />
-      ) : job.kind.type === "benchmark" ? (
+      ) : job.kind.type === "benchmark" || job.kind.type === "energy_profile" ? (
         <Gauge className="size-4 shrink-0 text-primary" />
       ) : (
         <Download className="size-4 shrink-0 text-primary" />

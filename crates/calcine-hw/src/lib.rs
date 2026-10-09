@@ -2,11 +2,13 @@
 //!
 //! - `snapshot`: what the machine has (CPU, memory, disk, accelerators)
 //! - `usage`: live load, sampled on demand
+//! - `power`: power and energy, on devices with energy metering
 //! - `system`: CPU, memory and disk, portable (`sysinfo`)
 //! - `windows`: Hexagon NPU and Adreno GPU, from the driver database (WMI)
 //!   and the performance counters. Other platforms report no accelerators
 //!   or accelerator load for now.
 
+mod power;
 mod snapshot;
 mod system;
 mod usage;
@@ -17,7 +19,7 @@ use std::path::Path;
 use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
-use calcine_core::hardware::{HardwareInfo, HardwareProbe, HardwareUsage};
+use calcine_core::hardware::{EnergyReading, HardwareInfo, HardwareProbe, HardwareUsage};
 use calcine_core::{Error, Result};
 
 use crate::usage::UsageSampler;
@@ -50,6 +52,17 @@ impl HardwareProbe for SystemProbe {
                 .lock()
                 .unwrap_or_else(std::sync::PoisonError::into_inner);
             sampler.get_or_insert_with(UsageSampler::new).read()
+        })
+        .await
+    }
+
+    async fn energy(&self) -> Result<Option<EnergyReading>> {
+        let sampler = self.sampler.clone();
+        blocking(move || {
+            let mut sampler = sampler
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner);
+            sampler.get_or_insert_with(UsageSampler::new).energy()
         })
         .await
     }

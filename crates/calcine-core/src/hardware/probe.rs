@@ -2,7 +2,7 @@ use std::path::Path;
 
 use async_trait::async_trait;
 
-use super::types::{HardwareInfo, HardwareUsage};
+use super::types::{EnergyReading, HardwareInfo, HardwareUsage};
 use crate::Result;
 
 /// The device's compute units, memory and storage.
@@ -15,4 +15,10 @@ pub trait HardwareProbe: Send + Sync {
     /// Current load. Percentages are measured since the previous call, so
     /// the first call may read 0.
     async fn usage(&self) -> Result<HardwareUsage>;
+
+    /// Energy the system has used so far. `None` on devices without energy
+    /// metering.
+    async fn energy(&self) -> Result<Option<EnergyReading>> {
+        Ok(None)
+    }
 }

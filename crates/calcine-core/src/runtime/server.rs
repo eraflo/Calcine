@@ -94,6 +94,10 @@ pub trait InferenceServer: Send + Sync {
 
     /// Change the options. A running server restarts with them.
     async fn set_options(&self, options: ServerOptions) -> Result<()>;
+
+    /// Run a chat completion (not streamed) on the running server, bypassing
+    /// the gateway. Used to measure it.
+    async fn complete(&self, request: &serde_json::Value) -> Result<serde_json::Value>;
 }
 
 #[cfg(test)]

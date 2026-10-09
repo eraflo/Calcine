@@ -5,6 +5,7 @@
 //! Given tools, it calls the first one.
 
 use std::convert::Infallible;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Mutex, PoisonError};
 use std::time::Duration;
 
@@ -96,6 +97,28 @@ impl InferenceServer for MockServer {
             .map_err(calcine_core::Error::InvalidInput)?;
         *self.options.lock().unwrap_or_else(PoisonError::into_inner) = options;
         Ok(())
+    }
+
+    /// A canned completion whose speed and energy follow the power mode,
+    /// returned within 0.4 s.
+    async fn complete(&self, request: &Value) -> Result<Value> {
+        let tokens = request["max_tokens"]
+            .as_u64()
+            .and_then(|tokens| u32::try_from(tokens).ok())
+            .unwrap_or(16)
+            .min(512);
+        let speed = mode_speed(request["power_mode"].as_str().unwrap_or("burst"));
+        let seconds = (f64::from(tokens) / speed).min(0.4);
+        tokio::time::sleep(Duration::from_secs_f64(seconds)).await;
+        add_generation_joules(
+            mode_watts(request["power_mode"].as_str().unwrap_or("burst")) * seconds,
+        );
+        Ok(json!({
+            "object": "chat.completion",
+            "choices": [{ "index": 0, "finish_reason": "length", "message": { "role": "assistant", "content": "Once upon a time…" } }],
+            "usage": { "prompt_tokens": 48, "completion_tokens": tokens, "total_tokens": 48 + tokens },
+            "timings": { "prompt_ms": 60.0, "prompt_per_second": 800.0, "predicted_per_second": speed },
+        }))
     }
 }
 
@@ -276,6 +299,41 @@ fn call_tool(model: &str, call: &Value, stream: bool) -> Response {
         .collect();
     body.extend_from_slice(b"data:[DONE]\n\n");
     ([(header::CONTENT_TYPE, "text/event-stream")], body).into_response()
+}
+
+/// Energy the mock's generations used, in millijoules, for the mock meter.
+static GENERATION_MILLIJOULES: AtomicU64 = AtomicU64::new(0);
+
+#[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+fn add_generation_joules(joules: f64) {
+    GENERATION_MILLIJOULES.fetch_add((joules * 1000.0) as u64, Ordering::Relaxed);
+}
+
+#[allow(clippy::cast_precision_loss)]
+pub(crate) fn generation_joules() -> f64 {
+    GENERATION_MILLIJOULES.load(Ordering::Relaxed) as f64 / 1000.0
+}
+
+/// What generating adds to the idle draw, in watts, per power mode.
+fn mode_watts(mode: &str) -> f64 {
+    match mode {
+        "burst" | "sustained_high_performance" => 7.0,
+        "high_performance" => 6.0,
+        "balanced" | "low_balanced" => 4.0,
+        "high_power_saver" => 3.0,
+        _ => 2.0,
+    }
+}
+
+/// Plausible decode speeds per power mode, tokens per second.
+pub(crate) fn mode_speed(mode: &str) -> f64 {
+    match mode {
+        "burst" | "sustained_high_performance" => 52.0,
+        "high_performance" => 48.0,
+        "balanced" | "low_balanced" => 38.0,
+        "high_power_saver" => 30.0,
+        _ => 22.0,
+    }
 }
 
 fn sse(value: &Value) -> Bytes {

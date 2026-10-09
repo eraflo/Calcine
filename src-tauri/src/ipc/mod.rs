@@ -54,6 +54,7 @@ pub fn builder() -> Builder<Wry> {
             commands::bench::bench_tool,
             commands::bench::install_bench_tool,
             commands::bench::start_benchmark,
+            commands::bench::start_energy_profile,
             commands::bench::bench_history,
             commands::bench::forget_bench_results,
             commands::jobs::cancel_job,

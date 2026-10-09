@@ -201,6 +201,33 @@ impl InferenceServer for GeniexServer {
         }
         Ok(())
     }
+
+    async fn complete(&self, request: &serde_json::Value) -> Result<serde_json::Value> {
+        let url = self.ensure_running().await?;
+        let response = self
+            .http
+            .post(format!("{url}/v1/chat/completions"))
+            .json(request)
+            .send()
+            .await
+            .map_err(|err| Error::Network(format!("couldn't reach GenieX: {err}")))?;
+        let status = response.status();
+        let body: serde_json::Value = response.json().await.map_err(|err| {
+            Error::Network(format!("GenieX answered in an unexpected way: {err}"))
+        })?;
+        if !status.is_success() {
+            let message = body
+                .pointer("/error/message")
+                .or_else(|| body.get("error"))
+                .and_then(serde_json::Value::as_str)
+                .unwrap_or("the request failed");
+            return Err(Error::Command {
+                command: "geniex serve".into(),
+                message: message.to_owned(),
+            });
+        }
+        Ok(body)
+    }
 }
 
 /// Wait for the process to exit or for a stop request, and report a crash.

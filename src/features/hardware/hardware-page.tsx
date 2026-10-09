@@ -5,6 +5,7 @@ import { useT } from "@/i18n";
 import { chipsetQuery, chipsetsQuery, hardwareQuery } from "./api";
 import { ChipsetCard, findChipset } from "./components/chipset-card";
 import { ComputeUnits } from "./components/compute-units";
+import { PowerCard } from "./components/power-card";
 import { RuntimeCard } from "./components/runtime-card";
 import { SelfTestCard } from "./components/self-test-card";
 import { StorageCard } from "./components/storage-card";
@@ -31,6 +32,7 @@ export function HardwarePage() {
       ) : (
         <>
           <ComputeUnits info={hardware.data} />
+          <PowerCard />
           <StorageCard info={hardware.data} />
         </>
       )}

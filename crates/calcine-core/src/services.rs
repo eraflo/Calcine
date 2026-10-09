@@ -5,11 +5,13 @@ use serde::{Deserialize, Serialize};
 use specta::Type;
 
 use crate::Result;
-use crate::bench::{BenchRequest, BenchResult, Benchmarker};
+use crate::bench::{
+    BenchRequest, BenchResult, BenchSource, Benchmarker, EnergyRequest, measure_mode,
+};
 use crate::context::{ContextMeter, ContextUsage};
 use crate::hardware::HardwareProbe;
 use crate::jobs::{JobCtx, JobId, JobKind, JobManager, JobPhase, JobProgress, JobState, JobStep};
-use crate::models::{ModelCatalog, ModelDirectory, ModelKey, ModelStore, PullRequest};
+use crate::models::{ComputeUnit, ModelCatalog, ModelDirectory, ModelKey, ModelStore, PullRequest};
 use crate::runtime::{
     InferenceServer, InstallSource, RuntimeInstaller, RuntimeManager, ServerState,
 };
@@ -121,14 +123,7 @@ impl Services {
     /// error and the others still run.
     pub fn start_benchmark(&self, request: BenchRequest) -> Result<JobId> {
         request.validate().map_err(crate::Error::InvalidInput)?;
-        if self
-            .running_job(|kind| matches!(kind, JobKind::Benchmark { .. }))
-            .is_some()
-        {
-            return Err(crate::Error::InvalidInput(
-                "a benchmark is already running".into(),
-            ));
-        }
+        self.ensure_no_benchmark()?;
         let bench = self.bench.clone();
         let server = self.server.clone();
         let kind = JobKind::Benchmark {
@@ -156,6 +151,55 @@ impl Services {
                 _ => Ok(()),
             }
         }))
+    }
+
+    /// Measure a model's speed and energy in each requested power mode,
+    /// through `geniex serve` (started if needed), then save the results.
+    /// Other requests to Calcine's API meanwhile would skew them.
+    pub fn start_energy_profile(&self, request: EnergyRequest) -> Result<JobId> {
+        request.validate().map_err(crate::Error::InvalidInput)?;
+        self.ensure_no_benchmark()?;
+        let bench = self.bench.clone();
+        let server = self.server.clone();
+        let hardware = self.hardware.clone();
+        let runtime = self.runtime.clone();
+        let kind = JobKind::EnergyProfile {
+            model: request.model.clone(),
+        };
+        Ok(self.jobs.spawn(kind, move |ctx| async move {
+            let version = runtime
+                .info()
+                .await
+                .map(|info| info.cli_version)
+                .unwrap_or_default();
+            let results =
+                profile_all(server.as_ref(), hardware.as_ref(), &request, &version, &ctx).await?;
+            let all_failed = results.iter().all(|result| result.measure.is_none());
+            let first_error = results.iter().find_map(|result| result.error.clone());
+            bench.record(results)?;
+            match first_error {
+                Some(message) if all_failed => Err(crate::Error::Command {
+                    command: "geniex serve".into(),
+                    message,
+                }),
+                _ => Ok(()),
+            }
+        }))
+    }
+
+    fn ensure_no_benchmark(&self) -> Result<()> {
+        let running = self.running_job(|kind| {
+            matches!(
+                kind,
+                JobKind::Benchmark { .. } | JobKind::EnergyProfile { .. }
+            )
+        });
+        match running {
+            Some(_) => Err(crate::Error::InvalidInput(
+                "a benchmark is already running".into(),
+            )),
+            None => Ok(()),
+        }
     }
 
     fn running_job(&self, matches: impl Fn(&JobKind) -> bool) -> Option<JobId> {
@@ -201,6 +245,68 @@ impl Services {
     }
 }
 
+/// One measurement per unit and power mode. Stops early when cancelled, or when the
+/// device can't measure energy at all.
+async fn profile_all(
+    server: &dyn InferenceServer,
+    hardware: &dyn HardwareProbe,
+    request: &EnergyRequest,
+    version: &str,
+    ctx: &JobCtx,
+) -> Result<Vec<BenchResult>> {
+    let session_id = format!("{:x}-{}", now_ms(), ctx.id());
+    let pairs: Vec<(ComputeUnit, &String)> = request
+        .units
+        .iter()
+        .flat_map(|unit| request.power_modes.iter().map(move |mode| (*unit, mode)))
+        .collect();
+    let total = u32::try_from(pairs.len()).unwrap_or(u32::MAX);
+    let mut results = Vec::with_capacity(pairs.len());
+    for (index, (unit, mode)) in pairs.into_iter().enumerate() {
+        ctx.report(JobProgress {
+            phase: Some(JobPhase::Measuring),
+            step: Some(JobStep {
+                current: u32::try_from(index + 1).unwrap_or(u32::MAX),
+                total,
+            }),
+            ..JobProgress::default()
+        });
+        let started_at_ms = now_ms();
+        let (measure, error) = match measure_mode(server, hardware, request, unit, mode, ctx).await
+        {
+            Ok(mut measure) => {
+                version.clone_into(&mut measure.geniex_version);
+                (Some(measure), None)
+            }
+            Err(err @ (crate::Error::Cancelled | crate::Error::NotImplemented(_))) => {
+                return Err(err);
+            }
+            Err(err) => (None, Some(err.to_string())),
+        };
+        results.push(BenchResult {
+            id: format!("{session_id}-{index}"),
+            session_id: session_id.clone(),
+            started_at_ms,
+            model: request.model.clone(),
+            runtime: request.runtime,
+            unit,
+            #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+            prompt_tokens: measure
+                .as_ref()
+                .map_or(0, |measure| measure.prompt_tokens as u32),
+            generated_tokens: request.generated_tokens,
+            repetitions: request.repetitions,
+            power_mode: mode.clone(),
+            spec_type: None,
+            draft_model: None,
+            source: BenchSource::EnergyProfile,
+            measure,
+            error,
+        });
+    }
+    Ok(results)
+}
+
 /// One measurement per compute unit. Stops early only when cancelled.
 async fn measure_all(
     bench: &dyn Benchmarker,
@@ -239,6 +345,7 @@ async fn measure_all(
             power_mode: request.power_mode.clone(),
             spec_type: request.spec_type.clone(),
             draft_model: request.draft_model.clone(),
+            source: BenchSource::GeniexBench,
             measure,
             error,
         });
