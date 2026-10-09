@@ -13,8 +13,9 @@ use serde_json::{Value, json};
 
 use crate::caller::Caller;
 use crate::error::api_error;
+use crate::proxy;
 use crate::state::AppState;
-use crate::{proxy, structured};
+use crate::structured::{self, tools};
 
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
@@ -37,13 +38,23 @@ async fn chat_completions(
     Extension(caller): Extension<Caller>,
     body: Bytes,
 ) -> Response {
-    // GenieX ignores `response_format`: Calcine enforces it.
-    if let Ok(json) = serde_json::from_slice::<Value>(&body)
-        && let Some(format) = structured::requested(&json)
-    {
-        return structured::complete(app, caller, json, format).await;
+    let Ok(mut json) = serde_json::from_slice::<Value>(&body) else {
+        return proxy::inference(app, caller, "/v1/chat/completions", body).await;
+    };
+    // GenieX ignores `tool_choice` and `response_format`: Calcine enforces them.
+    let refused = tools::refused(&json);
+    if refused {
+        json = tools::without_tools(&json);
     }
-    proxy::inference(app, caller, "/v1/chat/completions", body).await
+    match structured::goal(&json) {
+        Ok(Some(goal)) => structured::complete(app, caller, json, goal).await,
+        Ok(None) if refused => {
+            let body = Bytes::from(json.to_string());
+            proxy::inference(app, caller, "/v1/chat/completions", body).await
+        }
+        Ok(None) => proxy::inference(app, caller, "/v1/chat/completions", body).await,
+        Err(message) => api_error(StatusCode::BAD_REQUEST, "invalid_request_error", &message),
+    }
 }
 
 async fn completions(

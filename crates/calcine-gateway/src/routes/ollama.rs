@@ -256,7 +256,7 @@ async fn structured_answer(
         app,
         caller,
         &translated.body,
-        &format,
+        &structured::Goal::Json(format),
         path,
         translated.stream,
     )

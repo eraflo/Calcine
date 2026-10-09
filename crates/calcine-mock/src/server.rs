@@ -2,6 +2,7 @@
 //!
 //! Streams a canned reply word by word (with a short reasoning preamble unless
 //! `enable_think` is false), so the gateway and the Chat page work anywhere.
+//! Given tools, it calls the first one.
 
 use std::convert::Infallible;
 use std::sync::{Mutex, PoisonError};
@@ -98,6 +99,9 @@ impl InferenceServer for MockServer {
 
 async fn chat_completions(Json(request): Json<Value>) -> Response {
     let model = request["model"].as_str().unwrap_or("mock").to_owned();
+    if let Some(call) = tool_call(&request) {
+        return call_tool(&model, &call, request["stream"].as_bool() == Some(true));
+    }
     let prompt = request["messages"]
         .as_array()
         .and_then(|messages| messages.iter().rev().find(|m| m["role"] == "user"))
@@ -110,18 +114,26 @@ async fn chat_completions(Json(request): Json<Value>) -> Response {
     } else {
         ""
     };
-    // Asked for JSON (Calcine's structured output): answer in JSON.
-    let wants_json = request["messages"][0]["content"]
-        .as_str()
-        .is_some_and(|system| system.contains("single valid JSON value"));
-    let reply = if wants_json {
-        json!({ "reply": "Mock answer", "said": prompt }).to_string()
-    } else {
-        format!(
-            "This is **Calcine's mock backend**: no model ran. You said: \"{prompt}\". Run \
+    // Asked for JSON (Calcine's structured output): answer in JSON. A forced
+    // tool call is the example the instruction shows, filled in.
+    let system = request["messages"][0]["content"].as_str().unwrap_or("");
+    let wants_json = system.contains("single valid JSON value");
+    let example = system
+        .split_once("with a real value:\n")
+        .and_then(|(_, rest)| rest.lines().next())
+        .and_then(|line| serde_json::from_str::<Value>(line).ok());
+    let reply =
+        if let Some(mut call) = example.filter(|_| system.contains("Reply with only the call")) {
+            fill_in(&mut call);
+            call.to_string()
+        } else if wants_json {
+            json!({ "reply": "Mock answer", "said": prompt }).to_string()
+        } else {
+            format!(
+                "This is **Calcine's mock backend**: no model ran. You said: \"{prompt}\". Run \
              Calcine with GenieX on a Snapdragon device to talk to a real model."
-        )
-    };
+            )
+        };
 
     if request["stream"].as_bool() != Some(true) {
         return Json(json!({
@@ -166,6 +178,79 @@ async fn chat_completions(Json(request): Json<Value>) -> Response {
         Body::from_stream(ReceiverStream::new(rx)),
     )
         .into_response()
+}
+
+/// With tools and a user message last, the mock calls the first tool, with
+/// placeholder arguments.
+fn tool_call(request: &Value) -> Option<Value> {
+    let tool = request["tools"].as_array()?.first()?;
+    let last = request["messages"].as_array()?.last()?;
+    if last["role"] != "user" {
+        return None;
+    }
+    let name = tool.pointer("/function/name")?.as_str()?;
+    let arguments: serde_json::Map<String, Value> = tool
+        .pointer("/function/parameters/properties")
+        .and_then(Value::as_object)
+        .map(|properties| {
+            properties
+                .iter()
+                .map(|(key, property)| {
+                    let value = match property["type"].as_str() {
+                        Some("integer" | "number") => json!(1),
+                        Some("boolean") => json!(true),
+                        Some("array") => json!([]),
+                        Some("object") => json!({}),
+                        _ => json!("mock"),
+                    };
+                    (key.clone(), value)
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    Some(json!({
+        "id": "call_mock",
+        "type": "function",
+        "function": { "name": name, "arguments": Value::Object(arguments).to_string() },
+    }))
+}
+
+/// Replace the example's `<placeholders>` with "mock".
+fn fill_in(value: &mut Value) {
+    match value {
+        Value::String(text) if text.starts_with('<') => *text = "mock".into(),
+        Value::Array(items) => items.iter_mut().for_each(fill_in),
+        Value::Object(fields) => fields.values_mut().for_each(fill_in),
+        _ => {}
+    }
+}
+
+fn call_tool(model: &str, call: &Value, stream: bool) -> Response {
+    if !stream {
+        return Json(json!({
+            "object": "chat.completion",
+            "model": model,
+            "choices": [{
+                "index": 0,
+                "finish_reason": "tool_calls",
+                "message": { "role": "assistant", "content": "", "tool_calls": [call] },
+            }],
+            "usage": usage("call"),
+        }))
+        .into_response();
+    }
+    let mut call = call.clone();
+    call["index"] = json!(0);
+    let chunks = [
+        json!({ "object": "chat.completion.chunk", "choices": [{ "index": 0, "delta": { "tool_calls": [call] }, "finish_reason": null }] }),
+        json!({ "object": "chat.completion.chunk", "choices": [{ "index": 0, "delta": {}, "finish_reason": "tool_calls" }] }),
+    ];
+    let mut body: Vec<u8> = chunks
+        .iter()
+        .flat_map(|chunk| sse(chunk).to_vec())
+        .collect();
+    body.extend_from_slice(b"data:[DONE]\n\n");
+    ([(header::CONTENT_TYPE, "text/event-stream")], body).into_response()
 }
 
 fn sse(value: &Value) -> Bytes {

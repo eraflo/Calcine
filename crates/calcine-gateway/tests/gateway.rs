@@ -666,3 +666,99 @@ async fn ollama_format_is_enforced_too() {
         serde_json::from_str(reply["message"]["content"].as_str().unwrap()).unwrap();
     assert_eq!(content["reply"], "Mock answer");
 }
+
+#[tokio::test(flavor = "multi_thread")]
+async fn enforces_tool_choice() {
+    let h = start(any_port()).await;
+    let token = h.key(&[KeyScope::Inference], false);
+    let tool = |name: &str, unit: Value| {
+        json!({ "type": "function", "function": { "name": name, "parameters": {
+            "type": "object",
+            "properties": { "city": { "type": "string" }, "unit": unit },
+            "required": ["city"],
+        } } })
+    };
+    let weather = tool("get_weather", json!({ "type": "string" }));
+    let time = tool("get_time", json!({ "type": "string" }));
+    let ask = |tool_choice: Value, tools: Value| {
+        json!({
+            "model": "qualcomm/Qwen3-0.6B",
+            "messages": [{ "role": "user", "content": "Weather in Paris?" }],
+            "tools": tools,
+            "tool_choice": tool_choice,
+        })
+    };
+
+    // A named function is the only one offered, and its call is checked.
+    let named = ask(
+        json!({ "type": "function", "function": { "name": "get_time" } }),
+        json!([weather, time]),
+    );
+    let reply: Value = h
+        .chat(Some(&token), &named)
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    assert_eq!(reply["choices"][0]["finish_reason"], "tool_calls");
+    assert_eq!(
+        reply["choices"][0]["message"]["tool_calls"][0]["function"]["name"],
+        "get_time"
+    );
+
+    // "none" takes the tools away: the model answers in text.
+    let reply: Value = h
+        .chat(Some(&token), &ask(json!("none"), json!([weather])))
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    assert!(reply["choices"][0]["message"].get("tool_calls").is_none());
+    assert!(
+        reply["choices"][0]["message"]["content"]
+            .as_str()
+            .unwrap()
+            .contains("mock backend")
+    );
+
+    // Arguments that never match the parameters: 422, saying why.
+    let strict = tool("get_weather", json!({ "type": "string", "minLength": 10 }));
+    let never = h
+        .chat(Some(&token), &ask(json!("required"), json!([strict])))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(never.status(), StatusCode::UNPROCESSABLE_ENTITY);
+    let error: Value = never.json().await.unwrap();
+    assert!(
+        error["error"]["message"]
+            .as_str()
+            .unwrap()
+            .contains("get_weather: $.unit")
+    );
+
+    // A function that isn't in the tools is the client's mistake.
+    let unknown = ask(
+        json!({ "type": "function", "function": { "name": "search" } }),
+        json!([weather]),
+    );
+    let response = h.chat(Some(&token), &unknown).send().await.unwrap();
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    // Streamed clients get the call as server-sent events.
+    let mut streamed = ask(json!("required"), json!([weather]));
+    streamed["stream"] = json!(true);
+    let body = h
+        .chat(Some(&token), &streamed)
+        .send()
+        .await
+        .unwrap()
+        .text()
+        .await
+        .unwrap();
+    assert!(body.contains("\"tool_calls\"") && body.contains("\"finish_reason\":\"tool_calls\""));
+}

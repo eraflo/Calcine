@@ -40,8 +40,14 @@ fn fenced_block(text: &str) -> Option<&str> {
 }
 
 /// A placeholder value with the schema's shape: every property, one item
-/// per array, the first allowed value of an enum.
+/// per array, the first allowed value of an enum. Strings are named after
+/// what they hold, `"<city>"`: small models replace those, while they copy
+/// `"..."` as it is.
 pub fn example(schema: &Value) -> Value {
+    named_example(schema, "value")
+}
+
+fn named_example(schema: &Value, label: &str) -> Value {
     let Some(schema) = schema.as_object() else {
         return Value::Null;
     };
@@ -60,7 +66,7 @@ pub fn example(schema: &Value) -> Value {
         .find_map(|keyword| schema.get(*keyword).and_then(Value::as_array))
         .and_then(|options| options.first())
     {
-        return example(first);
+        return named_example(first, label);
     }
     let kind = match schema.get("type") {
         Some(Value::String(kind)) => kind.as_str(),
@@ -81,22 +87,60 @@ pub fn example(schema: &Value) -> Value {
                 .map(|properties| {
                     properties
                         .iter()
-                        .map(|(key, property)| (key.clone(), example(property)))
+                        .map(|(key, property)| (key.clone(), named_example(property, key)))
                         .collect()
                 })
                 .unwrap_or_default(),
         ),
-        "array" => Value::Array(vec![example(schema.get("items").unwrap_or(&Value::Null))]),
+        "array" => Value::Array(vec![named_example(
+            schema.get("items").unwrap_or(&Value::Null),
+            &format!("{label} item"),
+        )]),
         "integer" | "number" => Value::from(0),
         "boolean" => Value::Bool(false),
         "null" => Value::Null,
-        _ => Value::String("...".into()),
+        _ => Value::String(format!("<{label}>")),
     }
 }
 
 /// `Ok` when `value` matches `schema`, else where and why it doesn't.
 pub fn validate(value: &Value, schema: &Value) -> Result<(), String> {
     check(value, schema, "$")
+}
+
+/// `Ok` when no string in `value` is a placeholder from `schema`'s example:
+/// small models sometimes copy the example as it is.
+pub fn filled(value: &Value, schema: &Value) -> Result<(), String> {
+    let mut placeholders = Vec::new();
+    strings(&example(schema), &mut placeholders);
+    copied(value, &placeholders, "$").map_or(Ok(()), |(path, placeholder)| {
+        Err(format!(
+            "{path} is still the placeholder \"{placeholder}\", write a real value"
+        ))
+    })
+}
+
+fn strings(value: &Value, found: &mut Vec<String>) {
+    match value {
+        Value::String(text) if text.starts_with('<') => found.push(text.clone()),
+        Value::Array(items) => items.iter().for_each(|item| strings(item, found)),
+        Value::Object(fields) => fields.values().for_each(|field| strings(field, found)),
+        _ => {}
+    }
+}
+
+fn copied(value: &Value, placeholders: &[String], path: &str) -> Option<(String, String)> {
+    match value {
+        Value::String(text) if placeholders.contains(text) => Some((path.to_owned(), text.clone())),
+        Value::Array(items) => items
+            .iter()
+            .enumerate()
+            .find_map(|(index, item)| copied(item, placeholders, &format!("{path}[{index}]"))),
+        Value::Object(fields) => fields
+            .iter()
+            .find_map(|(key, field)| copied(field, placeholders, &format!("{path}.{key}"))),
+        _ => None,
+    }
 }
 
 type Schema = serde_json::Map<String, Value>;
@@ -344,7 +388,7 @@ mod tests {
         });
         assert_eq!(
             example(&schema),
-            json!({ "name": "...", "age": 0, "mood": "happy", "tags": ["..."], "home": { "city": "..." } })
+            json!({ "name": "<name>", "age": 0, "mood": "happy", "tags": ["<tags item>"], "home": { "city": "<city>" } })
         );
     }
 
