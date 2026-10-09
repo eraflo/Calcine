@@ -1,5 +1,5 @@
 // Calcine site: code tabs, copy button, reveal on scroll, and the download
-// buttons pointing at the newest installer.
+// buttons pointing at the newest installer (and Linux package).
 
 document.documentElement.classList.add("js");
 
@@ -85,6 +85,13 @@ if ("IntersectionObserver" in window) {
     }
     for (const meta of document.querySelectorAll("[data-download-meta]")) {
       meta.textContent = `${release.prerelease ? "Beta · " : ""}Windows 11 ARM64 · ${size}`;
+    }
+    // The Linux package of the same release, when it has one.
+    const deb = release.assets.find((candidate) => candidate.name.endsWith(".deb"));
+    if (deb) {
+      for (const link of document.querySelectorAll("[data-download-linux-link]"))
+        link.href = deb.browser_download_url;
+      for (const line of document.querySelectorAll("[data-download-linux]")) line.hidden = false;
     }
   } catch {
     // Keep the releases page link.

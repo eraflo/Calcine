@@ -1,8 +1,10 @@
 # Security policy
 
 Calcine exposes a local HTTP API (`127.0.0.1:18181`) that runs models on your
-machine. We take issues that could let a web page, another program, or a remote
-host reach that API, read local files, or tamper with updates seriously.
+machine, and optionally the same API to your other devices over HTTPS (port
+18443, off by default). We take issues that could let a web page, another
+program, or a remote host reach that API without a valid key, read local files,
+or tamper with updates seriously.
 
 ## Supported versions
 

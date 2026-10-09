@@ -13,6 +13,7 @@ chat with them on the Hexagon NPU, and give every app on your PC a secure, OpenA
 [![CI](https://github.com/eraflo/Calcine/actions/workflows/ci.yml/badge.svg)](https://github.com/eraflo/Calcine/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-2dd4bf)](LICENSE)
 ![Windows 11 ARM64](https://img.shields.io/badge/Windows%2011-ARM64-a78bfa)
+![Linux ARM64 preview](https://img.shields.io/badge/Linux-ARM64%20preview-a78bfa)
 
 [**Website**](https://eraflo.github.io/Calcine/) ·
 [**Download**](https://github.com/eraflo/Calcine/releases) ·
@@ -63,6 +64,8 @@ every web page you visit.
   a request queue and a request log that never records prompts.
 - **Share with your other devices.** Optional, over HTTPS with a certificate made on this PC,
   for keys you allow on the network and private networks only.
+- **Without the window.** `calcine-cli` serves the same API from a terminal or a server,
+  with the app's keys, settings and models, on Windows and on Linux.
 - **Always up to date.** Calcine installs GenieX on first launch, and can update or roll it
   back. Calcine updates itself with signed packages.
 - **English and French**, light and dark themes, a command palette (<kbd>Ctrl</kbd> <kbd>K</kbd>)
@@ -216,7 +219,7 @@ launch. Privacy policy: [PRIVACY.md](PRIVACY.md).
 ## License
 
 [MIT](LICENSE). Calcine doesn't redistribute GenieX: it downloads Qualcomm's official
-installer on your PC. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Calcine is an
+installer (an archive on Linux) on your PC. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Calcine is an
 independent project, not affiliated with Qualcomm.
 
 <sub>Screenshots show Calcine's demo mode (`bun run app:mock`), with sample data shaped like a

@@ -14,7 +14,7 @@ address requested and a user agent, and nothing else from Calcine.
 |---|---|---|
 | At startup, if **Check for updates automatically** is on (the default) | `github.com` (Calcine's releases) | See whether a newer Calcine is available |
 | At startup, if **Check for updates automatically** is on (the default) | `qaihub-public-assets.s3.us-west-2.amazonaws.com` (Qualcomm) | See whether a newer GenieX is available |
-| When you install, update or repair GenieX (also offered on first launch) | `qaihub-public-assets.s3.us-west-2.amazonaws.com` (Qualcomm) | Download the official GenieX installer, checked against its published SHA-256 |
+| When you install, update or repair GenieX (also offered on first launch, or with `calcine-cli geniex install`) | `qaihub-public-assets.s3.us-west-2.amazonaws.com` (Qualcomm) | Download the official GenieX installer (an archive on Linux), checked against its published SHA-256 |
 | When you install a Calcine update | `github.com` | Download the update, checked against Calcine's signature |
 | When you browse **Discover** or change the chipset on **Hardware** | `huggingface.co`, `qaihub-public-assets.s3.us-west-2.amazonaws.com` (Qualcomm AI Hub) | Search models, read their precisions and sizes, list the chipsets they're built for |
 | When you download a model | Hugging Face, ModelScope, Docker Hub or Qualcomm AI Hub, depending on the model | GenieX downloads the model you asked for |
@@ -44,14 +44,21 @@ These services have their own privacy policies:
 - **Models**: in GenieX's model folder.
 
 Calcine's data folder is `%APPDATA%\com.eraflo.calcine` (settings, keys,
-benchmarks) and `%LOCALAPPDATA%\com.eraflo.calcine` (web storage, downloaded
-installers and tools). Uninstalling Calcine can remove them.
+benchmarks, the network certificate) and `%LOCALAPPDATA%\com.eraflo.calcine`
+(web storage, downloaded installers and tools). Uninstalling Calcine can remove
+them. On Linux both are `~/.local/share/com.eraflo.calcine` (or under
+`$XDG_DATA_HOME`), and GenieX lives in `~/.local/share/geniex-cli`.
 
 ## The local API
 
-Calcine's API listens on `127.0.0.1` only, so other machines can't reach it.
+Calcine's API listens on `127.0.0.1`, so other machines can't reach it.
 Apps on this PC need an API key unless you turn that off, and web pages are
-refused unless you allow their origin. See the
+refused unless you allow their origin.
+
+If you turn on **Settings › Local network** (off by default), your other
+devices can use the API too, over HTTPS, with keys you allow on the network,
+from private addresses only. Their requests are handled like local ones: run
+on this PC, logged without prompts, never sent elsewhere. See the
 [security model](docs/security-model.md).
 
 ## Contact
