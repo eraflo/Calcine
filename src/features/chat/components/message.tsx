@@ -21,7 +21,7 @@ export function Message({
   live,
 }: {
   message: ChatMessage;
-  live?: { content: string; reasoning: string };
+  live?: { content: string; reasoning: string; status?: "summarizing" | null };
 }) {
   const t = useT(messages);
   const content = live?.content ?? message.content;
@@ -52,6 +52,10 @@ export function Message({
       {reasoning && <Reasoning text={reasoning} active={thinking} />}
       {content ? (
         <MarkdownBody text={asMarkdown(content)} />
+      ) : live?.status === "summarizing" ? (
+        <p className="animate-pulse text-xs text-muted-foreground" role="status">
+          {t("summarizing")}
+        </p>
       ) : live && !reasoning ? (
         <TypingDots />
       ) : null}

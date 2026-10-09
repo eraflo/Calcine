@@ -1,5 +1,6 @@
-import { EyeOff } from "lucide-react";
-import { Fragment, useEffect, useRef } from "react";
+import * as Collapsible from "@radix-ui/react-collapsible";
+import { ChevronRight, EyeOff } from "lucide-react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { LogoMark } from "@/components/calcine/brand/logo";
 import { useT } from "@/i18n";
 import { cn } from "@/lib/utils";
@@ -62,10 +63,7 @@ export function Thread({
         {messages.map((message, index) => (
           <Fragment key={message.id}>
             {index === seenFrom && index > 0 && (
-              <p className="flex items-center gap-3 text-[11px] text-muted-foreground before:h-px before:flex-1 before:bg-border after:h-px after:flex-1 after:bg-border">
-                <EyeOff className="size-3.5" />
-                {t("forgottenDivider")}
-              </p>
+              <ForgottenDivider summary={conversation?.summary} />
             )}
             <div className={cn(index < seenFrom && "opacity-50")}>
               <Message message={message} live={live.messageId === message.id ? live : undefined} />
@@ -75,5 +73,31 @@ export function Thread({
         <div ref={bottom} />
       </div>
     </div>
+  );
+}
+
+/** Where the model's view starts, with the summary of what's above. */
+function ForgottenDivider({ summary }: { summary: string | undefined }) {
+  const t = useT(strings);
+  const [open, setOpen] = useState(false);
+  const line = (
+    <span className="flex w-full items-center gap-3 text-[11px] text-muted-foreground before:h-px before:flex-1 before:bg-border after:h-px after:flex-1 after:bg-border">
+      <EyeOff className="size-3.5" />
+      {summary ? t("forgottenSummarized") : t("forgottenDivider")}
+      {summary && (
+        <ChevronRight className={cn("size-3.5 transition-transform", open && "rotate-90")} />
+      )}
+    </span>
+  );
+  if (!summary) return <p>{line}</p>;
+  return (
+    <Collapsible.Root open={open} onOpenChange={setOpen}>
+      <Collapsible.Trigger className="w-full hover:text-foreground">{line}</Collapsible.Trigger>
+      <Collapsible.Content>
+        <p className="mx-auto mt-2 max-w-xl rounded-md border bg-card px-3 py-2 text-xs leading-relaxed whitespace-pre-wrap text-muted-foreground">
+          {summary}
+        </p>
+      </Collapsible.Content>
+    </Collapsible.Root>
   );
 }

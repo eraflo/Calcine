@@ -63,6 +63,12 @@ export const messages = defineMessages({
     contextFullStop:
       "When it's full, the model won't answer: start a new chat, or turn on Forget oldest messages.",
     forgottenDivider: "The model no longer sees the messages above",
+    forgottenSummarized: "The model no longer sees the messages above, only their summary",
+    contextSummary: "It keeps a summary of them.",
+    summarizing: "Summarizing the oldest messages…",
+    summarizeForgotten: "Keep a summary",
+    summarizeForgottenHint:
+      "The model summarizes what it forgets, so the conversation keeps its thread.",
     contextErrorHint:
       "The conversation is longer than this model can read at once. Turn on Forget oldest messages in the settings, or start a new chat.",
     // Settings panel
@@ -234,6 +240,12 @@ export const messages = defineMessages({
     contextFullStop:
       "Une fois plein, le modèle ne répondra plus : lancez une nouvelle discussion, ou activez Oublier les plus anciens messages.",
     forgottenDivider: "Le modèle ne voit plus les messages ci-dessus",
+    forgottenSummarized: "Le modèle ne voit plus les messages ci-dessus, seulement leur résumé",
+    contextSummary: "Il en garde un résumé.",
+    summarizing: "Résumé des plus anciens messages…",
+    summarizeForgotten: "Garder un résumé",
+    summarizeForgottenHint:
+      "Le modèle résume ce qu'il oublie, pour que la conversation garde le fil.",
     contextErrorHint:
       "La conversation est plus longue que ce que ce modèle peut lire d'un coup. Activez Oublier les plus anciens messages dans les réglages, ou lancez une nouvelle discussion.",
     systemPrompt: "Prompt système",

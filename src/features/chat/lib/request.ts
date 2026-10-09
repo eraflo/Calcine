@@ -1,4 +1,5 @@
 import type { ComputeUnit, LocalModel } from "@/lib/api";
+import { withSummary } from "./summary";
 
 /** GenieX power modes, fastest first. Labels live in the chat messages. */
 export const POWER_MODES = [
@@ -58,6 +59,9 @@ export type ChatSettings = {
   /** When the conversation outgrows the model's context window, stop
    * showing it the oldest messages instead of failing. */
   forgetOldest: boolean;
+  /** Have the model summarize what it stops seeing, and keep the summary
+   * in its system prompt. */
+  summarizeForgotten: boolean;
 };
 
 export type OutputFormat = "text" | "json" | "schema";
@@ -126,6 +130,7 @@ export const DEFAULT_SETTINGS: ChatSettings = {
   outputFormat: "text",
   jsonSchema: "",
   forgetOldest: true,
+  summarizeForgotten: true,
 };
 
 /** Sampling presets, from focused to inventive. */
@@ -250,13 +255,14 @@ export function buildChatRequest(
   modelId: string,
   settings: ChatSettings,
   history: readonly ChatTurn[],
+  /** What the model no longer sees, summarized: goes in the system prompt. */
+  summary?: string,
 ) {
   const turns = history.map(toApiMessage);
   const llamaCpp = supportsComputeChoice(model);
   const stop = settings.stop.filter((sequence) => sequence !== "");
-  const messages = settings.systemPrompt.trim()
-    ? [{ role: "system" as const, content: settings.systemPrompt.trim() }, ...turns]
-    : turns;
+  const system = withSummary(settings.systemPrompt, summary);
+  const messages = system ? [{ role: "system" as const, content: system }, ...turns] : turns;
   return {
     model: modelId,
     messages,

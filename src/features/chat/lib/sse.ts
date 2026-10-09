@@ -123,7 +123,8 @@ export async function streamChat({
   return result;
 }
 
-async function errorMessage(response: Response): Promise<string> {
+/** The error the local API answered, readable. */
+export async function errorMessage(response: Response): Promise<string> {
   const text = await response.text().catch(() => "");
   try {
     const parsed = JSON.parse(text) as { error?: { message?: string } | string };

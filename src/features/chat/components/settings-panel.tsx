@@ -156,6 +156,21 @@ export function SettingsPanel({
           onCheckedChange={(forgetOldest) => setSettings({ forgetOldest })}
         />
       </div>
+      {settings.forgetOldest && (
+        <div className="-mt-2 flex items-center justify-between gap-3 border-l-2 pl-3">
+          <label htmlFor="summarize-forgotten" className="flex flex-col">
+            <span className="text-xs font-medium text-muted-foreground">
+              {t("summarizeForgotten")}
+            </span>
+            <span className="text-[11px] text-muted-foreground">{t("summarizeForgottenHint")}</span>
+          </label>
+          <Switch
+            id="summarize-forgotten"
+            checked={settings.summarizeForgotten}
+            onCheckedChange={(summarizeForgotten) => setSettings({ summarizeForgotten })}
+          />
+        </div>
+      )}
 
       <OutputFormatField />
 

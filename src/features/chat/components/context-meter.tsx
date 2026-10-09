@@ -47,11 +47,12 @@ export function ContextMeter({
       visible.at(-1)?.content.length,
       settings.systemPrompt,
       settings.think,
+      conversation?.summary,
     ],
     queryFn: () =>
       fetchContextUsage(
         modelId ?? "",
-        buildChatRequest(model, modelId ?? "", settings, toTurns(visible)),
+        buildChatRequest(model, modelId ?? "", settings, toTurns(visible), conversation?.summary),
       ),
     enabled: Boolean(modelId) && !streaming,
     placeholderData: keepPreviousData,
@@ -70,6 +71,7 @@ export function ContextMeter({
     }),
     usage.data.tokens.exact ? t("contextExact") : t("contextEstimate"),
     forgotten > 0 ? t.plural("contextForgotten", forgotten) : null,
+    forgotten > 0 && conversation?.summary ? t("contextSummary") : null,
     level === "ok" ? null : settings.forgetOldest ? t("contextFullForget") : t("contextFullStop"),
   ].filter(Boolean);
 
