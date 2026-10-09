@@ -5,6 +5,7 @@ import { ErrorState } from "@/components/calcine/feedback/error-state";
 import { Button } from "@/components/ui/button";
 import { Tooltip } from "@/components/ui/tooltip";
 import { modelsQuery } from "@/features/library/api";
+import { useMediaQuery } from "@/hooks/use-media-query";
 import { useT } from "@/i18n";
 import { Composer } from "./components/composer";
 import { ContextMeter } from "./components/context-meter";
@@ -19,6 +20,9 @@ import { messages } from "./messages";
 import { useChat } from "./store";
 import { type PendingAttachment, useSend } from "./use-send";
 
+/** Wide enough for the conversations, the chat and the settings side by side. */
+const WIDE_WINDOW = "(min-width: 1200px)";
+
 export function ChatPage() {
   const t = useT(messages);
   const models = useQuery(modelsQuery);
@@ -28,7 +32,11 @@ export function ChatPage() {
   const create = useChat((state) => state.create);
   const setModel = useChat((state) => state.setModel);
   const { send, stop, streaming, ready } = useSend();
-  const [showSettings, setShowSettings] = useState(true);
+  // The settings panel squeezes the chat on small windows: hidden there
+  // unless opened. Opening or closing it holds for that size of window.
+  const wide = useMediaQuery(WIDE_WINDOW);
+  const [settingsChoice, setSettingsChoice] = useState<{ wide: boolean; shown: boolean }>();
+  const showSettings = settingsChoice?.wide === wide ? settingsChoice.shown : wide;
 
   const installed = models.data ?? [];
   const active = conversations.find((conversation) => conversation.id === activeId);
@@ -84,7 +92,7 @@ export function ChatPage() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => setShowSettings((shown) => !shown)}
+              onClick={() => setSettingsChoice({ wide, shown: !showSettings })}
               aria-label={t("toggleSettings")}
               aria-pressed={showSettings}
             >
