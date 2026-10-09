@@ -28,12 +28,12 @@ export function ModelPicker({
   }
   const selected = models.find((model) => model.name === value);
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex min-w-0 items-center gap-2">
       <Select
         value={value ?? ""}
         onChange={(event) => onChange(event.target.value)}
         aria-label={t("model")}
-        className="w-72 font-mono text-[12px]"
+        className="w-72 min-w-24 shrink font-mono text-[12px]"
       >
         {!selected && <option value="">{t("pickModel")}</option>}
         {models.map((model) => (
@@ -42,7 +42,11 @@ export function ModelPicker({
           </option>
         ))}
       </Select>
-      {selected && <RuntimeBadge runtime={selected.runtime} />}
+      {selected && (
+        <span className="hidden shrink-0 @2xl:inline-flex">
+          <RuntimeBadge runtime={selected.runtime} />
+        </span>
+      )}
     </div>
   );
 }

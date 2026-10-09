@@ -86,7 +86,7 @@ export function ContextMeter({
       {/* A button so keyboard users reach the details too. */}
       <button
         type="button"
-        className="flex items-center gap-2 rounded-md px-1.5 py-1 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="flex shrink-0 items-center gap-2 rounded-md px-1.5 py-1 outline-none focus-visible:ring-2 focus-visible:ring-ring"
         aria-label={details.join(" ")}
       >
         <span className="h-1.5 w-14 overflow-hidden rounded-full bg-muted">
@@ -95,7 +95,12 @@ export function ContextMeter({
             style={{ width: `${percent}%` }}
           />
         </span>
-        <span className={cn("text-[11px] whitespace-nowrap tabular-nums", TEXT[level])}>
+        <span
+          className={cn(
+            "hidden text-[11px] whitespace-nowrap tabular-nums @xl:inline",
+            TEXT[level],
+          )}
+        >
           {formatNumber(used, 0)} / {formatNumber(window, 0)}
         </span>
       </button>

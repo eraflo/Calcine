@@ -56,7 +56,8 @@ export function ChatPage() {
     <div className="flex h-full min-h-0">
       <ConversationList onNew={() => modelId && create(modelId)} />
       <section className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-12 shrink-0 items-center gap-3 border-b px-4">
+        {/* A container: the header adapts to the chat column, not the window. */}
+        <header className="@container flex h-12 min-w-0 shrink-0 items-center gap-3 border-b px-4">
           <ModelPicker
             models={installed}
             value={modelId}
@@ -64,16 +65,21 @@ export function ChatPage() {
               active ? setModel(active.id, next) : useChat.setState({ lastModelId: next })
             }
           />
-          {missingModel && <span className="text-xs text-warning">{t("missingModel")}</span>}
+          {missingModel && (
+            <span className="min-w-0 truncate text-xs text-warning">{t("missingModel")}</span>
+          )}
           <div className="ml-auto" />
-          <ContextMeter
-            conversation={active}
-            model={model}
-            modelId={modelId}
-            streaming={streaming}
-          />
-          <PreloadButton model={model} modelId={modelId} disabled={streaming || !ready} />
-          <ExportButton conversation={active} />
+          {/* Left out when the column is too narrow for them (settings panel open on a small window). */}
+          <div className="hidden shrink-0 items-center gap-3 @xs:flex">
+            <ContextMeter
+              conversation={active}
+              model={model}
+              modelId={modelId}
+              streaming={streaming}
+            />
+            <PreloadButton model={model} modelId={modelId} disabled={streaming || !ready} />
+            <ExportButton conversation={active} />
+          </div>
           <Tooltip content={showSettings ? t("hideSettings") : t("showSettings")}>
             <Button
               variant="ghost"
