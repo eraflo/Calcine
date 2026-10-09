@@ -160,6 +160,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          # SignPath asks for the code signing policy on download pages.
+          printf '\n---\n\nWindows 11 on Snapdragon: the `-setup.exe`. Linux on ARM64 (preview): the `.deb`. Checksums in `SHA256SUMS`.\n\n[Code signing policy](https://eraflo.github.io/Calcine/#code-signing) · [Privacy policy](https://github.com/eraflo/Calcine/blob/main/PRIVACY.md)\n' >> notes.md
           gh release create "v$VERSION" dist-release/* \
             --target "$GITHUB_SHA" \
             --title "Calcine $VERSION" \

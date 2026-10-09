@@ -88,7 +88,10 @@ jobs:
             --title "Calcine $VERSION" \
             --notes "Automated beta from \`dev\` (${GITHUB_SHA::7}). Installs GenieX $geniex on first launch.
 
-          This build isn't code-signed yet, so Windows SmartScreen will warn before installing."
+          - Windows 11 on Snapdragon: the \`-setup.exe\`. This build isn't code-signed yet, so Windows SmartScreen will warn before installing.
+          - Linux on ARM64 (preview): the \`.deb\` (\`sudo apt install ./<file>.deb\`).
+
+          Checksums in \`SHA256SUMS\`. [Code signing policy](https://eraflo.github.io/Calcine/#code-signing) · [Privacy policy](https://github.com/eraflo/Calcine/blob/main/PRIVACY.md)"
 
       # The Beta channel (Settings > Calcine updates) reads latest-beta.json
       # from a fixed release. It's a pre-release so it never becomes "latest".
