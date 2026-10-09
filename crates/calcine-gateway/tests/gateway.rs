@@ -863,9 +863,12 @@ async fn serves_other_devices_over_https_with_network_keys_only() {
     assert_eq!(network.fingerprint.len(), 95);
     let port = port_of(&network.base_url);
     // Trust only Calcine's certificate, like a client that imported it.
+    // Changing the network settings cuts open connections on purpose: a
+    // fresh one per request keeps the client from reusing a closed one.
     let pem = std::fs::read(&network.certificate_path).unwrap();
     let client = Client::builder()
         .add_root_certificate(reqwest::Certificate::from_pem(&pem).unwrap())
+        .pool_max_idle_per_host(0)
         .build()
         .unwrap();
     let models = format!("https://localhost:{port}/v1/models");

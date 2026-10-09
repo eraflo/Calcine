@@ -81,7 +81,7 @@ struct Running {
     /// Stops the Ollama port, when it's on.
     ollama: Option<oneshot::Sender<()>>,
     /// Stops the network port, when it's on.
-    network: Option<oneshot::Sender<()>>,
+    network: Option<network::Serving>,
 }
 
 impl Running {
@@ -92,7 +92,7 @@ impl Running {
             let _ = ollama.send(());
         }
         if let Some(network) = self.network {
-            let _ = network.send(());
+            network.stop();
         }
     }
 }
@@ -249,7 +249,7 @@ impl Gateway {
 
     /// Listen on the network port over HTTPS, with the same state as the
     /// main port. Problems (no certificate, port taken) go to the status.
-    fn serve_network(&self, app: &Arc<AppState>) -> Option<oneshot::Sender<()>> {
+    fn serve_network(&self, app: &Arc<AppState>) -> Option<network::Serving> {
         let fail = |message: String| {
             tracing::warn!(%message, "network port not listening");
             self.status.send_modify(|status| {
@@ -285,7 +285,7 @@ impl Gateway {
             Err(err) => return fail(format!("Couldn't listen on port {wanted}: {err}")),
         };
         let port = listener.local_addr().map_or(wanted, |addr| addr.port());
-        let stop = network::spawn(
+        let serving = network::spawn(
             listener,
             acceptor,
             routes::router(app.clone(), Listener::Network { port }),
@@ -304,7 +304,7 @@ impl Gateway {
             status.network_error = None;
         });
         tracing::info!(port, "network port listening");
-        Some(stop)
+        Some(serving)
     }
 
     /// Turn the network port on or off, on `port`, for the addresses in
@@ -353,8 +353,8 @@ impl Gateway {
         let Some(current) = running.as_mut() else {
             return;
         };
-        if let Some(stop) = current.network.take() {
-            let _ = stop.send(());
+        if let Some(serving) = current.network.take() {
+            serving.stopped().await;
         }
         self.status.send_modify(|status| {
             status.network = None;

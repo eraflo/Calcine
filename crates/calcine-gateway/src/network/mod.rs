@@ -26,17 +26,38 @@ pub const DEFAULT_PORT: u16 = 18443;
 #[derive(Debug, Clone, Copy)]
 pub struct Peer(pub SocketAddr);
 
-/// Serve `router` over TLS on `listener` until the returned sender fires,
-/// which also closes the connections still open. Each request carries its
-/// connection's [`Peer`].
+/// The running network port.
+#[derive(Debug)]
+pub struct Serving {
+    shutdown: oneshot::Sender<()>,
+    task: tokio::task::JoinHandle<()>,
+}
+
+impl Serving {
+    /// Stop listening and close the connections still open.
+    pub fn stop(self) {
+        let _ = self.shutdown.send(());
+    }
+
+    /// Stop, and wait until the port is free to listen on again: Linux
+    /// refuses a second listener while the first one is still open.
+    pub async fn stopped(self) {
+        let _ = self.shutdown.send(());
+        let _ = self.task.await;
+    }
+}
+
+/// Serve `router` over TLS on `listener` until [`Serving::stop`], which also
+/// closes the connections still open. Each request carries its connection's
+/// [`Peer`].
 pub fn spawn(
     listener: tokio::net::TcpListener,
     acceptor: TlsAcceptor,
     router: axum::Router,
-) -> oneshot::Sender<()> {
+) -> Serving {
     let (shutdown, mut stop) = oneshot::channel::<()>();
     let (closing, _) = watch::channel(false);
-    tokio::spawn(async move {
+    let task = tokio::spawn(async move {
         loop {
             let accepted = tokio::select! {
                 accepted = listener.accept() => accepted,
@@ -71,7 +92,7 @@ pub fn spawn(
         }
         let _ = closing.send(true);
     });
-    shutdown
+    Serving { shutdown, task }
 }
 
 /// The names other devices can reach this PC by: its name, and the address
