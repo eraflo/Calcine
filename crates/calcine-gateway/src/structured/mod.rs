@@ -318,7 +318,7 @@ pub async fn generate(
 }
 
 /// The completion GenieX returned, or the error to answer with.
-async fn read_completion(
+pub(crate) async fn read_completion(
     reply: Result<reqwest::Response, String>,
 ) -> Result<Value, (StatusCode, String)> {
     let reply = reply.map_err(|message| (StatusCode::BAD_GATEWAY, message))?;
@@ -330,7 +330,7 @@ async fn read_completion(
     Ok(serde_json::from_slice(&bytes).unwrap_or_default())
 }
 
-fn token_count(completion: &Value, field: &str) -> u64 {
+pub(crate) fn token_count(completion: &Value, field: &str) -> u64 {
     completion
         .get("usage")
         .and_then(|usage| usage.get(field))
@@ -372,7 +372,7 @@ fn deliver(answer: &Value, delivery: Delivery) -> Response {
 }
 
 /// Ask again, within the same queue turn.
-async fn retry(app: &AppState, request: &Value) -> Result<reqwest::Response, String> {
+pub(crate) async fn retry(app: &AppState, request: &Value) -> Result<reqwest::Response, String> {
     let upstream = app
         .services
         .server

@@ -138,6 +138,9 @@ async fn chat_completions(Json(request): Json<Value>) -> Response {
     if let Some(call) = tool_call(&request) {
         return call_tool(&model, &call, request["stream"].as_bool() == Some(true));
     }
+    if let Some(seconds) = audio_to_transcribe(&request) {
+        return transcribed(&model, seconds);
+    }
     let prompt = request["messages"]
         .as_array()
         .and_then(|messages| messages.iter().rev().find(|m| m["role"] == "user"))
@@ -217,6 +220,9 @@ async fn chat_completions(Json(request): Json<Value>) -> Response {
 }
 
 /// Tokens the prompt takes, counted as the mock's context meter does.
+/// What an image or a piece of audio counts for in the mock's window.
+const MEDIA_TOKENS: usize = 256;
+
 fn prompt_size(request: &Value) -> usize {
     let messages = request["messages"]
         .as_array()
@@ -224,8 +230,58 @@ fn prompt_size(request: &Value) -> usize {
         .unwrap_or_default();
     20 + messages
         .iter()
-        .map(|message| message["content"].to_string().len().div_ceil(3) + 5)
+        .map(|message| content_size(&message["content"]) + 5)
         .sum::<usize>()
+}
+
+/// About 3 characters a token for text; images and audio cost a fixed
+/// amount, not their base64 length.
+fn content_size(content: &Value) -> usize {
+    match content.as_array() {
+        Some(parts) => parts
+            .iter()
+            .map(|part| match part["text"].as_str() {
+                Some(text) => text.len().div_ceil(3),
+                None => MEDIA_TOKENS,
+            })
+            .sum(),
+        None => content.to_string().len().div_ceil(3),
+    }
+}
+
+/// What the mock "hears": how long the audio was.
+fn transcribed(model: &str, seconds: f64) -> Response {
+    let reply = format!("Mock transcription of {seconds:.1} s of audio.");
+    Json(json!({
+        "object": "chat.completion",
+        "model": model,
+        "choices": [{
+            "index": 0,
+            "finish_reason": "stop",
+            "message": { "role": "assistant", "content": reply },
+        }],
+        "usage": usage(&reply),
+    }))
+    .into_response()
+}
+
+/// Seconds of WAV audio (16 kHz mono 16-bit) in a request asking for its
+/// transcription, as Calcine's `/v1/audio/transcriptions` sends it.
+fn audio_to_transcribe(request: &Value) -> Option<f64> {
+    let content = request["messages"].as_array()?.last()?["content"].as_array()?;
+    let asks = content.iter().any(|part| {
+        part["text"]
+            .as_str()
+            .is_some_and(|text| text.starts_with("Transcribe this audio verbatim"))
+    });
+    let data = content
+        .iter()
+        .find_map(|part| part.pointer("/input_audio/data")?.as_str())?;
+    // Base64 holds 3 bytes in 4 characters; a 44-byte header, then 32,000
+    // bytes a second.
+    #[allow(clippy::cast_precision_loss)]
+    let seconds = (data.len() * 3 / 4).saturating_sub(44) as f64 / 32_000.0;
+    asks.then_some(seconds)
 }
 
 /// With tools and a user message last, the mock calls the first tool, with

@@ -89,6 +89,8 @@ firewalld) for your local network only. Request bodies are checked as on the mai
 The request log records who called which model, the status, duration, token
 counts and speed. Prompts and replies are never recorded or sent anywhere.
 Chat conversations are stored in the app's local storage on this PC only.
+Dictation and `/v1/audio/transcriptions` keep the audio in memory only, for
+the time of the request: it's never written to disk or logged.
 
 ## Process lifetime
 

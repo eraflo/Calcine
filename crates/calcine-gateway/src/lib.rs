@@ -10,6 +10,7 @@
 //! - `/api/*`: Ollama's API, translated (see [`ollama`]), also on port 11434
 //!   when turned on
 
+mod audio;
 mod caller;
 mod context;
 mod error;
@@ -23,6 +24,7 @@ pub mod security;
 pub mod settings;
 mod state;
 pub mod structured;
+mod transcribe;
 
 use std::path::PathBuf;
 use std::sync::{Arc, PoisonError, RwLock};

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { PanelRight } from "lucide-react";
+import { MessageSquarePlus, PanelLeft, PanelRight } from "lucide-react";
 import { useState } from "react";
 import { ErrorState } from "@/components/calcine/feedback/error-state";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,7 @@ import { Tooltip } from "@/components/ui/tooltip";
 import { modelsQuery } from "@/features/library/api";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { useT } from "@/i18n";
+import { useLayout } from "@/stores/layout";
 import { Composer } from "./components/composer";
 import { ContextMeter } from "./components/context-meter";
 import { ConversationList } from "./components/conversation-list";
@@ -37,6 +38,8 @@ export function ChatPage() {
   const wide = useMediaQuery(WIDE_WINDOW);
   const [settingsChoice, setSettingsChoice] = useState<{ wide: boolean; shown: boolean }>();
   const showSettings = settingsChoice?.wide === wide ? settingsChoice.shown : wide;
+  const conversationsHidden = useLayout((state) => state.conversationsHidden);
+  const toggleConversations = useLayout((state) => state.toggleConversations);
 
   const installed = models.data ?? [];
   const active = conversations.find((conversation) => conversation.id === activeId);
@@ -62,10 +65,38 @@ export function ChatPage() {
 
   return (
     <div className="flex h-full min-h-0">
-      <ConversationList onNew={() => modelId && create(modelId)} />
+      {!conversationsHidden && <ConversationList onNew={() => modelId && create(modelId)} />}
       <section className="flex min-w-0 flex-1 flex-col">
         {/* A container: the header adapts to the chat column, not the window. */}
         <header className="@container flex h-12 min-w-0 shrink-0 items-center gap-3 border-b px-4">
+          <div className="-ml-2 flex shrink-0 items-center">
+            <Tooltip
+              content={conversationsHidden ? t("showConversations") : t("hideConversations")}
+            >
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleConversations}
+                aria-label={conversationsHidden ? t("showConversations") : t("hideConversations")}
+                aria-pressed={!conversationsHidden}
+              >
+                <PanelLeft />
+              </Button>
+            </Tooltip>
+            {conversationsHidden && (
+              <Tooltip content={t("newChat")}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => modelId && create(modelId)}
+                  disabled={!modelId}
+                  aria-label={t("newChat")}
+                >
+                  <MessageSquarePlus />
+                </Button>
+              </Tooltip>
+            )}
+          </div>
           <ModelPicker
             models={installed}
             value={modelId}

@@ -4,6 +4,8 @@ import { useGatewayEvents } from "@/features/server/api";
 import { useJobEvents } from "@/features/tasks/api";
 import { TaskDrawer } from "@/features/tasks/components/task-drawer";
 import { useSyncLanguage } from "@/i18n/sync";
+import { cn } from "@/lib/utils";
+import { useLayout } from "@/stores/layout";
 import { useUi } from "@/stores/ui";
 import { CommandPalette } from "./command-palette";
 import { Sidebar } from "./sidebar";
@@ -14,9 +16,15 @@ export function AppShell() {
   useSyncLanguage();
   useJobEvents();
   useGatewayEvents();
+  const collapsed = useLayout((state) => state.sidebarCollapsed);
 
   return (
-    <div className="grid h-full grid-cols-[13.5rem_minmax(0,1fr)]">
+    <div
+      className={cn(
+        "grid h-full",
+        collapsed ? "grid-cols-[3.25rem_minmax(0,1fr)]" : "grid-cols-[13.5rem_minmax(0,1fr)]",
+      )}
+    >
       <Sidebar />
       <div className="flex min-h-0 flex-col">
         <Topbar />
@@ -33,10 +41,15 @@ export function AppShell() {
 function useGlobalShortcuts() {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
+      if (!(event.ctrlKey || event.metaKey) || event.shiftKey || event.altKey) return;
+      const key = event.key.toLowerCase();
+      if (key === "k") {
         event.preventDefault();
         const { paletteOpen, setPaletteOpen } = useUi.getState();
         setPaletteOpen(!paletteOpen);
+      } else if (key === "b") {
+        event.preventDefault();
+        useLayout.getState().toggleSidebar();
       }
     };
     window.addEventListener("keydown", onKeyDown);
