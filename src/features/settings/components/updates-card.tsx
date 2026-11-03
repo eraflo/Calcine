@@ -146,7 +146,7 @@ export function UpdatesCard() {
                 {t("available", { version: update.version })}
               </span>
               {update.version.includes("-") && <Badge tone="warning">{t("beta")}</Badge>}
-              {update.date && (
+              {update.date && !Number.isNaN(Date.parse(update.date)) && (
                 <span className="text-xs text-muted-foreground">
                   {t("released", { when: formatRelative(Date.parse(update.date)) })}
                 </span>

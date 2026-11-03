@@ -544,6 +544,7 @@ dependencies = [
  "tauri-plugin-single-instance",
  "tauri-plugin-updater",
  "tauri-specta",
+ "time",
  "tokio",
  "tracing",
  "tracing-subscriber",
