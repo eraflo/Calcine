@@ -14,6 +14,8 @@
 - Forced tool calls (`tool_choice` naming a function) work again with thinking models on
   GenieX 0.10, which sometimes write only the arguments or leave the reply in the reasoning
   (bcc8a85)
+- Security updates of dependencies: rustls, rustls-webpki, tokio, and zip through the updater
+  plugin (RUSTSEC-2026-0346 to 0349, 0367 to 0369, 0382, 0386, 0429)
 
 ## 1.0.0 (2026-10-09)
 
