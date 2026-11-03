@@ -25,6 +25,10 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/v1/models/{*id}", get(get_model))
         .route("/v1/chat/completions", post(chat_completions))
         .route("/v1/completions", post(completions))
+        .route(
+            "/v1/audio/transcriptions",
+            post(crate::transcribe::transcriptions),
+        )
         .route("/v1/logits", post(logits))
         .route("/v1/systemone", post(systemone))
 }

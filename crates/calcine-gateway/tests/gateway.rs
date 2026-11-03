@@ -961,3 +961,152 @@ async fn serves_other_devices_over_https_with_network_keys_only() {
     assert!(h.gateway.status().network.is_none());
     assert!(client.get(&models).send().await.is_err());
 }
+
+/// 16 kHz mono 16-bit WAV: `tone` seconds of a 220 Hz tone (speech stand-in)
+/// after `silence_before` and before `silence_after` seconds of silence.
+fn wav(parts: &[(f32, bool)]) -> Vec<u8> {
+    let mut samples: Vec<i16> = Vec::new();
+    for (seconds, loud) in parts {
+        #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+        let count = (seconds * 16_000.0) as usize;
+        for i in 0..count {
+            #[allow(clippy::cast_precision_loss, clippy::cast_possible_truncation)]
+            let value = if *loud {
+                (9_000.0 * (i as f32 * 220.0 * std::f32::consts::TAU / 16_000.0).sin()) as i16
+            } else {
+                0
+            };
+            samples.push(value);
+        }
+    }
+    let data = u32::try_from(samples.len() * 2).unwrap();
+    let mut bytes = Vec::new();
+    bytes.extend_from_slice(b"RIFF");
+    bytes.extend_from_slice(&(36 + data).to_le_bytes());
+    bytes.extend_from_slice(b"WAVEfmt ");
+    bytes.extend_from_slice(&16_u32.to_le_bytes());
+    for value in [1_u16, 1] {
+        bytes.extend_from_slice(&value.to_le_bytes());
+    }
+    for value in [16_000_u32, 32_000] {
+        bytes.extend_from_slice(&value.to_le_bytes());
+    }
+    for value in [2_u16, 16] {
+        bytes.extend_from_slice(&value.to_le_bytes());
+    }
+    bytes.extend_from_slice(b"data");
+    bytes.extend_from_slice(&data.to_le_bytes());
+    for sample in samples {
+        bytes.extend_from_slice(&sample.to_le_bytes());
+    }
+    bytes
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn transcribes_speech_like_openai() {
+    let h = start(any_port()).await;
+    let key = h.key(&[KeyScope::Inference], false);
+    let url = format!("{}/v1/audio/transcriptions", h.base);
+    let model = "google/gemma-4-E2B-it-qat-q4_0-gguf";
+    let send = |audio: Vec<u8>, fields: &[(&str, &str)], token: &str| {
+        let mut form = reqwest::multipart::Form::new().part(
+            "file",
+            reqwest::multipart::Part::bytes(audio).file_name("speech.wav"),
+        );
+        for (name, value) in fields {
+            form = form.text((*name).to_owned(), (*value).to_owned());
+        }
+        h.http.post(&url).bearer_auth(token).multipart(form).send()
+    };
+
+    // A short sentence: one piece, trimmed to the speech.
+    let short: Value = send(
+        wav(&[(1.0, false), (3.0, true), (1.0, false)]),
+        &[("model", model)],
+        &key,
+    )
+    .await
+    .unwrap()
+    .json()
+    .await
+    .unwrap();
+    let text = short["text"].as_str().unwrap();
+    assert!(text.starts_with("Mock transcription of 3.6 s"), "{text}");
+
+    // 40 s with a pause: two pieces, cut in the pause, one log entry.
+    let long = wav(&[(25.0, true), (1.0, false), (14.0, true)]);
+    let long: Value = send(long, &[("model", model), ("language", "fr")], &key)
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    let text = long["text"].as_str().unwrap();
+    assert_eq!(text.matches("Mock transcription").count(), 2, "{text}");
+
+    // Silence: nothing to transcribe, and no model is asked to invent it.
+    let before = h.gateway.requests().len();
+    let silent: Value = send(wav(&[(5.0, false)]), &[("model", model)], &key)
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    assert_eq!(silent["text"], "");
+    assert_eq!(h.gateway.requests().len(), before);
+
+    // Plain text when asked.
+    let plain = send(
+        wav(&[(2.0, true)]),
+        &[("model", model), ("response_format", "text")],
+        &key,
+    )
+    .await
+    .unwrap();
+    assert!(
+        plain.headers()[header::CONTENT_TYPE]
+            .to_str()
+            .unwrap()
+            .starts_with("text/plain")
+    );
+    assert!(
+        plain
+            .text()
+            .await
+            .unwrap()
+            .starts_with("Mock transcription")
+    );
+
+    let logged: Vec<_> = h
+        .gateway
+        .requests()
+        .into_iter()
+        .filter(|entry| entry.path == "/v1/audio/transcriptions")
+        .collect();
+    assert_eq!(logged.len(), 3);
+    assert!(logged.iter().all(|entry| entry.status == Some(200)));
+
+    // Mistakes are explained.
+    for (audio, fields, expected) in [
+        (b"ID3 not wav".to_vec(), vec![("model", model)], "WAV"),
+        (wav(&[(1.0, true)]), vec![], "model"),
+        (
+            wav(&[(1.0, true)]),
+            vec![("model", model), ("response_format", "srt")],
+            "json or text",
+        ),
+    ] {
+        let refused = send(audio, &fields, &key).await.unwrap();
+        assert_eq!(refused.status(), StatusCode::BAD_REQUEST);
+        let body: Value = refused.json().await.unwrap();
+        let message = body["error"]["message"].as_str().unwrap();
+        assert!(message.contains(expected), "{message}");
+    }
+
+    // Transcribing runs a model: management keys can't.
+    let manager = h.key(&[KeyScope::Manage], false);
+    let refused = send(wav(&[(5.0, false)]), &[("model", model)], &manager)
+        .await
+        .unwrap();
+    assert_eq!(refused.status(), StatusCode::FORBIDDEN);
+}
