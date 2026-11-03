@@ -79,6 +79,14 @@ doc_markdown = "allow"
 missing_errors_doc = "allow"
 must_use_candidate = "allow"
 
+# Smaller target/: line numbers in our own crates, no debug info in
+# dependencies.
+[profile.dev]
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+debug = false
+
 [profile.release]
 codegen-units = 1
 lto = true
