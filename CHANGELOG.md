@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.3 (2026-11-03)
+
+### Fixes
+
+- Switching the update channel in Settings no longer leaves a black, frozen window (5754d93)
+- Available updates show their release date again, instead of "Invalid Date" (563b186)
+
 ## 1.0.2 (2026-11-03)
 
 ### Fixes
