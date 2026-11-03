@@ -74,6 +74,18 @@ pub fn goal(body: &Value) -> Result<Option<Goal>, String> {
     Ok(requested(body).map(Goal::Json))
 }
 
+/// The reply's text. When a thinking model never closes its reasoning
+/// (Qwen3-4B on GenieX 0.10 sometimes answers straight away), GenieX puts the
+/// whole reply in `reasoning_content` and leaves `content` empty.
+pub(super) fn reply_text(message: &Value) -> &str {
+    let text = |key| message.get(key).and_then(Value::as_str).unwrap_or("");
+    if text("content").trim().is_empty() {
+        text("reasoning_content")
+    } else {
+        text("content")
+    }
+}
+
 /// The instruction added to the system prompt.
 pub fn instruction(format: &Format) -> String {
     let base = "Reply with a single valid JSON value and nothing else: no explanation, \
@@ -150,8 +162,8 @@ impl Goal {
     fn accept(&self, message: &Value) -> Result<Value, String> {
         match self {
             Self::Json(format) => {
-                let text = message.get("content").and_then(Value::as_str).unwrap_or("");
-                let value = extract(text).ok_or_else(|| "the reply isn't JSON".to_owned())?;
+                let value = extract(reply_text(message))
+                    .ok_or_else(|| "the reply isn't JSON".to_owned())?;
                 check(&value, format)?;
                 let mut accepted = message.clone();
                 accepted["content"] = json!(value.to_string());
@@ -286,6 +298,7 @@ pub async fn generate(
             }
             Err(reason) => {
                 tracing::info!(attempt, %reason, "the reply didn't meet the goal, asking again");
+                tracing::debug!(%message, "rejected reply");
                 ask_to_fix(&mut request, &message, &reason, goal.fix_hint());
                 last_error = reason;
             }

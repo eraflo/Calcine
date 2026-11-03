@@ -14,8 +14,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde_json::{Value, json};
 
-use super::SHAPE;
 use super::schema::{example, extract, filled, validate};
+use super::{SHAPE, reply_text};
 
 /// A call the client requires.
 #[derive(Debug, Clone, PartialEq)]
@@ -144,18 +144,13 @@ fn calls_in(message: &Value) -> Vec<Value> {
     {
         return calls.clone();
     }
-    let written = message
-        .get("content")
-        .and_then(Value::as_str)
-        .and_then(extract);
+    let written = extract(reply_text(message));
     let written = match written {
         Some(Value::Array(calls)) => calls,
         Some(call @ Value::Object(_)) => vec![call],
         _ => return Vec::new(),
     };
-    let stamp = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map_or(0, |elapsed| elapsed.as_micros());
+    let stamp = call_stamp();
     written
         .iter()
         .filter_map(|call| {
@@ -170,7 +165,7 @@ fn calls_in(message: &Value) -> Vec<Value> {
         .enumerate()
         .map(|(index, (name, arguments))| {
             json!({
-                "id": format!("call_{stamp:x}{index}"),
+                "id": format!("call_{stamp}{index}"),
                 "type": "function",
                 "function": { "name": name, "arguments": arguments },
             })
@@ -179,8 +174,29 @@ fn calls_in(message: &Value) -> Vec<Value> {
 }
 
 /// The reply's message with its checked calls, or why it doesn't do.
+/// Hex microseconds, so call ids differ between replies.
+fn call_stamp() -> String {
+    let micros = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_or(0, |elapsed| elapsed.as_micros());
+    format!("{micros:x}")
+}
+
 pub fn check(message: &Value, forced: &Forced) -> Result<Value, String> {
-    let calls = calls_in(message);
+    let mut calls = calls_in(message);
+    // When the tool is named, some models (Qwen3-4B thinking, GenieX 0.10)
+    // write only its arguments: that's the call.
+    if calls.is_empty()
+        && let Some(name) = &forced.function
+        && let Some(arguments) = extract(reply_text(message))
+            .filter(|value| value.is_object() && value.get("name").is_none())
+    {
+        calls = vec![json!({
+            "id": format!("call_{}", call_stamp()),
+            "type": "function",
+            "function": { "name": name, "arguments": arguments.to_string() },
+        })];
+    }
     if calls.is_empty() {
         return Err(match &forced.function {
             Some(name) => format!("the {name} tool wasn't called"),
@@ -214,9 +230,15 @@ pub fn check(message: &Value, forced: &Forced) -> Result<Value, String> {
             .map_err(|reason| format!("{name}: {reason}"))?;
     }
     let mut checked = json!({ "role": "assistant", "content": null, "tool_calls": calls });
+    // Unless the reasoning was the reply itself.
+    let reasoning_was_the_reply = message
+        .get("content")
+        .and_then(Value::as_str)
+        .is_none_or(|text| text.trim().is_empty());
     if let Some(reasoning) = message
         .get("reasoning_content")
         .filter(|reasoning| reasoning.as_str().is_some_and(|text| !text.is_empty()))
+        .filter(|_| !reasoning_was_the_reply || message.get("tool_calls").is_some())
     {
         checked["reasoning_content"] = reasoning.clone();
     }
@@ -351,5 +373,40 @@ mod tests {
             check(&call("get_weather", r#"{"city": "Paris"}"#), &named),
             Err("get_weather was called instead of get_time".into())
         );
+    }
+
+    #[test]
+    fn takes_bare_arguments_for_the_named_tool() {
+        let named = Forced {
+            function: Some("get_weather".into()),
+            tools: vec![weather(), time()],
+        };
+        let bare = json!({ "content": "\n\n{\"city\": \"Paris\"}" });
+        let checked = check(&bare, &named).unwrap();
+        assert_eq!(checked["tool_calls"][0]["function"]["name"], "get_weather");
+        assert_eq!(
+            checked["tool_calls"][0]["function"]["arguments"],
+            "{\"city\":\"Paris\"}"
+        );
+        // Still checked against the tool's parameters.
+        assert_eq!(
+            check(&json!({ "content": "{\"town\": \"Paris\"}" }), &named),
+            Err("get_weather: $.city is missing".into())
+        );
+        // Without a named tool, bare arguments say nothing about which one.
+        let any = Forced {
+            function: None,
+            tools: vec![weather()],
+        };
+        assert_eq!(check(&bare, &any), Err("no tool was called".into()));
+
+        // The whole reply left in the reasoning, the content empty.
+        let unclosed = json!({
+            "content": "",
+            "reasoning_content": "\n{\"name\": \"get_weather\", \"arguments\": {\"city\": \"Paris\"}}",
+        });
+        let checked = check(&unclosed, &named).unwrap();
+        assert_eq!(checked["tool_calls"][0]["function"]["name"], "get_weather");
+        assert_eq!(checked.get("reasoning_content"), None);
     }
 }
