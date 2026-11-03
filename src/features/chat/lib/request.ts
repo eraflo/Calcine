@@ -33,13 +33,13 @@ export type ChatSettings = {
   frequencyPenalty: number | null;
   /** Same seed and settings give the same reply (llama.cpp only). */
   seed: number | null;
-  /** Stop generating at any of these strings. GenieX 0.8 ignores `stop` in
-   * API requests, so the chat also cuts the reply itself. */
+  /** Stop generating at any of these strings. GenieX applies `stop` since
+   * 0.10; the chat also cuts the reply itself, for older versions. */
   stop: string[];
   /** Layers offloaded to the GPU or NPU, -1 for all (llama.cpp only). */
   gpuLayers: number | null;
-  /** Where llama.cpp vision models encode images. GenieX 0.8 accepts the
-   * CPU or an NPU device, not the GPU. */
+  /** Where llama.cpp vision models encode images. GenieX accepts the CPU or
+   * an NPU device, not the GPU. */
   visionCompute: VisionCompute | null;
   /** Speculative decoding (llama.cpp only): guess tokens ahead, then check them. */
   specType: SpecType | null;

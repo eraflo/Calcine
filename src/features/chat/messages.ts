@@ -48,7 +48,7 @@ export const messages = defineMessages({
     tokens_one: "{count} token",
     tokens_other: "{count} tokens",
     loadFailedHint:
-      "GenieX couldn't load this model on the chosen compute unit. Try another one in the settings: some llama.cpp models only load on the GPU.",
+      "GenieX couldn't load this model on the chosen compute unit. Try another one in the settings: some llama.cpp models only load on the GPU. If an NPU model that used to load fails right after a GenieX update, restart the PC.",
     tokensPerSecond: "{value} tok/s",
     firstToken: "first token {value}s",
     draftsAccepted: "{accepted}/{drafted} guesses kept ({percent}%)",
@@ -225,7 +225,7 @@ export const messages = defineMessages({
     tokens_one: "{count} token",
     tokens_other: "{count} tokens",
     loadFailedHint:
-      "GenieX n'a pas pu charger ce modèle sur l'unité de calcul choisie. Essayez-en une autre dans les réglages : certains modèles llama.cpp ne se chargent que sur le GPU.",
+      "GenieX n'a pas pu charger ce modèle sur l'unité de calcul choisie. Essayez-en une autre dans les réglages : certains modèles llama.cpp ne se chargent que sur le GPU. Si un modèle NPU qui se chargeait échoue juste après une mise à jour de GenieX, redémarrez le PC.",
     tokensPerSecond: "{value} tok/s",
     firstToken: "premier token {value} s",
     draftsAccepted: "{accepted}/{drafted} prédictions retenues ({percent} %)",

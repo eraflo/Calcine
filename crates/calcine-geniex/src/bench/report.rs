@@ -5,7 +5,7 @@ use calcine_core::bench::{BenchMeasure, BenchStat};
 use calcine_core::{Error, Result};
 use serde_json::Value;
 
-/// The `agg` section of a report (schema 6), as a measure.
+/// The `agg` section of a report (schemas 6 and 7), as a measure.
 pub fn parse(json: &str) -> Result<BenchMeasure> {
     let report: Value = serde_json::from_str(json)
         .map_err(|err| Error::Parse(format!("geniex-bench report isn't JSON: {err}")))?;
@@ -102,6 +102,17 @@ mod tests {
         assert!((measure.generated_tokens - 32.0).abs() < f64::EPSILON);
         assert!((measure.prompt_tokens - 128.0).abs() < f64::EPSILON);
         assert_eq!(measure.geniex_version, "v0.8.0");
+    }
+
+    #[test]
+    fn reads_schema_7() {
+        // GenieX 0.10: same `agg`, plus `media_ms` for vision models.
+        let measure = parse(include_str!("../../tests/fixtures/bench_report_v7.json")).unwrap();
+        assert!((measure.decode_tps.median - 83.618_006).abs() < 1e-6);
+        assert!((measure.ttft_ms.min - 27.487).abs() < 1e-6);
+        assert!((measure.prefill_tps.stdev - 33.204_481).abs() < 1e-6);
+        assert!((measure.generated_tokens - 32.0).abs() < f64::EPSILON);
+        assert_eq!(measure.geniex_version, "v0.10.0");
     }
 
     #[test]
