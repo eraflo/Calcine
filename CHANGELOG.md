@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.1.0 (2026-11-03)
+
+### Dictation
+
+- The microphone button in the chat writes down what you say, where the caret is, with any
+  chat model. A model that understands speech transcribes it on this PC: Gemma 4 E4B
+  (`ggml-org/gemma-4-E4B-it-GGUF`) was tested in French and English. Choose the model, the
+  compute unit and the language in Settings › Dictation (31cdc1f)
+- `/v1/audio/transcriptions`, compatible with OpenAI's API, answers apps the same way. Silence
+  is never sent to the model, which would invent words, and long recordings are cut in their
+  pauses. The audio is never stored or logged (21aea1d)
+
+### Interface
+
+- The menu on the left folds to icons (Ctrl+B), and the chat's conversation list can be hidden
+  from the chat header. Both choices are remembered (ce3bc34)
+- One microphone button instead of two, and a message box placeholder that fits on one line
+  (a4fdfe5)
+
 ## 1.0.3 (2026-11-03)
 
 ### Fixes
