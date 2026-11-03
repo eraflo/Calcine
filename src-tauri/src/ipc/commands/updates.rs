@@ -51,6 +51,9 @@ async fn find_update(app: &AppHandle, channel: AppChannel) -> ApiResult<Option<U
         .map_err(|err| ApiError::invalid_input(format!("bad update URL: {err}")))?;
     let updater = app
         .updater_builder()
+        // On Windows the plugin starts the installer, then exits Calcine: the
+        // installer must not be killed with Calcine's process job.
+        .on_before_exit(crate::desktop::process::let_children_outlive)
         .endpoints(vec![endpoint])
         .and_then(tauri_plugin_updater::UpdaterBuilder::build)
         .map_err(network)?;
