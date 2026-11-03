@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.2 (2026-11-03)
+
+### Fixes
+
+- Installing a Calcine update from Settings closed Calcine without updating it on Windows: the
+  installer was stopped along with Calcine. From 1.0.0 or 1.0.1, install this version by hand
+  once (download the `-setup.exe` below); later updates install from Settings again (c548062)
+
 ## 1.0.1 (2026-11-03)
 
 ### Changes
