@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use specta::Type;
 use tauri::{AppHandle, State};
 use tauri_plugin_updater::{Update, UpdaterExt};
+use time::format_description::well_known::Rfc3339;
 
 use crate::ipc::error::{ApiError, ApiResult};
 
@@ -81,7 +82,7 @@ pub async fn check_app_update(app: AppHandle, channel: AppChannel) -> ApiResult<
         version: update.version.clone(),
         current_version: update.current_version.clone(),
         notes: update.body.clone(),
-        date: update.date.map(|date| date.to_string()),
+        date: update.date.and_then(|date| date.format(&Rfc3339).ok()),
     }))
 }
 

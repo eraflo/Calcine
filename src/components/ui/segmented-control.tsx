@@ -42,7 +42,9 @@ export function SegmentedControl<T extends string>({
           <label
             key={option.value}
             className={cn(
-              "inline-flex h-7 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-sm px-3 text-xs font-medium whitespace-nowrap text-muted-foreground transition-colors has-[:disabled]:cursor-not-allowed has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring",
+              // `relative` keeps the hidden radio inside the label, so focusing
+              // it scrolls nothing.
+              "relative inline-flex h-7 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-sm px-3 text-xs font-medium whitespace-nowrap text-muted-foreground transition-colors has-[:disabled]:cursor-not-allowed has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring",
               active
                 ? cn("bg-accent text-foreground", option.activeClassName)
                 : "hover:text-foreground has-[:disabled]:opacity-40 has-[:disabled]:hover:text-muted-foreground",
