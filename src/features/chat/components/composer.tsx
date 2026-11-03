@@ -13,17 +13,16 @@ import { Tooltip } from "@/components/ui/tooltip";
 import { formatDuration } from "@/features/tasks/lib/format";
 import { useT } from "@/i18n";
 import { cn } from "@/lib/utils";
-import { prepareImage, recordingToWav } from "../lib/attachments";
+import { prepareImage } from "../lib/attachments";
 import { insertDictation } from "../lib/dictation";
 import { type DictationState, useDictation } from "../lib/use-dictation";
-import { useRecorder } from "../lib/use-recorder";
 import { messages } from "../messages";
 import { newId } from "../store";
 import type { PendingAttachment } from "../use-send";
 
 /**
  * Message box: Enter sends, Shift+Enter adds a line. Vision models also take
- * images and audio. Dictation writes what you say into the box, whatever the model.
+ * images. Dictation writes what you say into the box, whatever the model.
  */
 export function Composer({
   disabled,
@@ -47,7 +46,6 @@ export function Composer({
   const [problem, setProblem] = useState<string | null>(null);
   const area = useRef<HTMLTextAreaElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
-  const recorder = useRecorder();
 
   // Dictated words go where the caret is.
   const onDictated = useCallback((spoken: string) => {
@@ -64,10 +62,8 @@ export function Composer({
     });
   }, []);
   const dictation = useDictation({ onText: onDictated, onProblem: setProblem });
-  const dictating = dictation.state.status !== "idle";
-  const recording = recorder.state.status === "recording";
   // Nothing is sent while the microphone or a transcription is busy.
-  const busy = recording || dictating;
+  const busy = dictation.state.status !== "idle";
 
   // Grow with the content, up to a limit.
   // biome-ignore lint/correctness/useExhaustiveDependencies: resize whenever the text changes.
@@ -99,40 +95,6 @@ export function Composer({
       } catch (error) {
         setProblem(t("attachFailed", { name: file.name, message: describe(error) }));
       }
-    }
-  };
-
-  const toggleRecording = async () => {
-    if (recording) {
-      recorder.stop();
-      return;
-    }
-    setProblem(null);
-    try {
-      await recorder.start(async (blob) => {
-        try {
-          if (!blob) return;
-          const { base64, seconds } = await recordingToWav(blob);
-          setAttachments((current) => [
-            ...current,
-            {
-              attachment: {
-                id: newId(),
-                kind: "audio",
-                name: t("recordingName"),
-                durationSeconds: seconds,
-              },
-              payload: { kind: "audio", base64 },
-            },
-          ]);
-        } catch (error) {
-          setProblem(t("attachFailed", { name: t("recordingName"), message: describe(error) }));
-        } finally {
-          recorder.done();
-        }
-      });
-    } catch (error) {
-      setProblem(t("micDenied", { message: describe(error) }));
     }
   };
 
@@ -200,14 +162,10 @@ export function Composer({
           </ul>
         )}
         <div className="flex items-end gap-1.5">
-          <MediaButtons
+          <ImageButton
             media={media}
-            disabled={disabled || streaming || dictating}
-            recording={recording}
-            processing={recorder.state.status === "processing"}
-            seconds={recorder.state.status === "recording" ? recorder.state.seconds : 0}
-            onPickImage={() => fileInput.current?.click()}
-            onToggleRecording={toggleRecording}
+            disabled={disabled || streaming || busy}
+            onPick={() => fileInput.current?.click()}
           />
           <textarea
             ref={area}
@@ -216,13 +174,7 @@ export function Composer({
             onKeyDown={onKeyDown}
             onPaste={onPaste}
             rows={1}
-            placeholder={
-              disabled
-                ? (disabledReason ?? t("pickModelFirst"))
-                : media
-                  ? t("placeholderMedia")
-                  : t("placeholder")
-            }
+            placeholder={disabled ? (disabledReason ?? t("pickModelFirst")) : t("placeholder")}
             disabled={disabled}
             aria-label={t("message")}
             className="max-h-[200px] min-h-9 flex-1 resize-none bg-transparent px-2 py-2 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed"
@@ -230,7 +182,7 @@ export function Composer({
           <DictateButton
             state={dictation.state}
             available={dictation.available}
-            disabled={disabled || recorder.state.status !== "idle"}
+            disabled={disabled}
             onToggle={dictation.toggle}
           />
           {streaming ? (
@@ -266,64 +218,32 @@ export function Composer({
   );
 }
 
-function MediaButtons({
+/** Add an image, for vision models. */
+function ImageButton({
   media,
   disabled,
-  recording,
-  processing,
-  seconds,
-  onPickImage,
-  onToggleRecording,
+  onPick,
 }: {
   media: boolean;
   disabled: boolean;
-  recording: boolean;
-  processing: boolean;
-  seconds: number;
-  onPickImage: () => void;
-  onToggleRecording: () => void;
+  onPick: () => void;
 }) {
   const t = useT(messages);
-  const buttons = (
-    <div className="flex items-center gap-0.5">
-      <Button
-        type="button"
-        size="icon"
-        variant="ghost"
-        className="size-9"
-        onClick={onPickImage}
-        disabled={!media || disabled}
-        aria-label={t("attachImage")}
-      >
-        <ImagePlus />
-      </Button>
-      <Button
-        type="button"
-        size={recording ? "sm" : "icon"}
-        variant="ghost"
-        className={cn(recording ? "h-9 text-destructive" : "size-9")}
-        onClick={onToggleRecording}
-        disabled={!media || disabled || processing}
-        aria-label={recording ? t("stopRecording") : t("record")}
-        aria-pressed={recording}
-      >
-        {processing ? (
-          <Loader2 className="animate-spin" />
-        ) : recording ? (
-          <>
-            <span className="size-2 animate-pulse rounded-full bg-destructive" />
-            <span className="font-mono text-xs tabular-nums">{formatDuration(seconds)}</span>
-          </>
-        ) : (
-          <AudioLines />
-        )}
-      </Button>
-    </div>
-  );
-  if (media) return buttons;
   return (
-    <Tooltip content={t("textOnly")}>
-      <div>{buttons}</div>
+    <Tooltip content={media ? t("attachImage") : t("textOnly")}>
+      <div>
+        <Button
+          type="button"
+          size="icon"
+          variant="ghost"
+          className="size-9"
+          onClick={onPick}
+          disabled={!media || disabled}
+          aria-label={t("attachImage")}
+        >
+          <ImagePlus />
+        </Button>
+      </div>
     </Tooltip>
   );
 }

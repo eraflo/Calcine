@@ -50,14 +50,6 @@ function drawScaled(bitmap: ImageBitmap, maxSide: number, quality: number): stri
   return canvas.toDataURL("image/jpeg", quality);
 }
 
-/** Turn a browser recording (WebM/Opus) into 16 kHz mono WAV, base64-encoded. */
-export async function recordingToWav(
-  recording: Blob,
-): Promise<{ base64: string; seconds: number }> {
-  const { bytes, seconds } = await recordingToWavBytes(recording);
-  return { base64: bytesToBase64(bytes), seconds };
-}
-
 /** Turn a browser recording (WebM/Opus) into a 16 kHz mono WAV file. */
 export async function recordingToWavBytes(
   recording: Blob,
