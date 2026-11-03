@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.0.1 (2026-11-03)
+
+### Changes
+
+- Calcine now installs GenieX v0.10.0 on first launch (QAIRT 2.50). Tool calls are now handled
+  by GenieX itself, and `stop` sequences are applied by GenieX (d0d77a1)
+- When a model fails to load, the chat suggests restarting the PC if it happens right after a
+  GenieX update: the NPU can keep the previous version's state until then (d0d77a1)
+
+### Fixes
+
+- Forced tool calls (`tool_choice` naming a function) work again with thinking models on
+  GenieX 0.10, which sometimes write only the arguments or leave the reply in the reasoning
+  (bcc8a85)
+- Security updates of dependencies: rustls, rustls-webpki, tokio, and zip through the updater
+  plugin (RUSTSEC-2026-0346 to 0349, 0367 to 0369, 0382, 0386, 0429)
+
 ## 1.0.0 (2026-10-09)
 
 The first stable release: a desktop app and a secure, OpenAI-compatible local API for

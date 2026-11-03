@@ -3,7 +3,7 @@ resolver = "3"
 members = ["crates/*", "src-tauri"]
 
 [workspace.package]
-version = "1.0.0"
+version = "1.0.1"
 edition = "2024"
 rust-version = "1.99"
 license = "MIT"
@@ -78,6 +78,14 @@ module_name_repetitions = "allow"
 doc_markdown = "allow"
 missing_errors_doc = "allow"
 must_use_candidate = "allow"
+
+# Smaller target/: line numbers in our own crates, no debug info in
+# dependencies.
+[profile.dev]
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+debug = false
 
 [profile.release]
 codegen-units = 1

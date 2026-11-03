@@ -25,9 +25,14 @@ if (import.meta.main) {
   }
 
   const previous = await currentVersion();
-  const lastTag = (
-    await $`git describe --tags --abbrev=0 --match v[0-9]* --exclude *-*`.nothrow().text()
-  ).trim();
+  const lastTag =
+    // Interpolated, so Bun's shell passes the patterns to git instead of
+    // expanding them as file names.
+    (
+      await $`git describe --tags --abbrev=0 --match ${"v[0-9]*"} --exclude ${"*-*"}`
+        .nothrow()
+        .text()
+    ).trim();
   const range = lastTag ? `${lastTag}..HEAD` : "HEAD";
   const log = await $`git log ${range} --format=%H%x09%s --no-merges`.text();
   const commits = log
