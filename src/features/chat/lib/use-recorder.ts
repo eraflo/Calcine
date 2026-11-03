@@ -8,9 +8,9 @@ type RecorderState =
 
 /**
  * Record from the microphone with `MediaRecorder`. `stop` resolves with the
- * recording; recordings stop by themselves after a minute.
+ * recording; recordings stop by themselves after `maxSeconds`.
  */
-export function useRecorder() {
+export function useRecorder(maxSeconds: number = MAX_RECORDING_SECONDS) {
   const [state, setState] = useState<RecorderState>({ status: "idle" });
   const recorder = useRef<MediaRecorder | null>(null);
   const finished = useRef<((blob: Blob | null) => void) | null>(null);
@@ -28,12 +28,12 @@ export function useRecorder() {
       setState((current) => {
         if (current.status !== "recording") return current;
         const seconds = current.seconds + 1;
-        if (seconds >= MAX_RECORDING_SECONDS) recorder.current?.stop();
+        if (seconds >= maxSeconds) recorder.current?.stop();
         return { status: "recording", seconds };
       });
     }, 1_000);
     return () => clearInterval(timer);
-  }, [state.status]);
+  }, [state.status, maxSeconds]);
 
   /** Ask for the microphone and start. Throws if access is refused. */
   const start = useCallback(async (onFinished: (blob: Blob | null) => void) => {

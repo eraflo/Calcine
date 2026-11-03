@@ -54,6 +54,14 @@ function drawScaled(bitmap: ImageBitmap, maxSide: number, quality: number): stri
 export async function recordingToWav(
   recording: Blob,
 ): Promise<{ base64: string; seconds: number }> {
+  const { bytes, seconds } = await recordingToWavBytes(recording);
+  return { base64: bytesToBase64(bytes), seconds };
+}
+
+/** Turn a browser recording (WebM/Opus) into a 16 kHz mono WAV file. */
+export async function recordingToWavBytes(
+  recording: Blob,
+): Promise<{ bytes: Uint8Array; seconds: number }> {
   const decoder = new AudioContext();
   let decoded: AudioBuffer;
   try {
@@ -69,7 +77,7 @@ export async function recordingToWav(
   source.start();
   const mono = await offline.startRendering();
   return {
-    base64: bytesToBase64(encodeWav(mono.getChannelData(0), AUDIO_SAMPLE_RATE)),
+    bytes: encodeWav(mono.getChannelData(0), AUDIO_SAMPLE_RATE),
     seconds: decoded.duration,
   };
 }

@@ -40,6 +40,9 @@ every web page you visit.
 - **Chat with every option.** Thinking, temperature, max tokens, compute unit and power
   mode, adapted to each model's runtime, with tokens per second. Images and voice for
   vision models.
+- **Dictate.** The microphone button writes down what you say, in French, English and more,
+  with a model that understands speech (Gemma 4 E4B), on this PC. Silence is skipped, so
+  nothing is made up. The same transcription answers `/v1/audio/transcriptions`.
 - **Find models that fit.** Qualcomm AI Hub models compiled for your chipset, and GGUF
   models from Hugging Face, with precisions, sizes, memory and disk checks. Paste any
   Hugging Face, ModelScope or Docker Hub link, or import a folder.
@@ -128,6 +131,14 @@ curl http://127.0.0.1:18181/v1/chat/completions \
   -H "Authorization: Bearer $CALCINE_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"model": "qualcomm/Qwen3-4B", "messages": [{"role": "user", "content": "Hello!"}]}'
+```
+
+Speech to text works like OpenAI's, with a model that understands speech:
+
+```bash
+curl http://127.0.0.1:18181/v1/audio/transcriptions \
+  -H "Authorization: Bearer $CALCINE_API_KEY" \
+  -F file=@note.wav -F model=ggml-org/gemma-4-E4B-it-GGUF -F language=fr
 ```
 
 Clients already written for `geniex serve` keep working on the same port. For those that

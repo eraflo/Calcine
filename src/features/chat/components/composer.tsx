@@ -1,8 +1,9 @@
-import { ArrowUp, ImagePlus, Loader2, Mic, Square, X } from "lucide-react";
+import { ArrowUp, AudioLines, ImagePlus, Loader2, Mic, Square, X } from "lucide-react";
 import {
   type ClipboardEvent,
   type FormEvent,
   type KeyboardEvent,
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -13,12 +14,17 @@ import { formatDuration } from "@/features/tasks/lib/format";
 import { useT } from "@/i18n";
 import { cn } from "@/lib/utils";
 import { prepareImage, recordingToWav } from "../lib/attachments";
+import { insertDictation } from "../lib/dictation";
+import { type DictationState, useDictation } from "../lib/use-dictation";
 import { useRecorder } from "../lib/use-recorder";
 import { messages } from "../messages";
 import { newId } from "../store";
 import type { PendingAttachment } from "../use-send";
 
-/** Message box: Enter sends, Shift+Enter adds a line. Vision models also take images and audio. */
+/**
+ * Message box: Enter sends, Shift+Enter adds a line. Vision models also take
+ * images and audio. Dictation writes what you say into the box, whatever the model.
+ */
 export function Composer({
   disabled,
   disabledReason,
@@ -42,7 +48,26 @@ export function Composer({
   const area = useRef<HTMLTextAreaElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const recorder = useRecorder();
+
+  // Dictated words go where the caret is.
+  const onDictated = useCallback((spoken: string) => {
+    const element = area.current;
+    setText((current) => {
+      const start = element?.selectionStart ?? current.length;
+      const end = element?.selectionEnd ?? current.length;
+      const { value, caret } = insertDictation(current, spoken, start, end);
+      requestAnimationFrame(() => {
+        element?.focus();
+        element?.setSelectionRange(caret, caret);
+      });
+      return value;
+    });
+  }, []);
+  const dictation = useDictation({ onText: onDictated, onProblem: setProblem });
+  const dictating = dictation.state.status !== "idle";
   const recording = recorder.state.status === "recording";
+  // Nothing is sent while the microphone or a transcription is busy.
+  const busy = recording || dictating;
 
   // Grow with the content, up to a limit.
   // biome-ignore lint/correctness/useExhaustiveDependencies: resize whenever the text changes.
@@ -114,7 +139,7 @@ export function Composer({
   const ready = Boolean(text.trim() || attachments.length);
   const submit = (event?: FormEvent) => {
     event?.preventDefault();
-    if (!ready || disabled || streaming || recording) return;
+    if (!ready || disabled || streaming || busy) return;
     onSend(text.trim(), attachments);
     setText("");
     setAttachments([]);
@@ -154,7 +179,7 @@ export function Composer({
                   />
                 ) : (
                   <span className="flex items-center gap-1.5 px-3 text-xs">
-                    <Mic className="size-3.5 text-primary" />
+                    <AudioLines className="size-3.5 text-primary" />
                     {formatDuration(attachment.durationSeconds ?? 0)}
                   </span>
                 )}
@@ -177,7 +202,7 @@ export function Composer({
         <div className="flex items-end gap-1.5">
           <MediaButtons
             media={media}
-            disabled={disabled || streaming}
+            disabled={disabled || streaming || dictating}
             recording={recording}
             processing={recorder.state.status === "processing"}
             seconds={recorder.state.status === "recording" ? recorder.state.seconds : 0}
@@ -202,6 +227,12 @@ export function Composer({
             aria-label={t("message")}
             className="max-h-[200px] min-h-9 flex-1 resize-none bg-transparent px-2 py-2 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed"
           />
+          <DictateButton
+            state={dictation.state}
+            available={dictation.available}
+            disabled={disabled || recorder.state.status !== "idle"}
+            onToggle={dictation.toggle}
+          />
           {streaming ? (
             <Button type="button" size="icon" onClick={onStop} aria-label={t("stop")}>
               <Square className="fill-current" />
@@ -211,7 +242,7 @@ export function Composer({
               type="submit"
               size="icon"
               variant="default"
-              disabled={disabled || !ready || recording}
+              disabled={disabled || !ready || busy}
               aria-label={t("send")}
             >
               <ArrowUp />
@@ -284,7 +315,7 @@ function MediaButtons({
             <span className="font-mono text-xs tabular-nums">{formatDuration(seconds)}</span>
           </>
         ) : (
-          <Mic />
+          <AudioLines />
         )}
       </Button>
     </div>
@@ -293,6 +324,66 @@ function MediaButtons({
   return (
     <Tooltip content={t("textOnly")}>
       <div>{buttons}</div>
+    </Tooltip>
+  );
+}
+
+/** Record, then write down what was said. Shown for every model. */
+function DictateButton({
+  state,
+  available,
+  disabled,
+  onToggle,
+}: {
+  state: DictationState;
+  available: boolean;
+  disabled: boolean;
+  onToggle: () => void;
+}) {
+  const t = useT(messages);
+  const recording = state.status === "recording";
+  const button = (
+    <Button
+      type="button"
+      size={recording ? "sm" : "icon"}
+      variant="ghost"
+      className={cn(recording ? "h-9 text-destructive" : "size-9")}
+      onClick={onToggle}
+      disabled={!available || (disabled && !recording) || state.status === "transcribing"}
+      aria-label={
+        recording
+          ? t("stopDictation")
+          : state.status === "transcribing"
+            ? t("transcribing")
+            : t("dictate")
+      }
+      aria-pressed={recording}
+    >
+      {state.status === "transcribing" ? (
+        <Loader2 className="animate-spin" />
+      ) : recording ? (
+        <>
+          <span className="size-2 animate-pulse rounded-full bg-destructive" />
+          <span className="font-mono text-xs tabular-nums">{formatDuration(state.seconds)}</span>
+        </>
+      ) : (
+        <Mic />
+      )}
+    </Button>
+  );
+  return (
+    <Tooltip
+      content={
+        !available
+          ? t("dictationNoModel")
+          : recording
+            ? t("stopDictation")
+            : state.status === "transcribing"
+              ? t("transcribing")
+              : t("dictate")
+      }
+    >
+      <div>{button}</div>
     </Tooltip>
   );
 }

@@ -37,6 +37,8 @@ These services have their own privacy policies:
 ## Data kept on your PC
 
 - **Conversations and chat settings**: in Calcine's web storage, on this PC.
+- **Dictation**: your recording stays in memory while a model on this PC writes it
+  down, then it's discarded. It's never saved or sent anywhere.
 - **API keys**: only a SHA-256 fingerprint of each key, in `api-keys.json`.
 - **Request log**: who called which model, when, how fast and how many tokens,
   never the prompts or replies. Kept in memory and lost when Calcine closes.

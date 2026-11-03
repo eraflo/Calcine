@@ -17,6 +17,7 @@ import { formatBytes, totalBytes } from "@/lib/format";
 import { isWindows } from "@/lib/platform";
 import { useTheme } from "@/stores/theme";
 import { appInfoQuery } from "./api";
+import { DictationCard } from "./components/dictation-card";
 import { NetworkCard } from "./components/network-card";
 import { LocalApiCard, StartupCard } from "./components/system-cards";
 import { UpdatesCard } from "./components/updates-card";
@@ -27,6 +28,7 @@ export function SettingsPage() {
   return (
     <Page title={t("title")}>
       <AppearanceCard />
+      <DictationCard />
       <StartupCard />
       <LocalApiCard />
       <NetworkCard />
