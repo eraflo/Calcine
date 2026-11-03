@@ -1,7 +1,7 @@
 {
   "name": "calcine",
   "private": true,
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Desktop app and local API gateway for Qualcomm GenieX",
   "license": "MIT",
   "type": "module",
