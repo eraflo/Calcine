@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.1 (2026-11-04)
+
+### Changes
+
+- Apps running in Docker (Docker Desktop), such as Open WebUI, can use Calcine's API at
+  `http://host.docker.internal:18181/v1` with a key. They were refused before ("unexpected Host
+  header"). Server › Connect an app › Open WebUI gives that address (42819e2)
+
 ## 1.1.0 (2026-11-03)
 
 ### Dictation

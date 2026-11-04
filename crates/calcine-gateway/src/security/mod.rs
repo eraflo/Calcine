@@ -1,7 +1,8 @@
 //! Request checks applied before any route runs:
 //!
 //! 1. `Host` must be the loopback address the gateway listens on, which
-//!    defeats DNS rebinding (a web page resolving its own domain to 127.0.0.1).
+//!    defeats DNS rebinding (a web page resolving its own domain to 127.0.0.1),
+//!    or `host.docker.internal`, the name containers reach this PC by.
 //! 2. A browser `Origin`, when present, must be allowed, so web pages can't
 //!    use the API even without a CORS preflight.
 //! 3. A valid API key (`Authorization: Bearer calcine_…`), unless keys are
@@ -228,7 +229,11 @@ pub(crate) fn is_origin(value: &str) -> bool {
     host_ok && port_ok
 }
 
-/// `Host` must name the loopback interface on our port.
+/// `Host` must name the loopback interface on our port, or this PC as
+/// containers see it: Docker Desktop forwards `host.docker.internal` to the
+/// loopback interface. That name only resolves on this PC and in its
+/// containers, so web pages can't use it for DNS rebinding; keys and the
+/// `Origin` check still apply.
 fn host_allowed(headers: &HeaderMap, port: u16) -> bool {
     let Some(host) = headers
         .get(header::HOST)
@@ -241,6 +246,7 @@ fn host_allowed(headers: &HeaderMap, port: u16) -> bool {
         format!("127.0.0.1:{port}"),
         format!("localhost:{port}"),
         format!("[::1]:{port}"),
+        format!("host.docker.internal:{port}"),
     ]
     .contains(&host)
 }
@@ -302,8 +308,16 @@ mod tests {
             &headers(&[(header::HOST, "LOCALHOST:18181")]),
             18181
         ));
+        assert!(host_allowed(
+            &headers(&[(header::HOST, "host.docker.internal:18181")]),
+            18181
+        ));
         assert!(!host_allowed(
             &headers(&[(header::HOST, "evil.example:18181")]),
+            18181
+        ));
+        assert!(!host_allowed(
+            &headers(&[(header::HOST, "host.docker.internal.evil.example:18181")]),
             18181
         ));
         assert!(!host_allowed(

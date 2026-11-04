@@ -21,4 +21,10 @@ describe("snippet", () => {
   it("builds a valid curl command", () => {
     expect(snippet("curl", BASE, MODEL)).toContain(`curl ${BASE}/chat/completions`);
   });
+
+  it("gives Open WebUI in Docker the name containers reach this PC by", () => {
+    const code = snippet("openwebui", BASE, MODEL);
+    expect(code).toContain(`URL: ${BASE}`);
+    expect(code).toContain("URL: http://host.docker.internal:18181/v1");
+  });
 });

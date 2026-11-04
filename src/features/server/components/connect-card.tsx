@@ -20,7 +20,7 @@ export function ConnectCard() {
   const code = snippet(language, baseUrl, model, {
     keys: t("snippetKeys"),
     openWebUiSettings: t("snippetOpenWebUiSettings"),
-    openWebUiLocal: t("snippetOpenWebUiLocal"),
+    openWebUiDocker: t("snippetOpenWebUiDocker"),
     ollamaSetting: t("snippetOllamaSetting"),
     ollamaDefault: t("snippetOllamaDefault"),
     ollamaWithKey: t("snippetOllamaWithKey"),
