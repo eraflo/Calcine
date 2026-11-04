@@ -23,8 +23,8 @@ export type SnippetNotes = {
   keys: string;
   /** Where Open WebUI takes an OpenAI connection. */
   openWebUiSettings: string;
-  /** Open WebUI must run on this PC, not in Docker. */
-  openWebUiLocal: string;
+  /** Open WebUI in Docker reaches this PC by another name. */
+  openWebUiDocker: string;
   /** Where the Ollama port is turned on. */
   ollamaSetting: string;
   /** Apps keep Ollama's default address and need no key. */
@@ -36,8 +36,7 @@ export type SnippetNotes = {
 const ENGLISH_NOTES: SnippetNotes = {
   keys: "Server › API keys",
   openWebUiSettings: "Admin Panel › Settings › Connections › OpenAI API › Add connection",
-  openWebUiLocal:
-    "Run Open WebUI on this PC (pip install open-webui): Calcine only listens on this PC, so Docker containers can't reach it.",
+  openWebUiDocker: "Open WebUI in Docker (Docker Desktop): use this URL instead",
   ollamaSetting: "1. Turn on Settings › Local API › Ollama apps",
   ollamaDefault: "2. Leave the app on Ollama's address: no key needed there",
   ollamaWithKey: "Apps that can send headers can use the main port with a key:",
@@ -112,7 +111,8 @@ export function snippet(
         `URL: ${baseUrl}`,
         `Key: $${KEY_VARIABLE}  # ${notes.keys}`,
         "",
-        `# ${notes.openWebUiLocal}`,
+        `# ${notes.openWebUiDocker}`,
+        `URL: ${baseUrl.replace(/\/\/(127\.0\.0\.1|localhost)(?=:)/, "//host.docker.internal")}`,
       ].join("\n");
     case "ollama": {
       const origin = baseUrl.replace(/\/v1$/, "");

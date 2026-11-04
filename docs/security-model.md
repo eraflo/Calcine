@@ -22,7 +22,7 @@ outside request goes through the gateway.
 | Check | Defends against |
 |---|---|
 | Listens on `127.0.0.1` only (the optional local network port is separate, see below) | Other machines on the network |
-| `Host` must be `127.0.0.1:<port>`, `localhost:<port>` or `[::1]:<port>` | DNS rebinding: a web page resolving its own domain to 127.0.0.1 to read the API |
+| `Host` must be `127.0.0.1:<port>`, `localhost:<port>`, `[::1]:<port>` or `host.docker.internal:<port>` (Docker Desktop forwards that name to this PC's loopback; it only resolves here and in containers) | DNS rebinding: a web page resolving its own domain to 127.0.0.1 to read the API |
 | A browser `Origin`, when present, must be allowed (Calcine's webview, plus the origins listed in Settings › Local API) | Web pages calling the API from your browser (CSRF), even with simple requests that skip CORS preflight |
 | `Authorization: Bearer calcine_…` must be a known key (on by default) | Other local programs using your models without your consent |
 | Key scopes: `inference` (`/v1/*`) and `manage` (`/calcine/v1/*`) | An app meant to chat downloading or deleting models |

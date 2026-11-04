@@ -51,8 +51,7 @@ export const messages = defineMessages({
     snippetOllamaDefault: "2. Leave the app on Ollama's address: no key needed there",
     snippetOllamaWithKey: "Apps that can send headers can use the main port with a key:",
     snippetOpenWebUiSettings: "Admin Panel › Settings › Connections › OpenAI API › Add connection",
-    snippetOpenWebUiLocal:
-      "Run Open WebUI on this PC (pip install open-webui): Calcine only listens on this PC, so Docker containers can't reach it.",
+    snippetOpenWebUiDocker: "Open WebUI in Docker (Docker Desktop): use this URL instead",
     // Keys
     keysTitle: "API keys",
     keysDescription: "One key per app, so you can see who uses the API and revoke access.",
@@ -157,8 +156,8 @@ export const messages = defineMessages({
       "Les applis qui peuvent envoyer des en-têtes peuvent utiliser le port principal avec une clé :",
     snippetOpenWebUiSettings:
       "Panneau d'administration › Réglages › Connexions › API OpenAI › Ajouter une connexion",
-    snippetOpenWebUiLocal:
-      "Lancez Open WebUI sur ce PC (pip install open-webui) : Calcine n'écoute que sur ce PC, un conteneur Docker ne peut pas le joindre.",
+    snippetOpenWebUiDocker:
+      "Open WebUI dans Docker (Docker Desktop) : utilisez plutôt cette adresse",
     keysTitle: "Clés API",
     keysDescription:
       "Une clé par application, pour savoir qui utilise l'API et pouvoir révoquer son accès.",
