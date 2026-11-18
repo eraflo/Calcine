@@ -13,7 +13,20 @@ pub(crate) struct SystemInfo {
 /// CPU and memory. `fallback_cpu_name` is used when sysinfo can't read the
 /// brand string, which is empty on Windows ARM64.
 pub(crate) fn read(fallback_cpu_name: Option<&str>) -> SystemInfo {
-    let mut system = System::new();
+    // sysinfo can fail to open its system handles: nothing to show then.
+    let mut system = match System::new() {
+        Ok(system) => system,
+        Err(err) => {
+            tracing::warn!(%err, "couldn't read the processor and memory");
+            return SystemInfo {
+                cpu: None,
+                memory: MemoryInfo {
+                    total_bytes: 0,
+                    available_bytes: 0,
+                },
+            };
+        }
+    };
     system.refresh_memory();
     system.refresh_cpu_list(CpuRefreshKind::nothing());
 
@@ -43,9 +56,10 @@ pub(crate) fn read(fallback_cpu_name: Option<&str>) -> SystemInfo {
 /// Free space on the drive that holds `dir` (the longest matching mount point).
 pub(crate) fn disk_space(dir: &Path) -> Option<DiskSpace> {
     let target = normalize(dir);
-    let disks = Disks::new_with_refreshed_list();
+    let disks = Disks::new_with_refreshed_list()
+        .inspect_err(|err| tracing::warn!(%err, "couldn't list the disks"))
+        .ok()?;
     disks
-        .list()
         .iter()
         .filter(|disk| target.starts_with(&normalize(disk.mount_point())))
         .max_by_key(|disk| disk.mount_point().as_os_str().len())
