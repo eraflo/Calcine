@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.1.2 (2026-11-18)
+
+### Changes
+
+- First launch installs GenieX 0.11.0 instead of 0.10.0. Calcine was checked with it on the
+  NPU, the GPU and the CPU: chat, reasoning, tools, structured output, long context and
+  dictation, which is faster with it (45a88ec)
+- Dependencies updated, among them TypeScript 7 for the interface's checks and sysinfo 0.40
+  for the hardware page. If the processor, the memory or the disks can't be read, the hardware
+  page shows nothing for them instead of failing (0444c92)
+
 ## 1.1.1 (2026-11-04)
 
 ### Changes
