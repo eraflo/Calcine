@@ -146,6 +146,8 @@ export const commands = {
 	 *  (`None`: never).
 	 */
 	setBatteryPowerMode: (mode: string | null) => typedError<null, ApiError>(__TAURI_INVOKE("set_battery_power_mode", { mode })),
+	/**  Model names apps ask for (`gpt-4o-mini`), answered by local models. */
+	setModelAliases: (aliases: ModelAlias[]) => typedError<null, ApiError>(__TAURI_INVOKE("set_model_aliases", { aliases })),
 	/**  Browser origins allowed to call the local API (local web apps). */
 	setAllowedOrigins: (origins: string[]) => typedError<null, ApiError>(__TAURI_INVOKE("set_allowed_origins", { origins })),
 	/**  Also answer Ollama apps on port 11434, without a key (inference only). */
@@ -564,6 +566,8 @@ export type GatewaySettings = {
 	 *  (`None`: off).
 	 */
 	batteryPowerMode?: string | null,
+	/**  Model names apps ask for, answered by local models. */
+	modelAliases?: ModelAlias[],
 };
 
 /**  What the Server page shows. */
@@ -739,6 +743,13 @@ export type LocalModel = {
 export type MemoryInfo = {
 	totalBytes: number,
 	availableBytes: number,
+};
+
+export type ModelAlias = {
+	/**  The name apps ask for. */
+	alias: string,
+	/**  The local model that answers, e.g. `qualcomm/Qwen3-4B`. */
+	model: string,
 };
 
 /**  Where GenieX downloads a model from (`--model-hub`). */

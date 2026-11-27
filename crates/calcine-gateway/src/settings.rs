@@ -5,6 +5,8 @@ use std::path::Path;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
+use crate::aliases::ModelAlias;
+
 pub const DEFAULT_PORT: u16 = 18181;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
@@ -33,6 +35,8 @@ pub struct GatewaySettings {
     /// On battery, the power mode for chat requests that don't choose one
     /// (`None`: off).
     pub battery_power_mode: Option<String>,
+    /// Model names apps ask for, answered by local models.
+    pub model_aliases: Vec<ModelAlias>,
 }
 
 impl Default for GatewaySettings {
@@ -47,6 +51,7 @@ impl Default for GatewaySettings {
             network_port: crate::network::DEFAULT_PORT,
             network_allowed: Vec::new(),
             battery_power_mode: None,
+            model_aliases: Vec::new(),
         }
     }
 }

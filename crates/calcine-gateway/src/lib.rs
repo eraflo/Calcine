@@ -10,6 +10,7 @@
 //! - `/api/*`: Ollama's API, translated (see [`ollama`]), also on port 11434
 //!   when turned on
 
+pub mod aliases;
 mod audio;
 mod battery;
 mod caller;
@@ -516,6 +517,14 @@ impl Gateway {
             return Err(format!("unknown power mode: {mode}"));
         }
         self.update_settings(|settings| settings.battery_power_mode = mode)
+            .map_err(|err| err.to_string())
+    }
+
+    /// Answer the names in `aliases` with local models. Takes effect with
+    /// the next request.
+    pub fn set_model_aliases(&self, aliases: Vec<aliases::ModelAlias>) -> Result<(), String> {
+        let aliases = aliases::validate(aliases)?;
+        self.update_settings(|settings| settings.model_aliases = aliases)
             .map_err(|err| err.to_string())
     }
 

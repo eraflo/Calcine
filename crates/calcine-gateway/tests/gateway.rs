@@ -4,6 +4,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use calcine_core::hardware::{HardwareInfo, HardwareProbe, HardwareUsage, PowerSource};
+use calcine_gateway::aliases::ModelAlias;
 use calcine_gateway::usage::UsagePeriod;
 use calcine_gateway::{
     CALCINE_ORIGINS, Gateway, GatewayOptions, GatewaySettings, KeyScope, KeyStore, NewApiKey,
@@ -1235,5 +1236,63 @@ async fn on_battery_requests_run_in_the_saver_mode() {
     assert_eq!(
         h.gateway.settings().battery_power_mode.as_deref(),
         Some("power_saver")
+    );
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn aliases_answer_with_their_model() {
+    let h = start(any_port()).await;
+    let token = h.key(&[KeyScope::Inference], false);
+    h.gateway
+        .set_model_aliases(vec![ModelAlias {
+            alias: "gpt-4o-mini".into(),
+            model: "qualcomm/Qwen3-4B".into(),
+        }])
+        .unwrap();
+
+    let get = async |path: &str| -> Value {
+        h.http
+            .get(format!("{}{path}", h.base))
+            .bearer_auth(&token)
+            .send()
+            .await
+            .unwrap()
+            .json()
+            .await
+            .unwrap()
+    };
+    let models = get("/v1/models").await;
+    assert!(
+        models["data"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|model| model["id"] == "gpt-4o-mini")
+    );
+    assert_eq!(get("/v1/models/gpt-4o-mini").await["id"], "gpt-4o-mini");
+    let tags = get("/api/tags").await;
+    assert!(
+        tags["models"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|model| model["name"] == "gpt-4o-mini")
+    );
+
+    let mut asked = hello(false);
+    asked["model"] = json!("GPT-4o-mini");
+    let response = h.chat(Some(&token), &asked).send().await.unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    // The log shows the model that answered.
+    let entry = h.gateway.requests().into_iter().next().unwrap();
+    assert_eq!(entry.model.as_deref(), Some("qualcomm/Qwen3-4B"));
+
+    assert!(
+        h.gateway
+            .set_model_aliases(vec![ModelAlias {
+                alias: "x".into(),
+                model: String::new(),
+            }])
+            .is_err()
     );
 }

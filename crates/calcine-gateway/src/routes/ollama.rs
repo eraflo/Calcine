@@ -21,7 +21,7 @@ use crate::error::upstream_message;
 use crate::ollama::{self, Answer, Mode};
 use crate::proxy::{self, Exchange, elapsed_ms};
 use crate::state::AppState;
-use crate::{context, structured};
+use crate::{aliases, context, structured};
 
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
@@ -71,6 +71,13 @@ async fn local_models(app: &AppState, caller: &Caller) -> Result<Vec<LocalModel>
         .map_err(|err| Box::new(error(StatusCode::SERVICE_UNAVAILABLE, &err.to_string())))
 }
 
+/// The model a requested name means: an alias's model, or the name without
+/// Ollama's `:latest`.
+fn model_named(app: &AppState, name: &str) -> String {
+    aliases::resolve(&app.settings().model_aliases, name)
+        .map_or_else(|| ollama::model_id(name), str::to_owned)
+}
+
 /// One entry per precision, named like GenieX ids: `name:precision`.
 fn tag_entries(model: &LocalModel) -> Vec<Value> {
     let precisions: Vec<Option<&str>> = if model.precisions.is_empty() {
@@ -113,7 +120,18 @@ fn details(model: &LocalModel, precision: Option<&str>) -> Value {
 async fn tags(State(app): State<Arc<AppState>>, Extension(caller): Extension<Caller>) -> Response {
     match local_models(&app, &caller).await {
         Ok(models) => {
-            let entries: Vec<Value> = models.iter().flat_map(tag_entries).collect();
+            let mut entries: Vec<Value> = models.iter().flat_map(tag_entries).collect();
+            // Aliases look like the model they stand for, under their own name.
+            for alias in app.settings().model_aliases {
+                if let Some(model) = models.iter().find(|model| model.name == alias.model)
+                    && let Some(mut entry) = tag_entries(model).into_iter().next()
+                {
+                    entry["digest"] = json!(hex::encode(Sha256::digest(alias.alias.as_bytes())));
+                    entry["name"] = json!(alias.alias);
+                    entry["model"] = json!(alias.alias);
+                    entries.push(entry);
+                }
+            }
             Json(json!({ "models": entries })).into_response()
         }
         Err(response) => *response,
@@ -137,7 +155,7 @@ async fn show(
         .get("model")
         .or_else(|| body.get("name"))
         .and_then(Value::as_str)
-        .map(ollama::model_id)
+        .map(|name| model_named(&app, name))
     else {
         return error(StatusCode::BAD_REQUEST, "model is required");
     };
@@ -201,6 +219,8 @@ async fn answer(app: Arc<AppState>, caller: Caller, mode: Mode, body: &[u8]) -> 
         Ok(translated) => translated,
         Err(message) => return error(StatusCode::BAD_REQUEST, &message),
     };
+    // Replies keep the name asked for; the model's window is found by its own.
+    aliases::apply(&app.settings().model_aliases, &mut translated.body);
     let path = match mode {
         Mode::Chat => "/api/chat",
         Mode::Generate => "/api/generate",
@@ -304,7 +324,7 @@ async fn load(app: Arc<AppState>, caller: Caller, json: &Value) -> Response {
     let Some(model) = json
         .get("model")
         .and_then(Value::as_str)
-        .map(ollama::model_id)
+        .map(|name| model_named(&app, name))
     else {
         return error(StatusCode::BAD_REQUEST, "model is required");
     };

@@ -17,6 +17,7 @@ import { formatBytes, totalBytes } from "@/lib/format";
 import { isWindows } from "@/lib/platform";
 import { useTheme } from "@/stores/theme";
 import { appInfoQuery } from "./api";
+import { AliasesCard } from "./components/aliases";
 import { BatteryCard } from "./components/battery";
 import { DictationCard } from "./components/dictation-card";
 import { NetworkCard } from "./components/network-card";
@@ -33,6 +34,7 @@ export function SettingsPage() {
       <StartupCard />
       <BatteryCard />
       <LocalApiCard />
+      <AliasesCard />
       <NetworkCard />
       <StorageCard />
       <UpdatesCard />

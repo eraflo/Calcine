@@ -3,6 +3,7 @@ use std::sync::Arc;
 use calcine_core::Services;
 use calcine_core::context::ContextUsage;
 use calcine_core::runtime::ServerOptions;
+use calcine_gateway::aliases::ModelAlias;
 use calcine_gateway::{
     ApiKeyInfo, CreatedApiKey, Gateway, GatewaySettings, GatewayStatus, KeyError, NewApiKey,
     RequestEntry,
@@ -167,6 +168,18 @@ pub fn set_battery_power_mode(
 ) -> ApiResult<()> {
     gateway
         .set_battery_power_mode(mode)
+        .map_err(ApiError::invalid_input)
+}
+
+/// Model names apps ask for (`gpt-4o-mini`), answered by local models.
+#[tauri::command]
+#[specta::specta]
+pub fn set_model_aliases(
+    gateway: State<'_, Arc<Gateway>>,
+    aliases: Vec<ModelAlias>,
+) -> ApiResult<()> {
+    gateway
+        .set_model_aliases(aliases)
         .map_err(ApiError::invalid_input)
 }
 
