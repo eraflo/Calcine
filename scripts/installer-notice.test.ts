@@ -5,8 +5,8 @@ import { describe, expect, it } from "vitest";
 const root = join(__dirname, "..");
 const read = (path: string) => readFileSync(join(root, path), "utf8").replaceAll("\r\n", "\n");
 
-// The installer shows this file on its license page: SignPath requires the
-// privacy policy to be shown during installation.
+// The installer shows this file on its license page, so the privacy policy
+// is shown during installation.
 describe("installer license page", () => {
   const notice = read("src-tauri/windows/license-and-privacy.txt");
 

@@ -214,19 +214,6 @@ No account, no telemetry: prompts and conversations stay on your PC. Calcine con
 the internet to check for updates (which you can turn off), and to download GenieX, models
 and tools when you ask. Every connection is listed in [PRIVACY.md](PRIVACY.md).
 
-## Code signing policy
-
-Calcine has applied to the SignPath Foundation's free code signing program for open-source
-projects. Once accepted: Free code signing provided by [SignPath.io](https://about.signpath.io/), certificate by [SignPath Foundation](https://signpath.org/).
-
-- Committers and reviewers: [eraflo](https://github.com/eraflo)
-- Approvers: [eraflo](https://github.com/eraflo)
-
-Installers are built by GitHub Actions from this repository
-([`release.yml`](.github/workflows/release.yml)), and each release is signed only after a
-manual approval. They contain Calcine only: GenieX is downloaded from Qualcomm on first
-launch. Privacy policy: [PRIVACY.md](PRIVACY.md).
-
 ## License
 
 [MIT](LICENSE). Calcine doesn't redistribute GenieX: it downloads Qualcomm's official

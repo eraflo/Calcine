@@ -359,10 +359,8 @@ stream = client.chat.completions.create(
           <p class="fine" data-download-meta>Windows 11 ARM64</p>
           <p class="fine" data-download-linux hidden>Linux on ARM64 (preview): <a href="https://github.com/eraflo/Calcine/releases" data-download-linux-link>the .deb package</a></p>
           <p class="fine">
-            Calcine isn't code-signed yet: Windows SmartScreen asks for confirmation
-            before installing (More info › Run anyway). Calcine has applied to the
-            SignPath Foundation for free code signing: see the
-            <a href="#code-signing">code signing policy</a>.
+            Calcine isn't code-signed: Windows SmartScreen asks for confirmation
+            before installing (More info › Run anyway).
           </p>
         </div>
       </section>
@@ -403,21 +401,6 @@ stream = client.chat.completions.create(
         </details>
       </section>
 
-      <section id="code-signing" class="section container faq">
-        <h2>Code signing policy</h2>
-        <p class="sub">
-          Calcine has applied to the SignPath Foundation's free code signing program for
-          open-source projects. Once accepted: Free code signing provided by
-          <a href="https://about.signpath.io/">SignPath.io</a>, certificate by
-          <a href="https://signpath.org/">SignPath Foundation</a>.
-        </p>
-        <ul class="checks">
-          <li>Committers and reviewers: <a href="https://github.com/eraflo">eraflo</a></li>
-          <li>Approvers: <a href="https://github.com/eraflo">eraflo</a></li>
-          <li>Installers are built by GitHub Actions from the public repository and signed only after a manual approval. They contain Calcine only.</li>
-          <li>Privacy policy: <a href="https://github.com/eraflo/Calcine/blob/main/PRIVACY.md">PRIVACY.md</a></li>
-        </ul>
-      </section>
     </main>
 
     <footer class="footer">
@@ -432,7 +415,6 @@ stream = client.chat.completions.create(
           <a href="https://github.com/eraflo/Calcine/releases">Releases</a>
           <a href="https://github.com/eraflo/Calcine/blob/main/CHANGELOG.md">Changelog</a>
           <a href="https://github.com/eraflo/Calcine/blob/main/CONTRIBUTING.md">Contribute</a>
-          <a href="#code-signing">Code signing policy</a>
           <a href="https://github.com/eraflo/Calcine/blob/main/PRIVACY.md">Privacy</a>
         </nav>
       </div>
