@@ -105,28 +105,6 @@ jobs:
           path: linux-release
       - run: cp linux-release/*.deb dist-release/
 
-      # Authenticode signing through the SignPath Foundation, once the project
-      # is approved: set the repository variables SIGNPATH_ORGANIZATION_ID and
-      # SIGNPATH_PROJECT_SLUG, and the secret SIGNPATH_API_TOKEN.
-      - name: Upload the unsigned installer for signing
-        id: unsigned
-        if: vars.SIGNPATH_ORGANIZATION_ID != ''
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: unsigned-installer
-          path: ${{ steps.installer.outputs.path }}
-      - name: Sign with SignPath
-        if: vars.SIGNPATH_ORGANIZATION_ID != ''
-        uses: signpath/github-action-submit-signing-request@f6d04783b4569d051e0c80105fe66e82819d0092 # v3.0
-        with:
-          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
-          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
-          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
-          signing-policy-slug: release-signing
-          github-artifact-id: ${{ steps.unsigned.outputs.artifact-id }}
-          wait-for-completion: true
-          output-artifact-directory: dist-release
-      # The updater signature must cover the final, Authenticode-signed file.
       - name: Sign the update
         run: |
           bun tauri signer sign "${{ steps.installer.outputs.path }}"
@@ -160,8 +138,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # SignPath asks for the code signing policy on download pages.
-          printf '\n---\n\nWindows 11 on Snapdragon: the `-setup.exe`. Linux on ARM64 (preview): the `.deb`. Checksums in `SHA256SUMS`.\n\n[Code signing policy](https://eraflo.github.io/Calcine/#code-signing) · [Privacy policy](https://github.com/eraflo/Calcine/blob/main/PRIVACY.md)\n' >> notes.md
+          printf '\n---\n\nWindows 11 on Snapdragon: the `-setup.exe`. Linux on ARM64 (preview): the `.deb`. Checksums in `SHA256SUMS`.\n\n[Privacy policy](https://github.com/eraflo/Calcine/blob/main/PRIVACY.md)\n' >> notes.md
           gh release create "v$VERSION" dist-release/* \
             --target "$GITHUB_SHA" \
             --title "Calcine $VERSION" \

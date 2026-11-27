@@ -40,7 +40,6 @@ manager.
    - builds the NSIS installer on `windows-11-arm` (Calcine only: GenieX is
      downloaded on first launch, see below), and the Linux `.deb` on
      `ubuntu-24.04-arm` (`build-linux.yml`, which both release workflows call),
-   - signs it with Authenticode through SignPath (once configured, below),
    - signs the updates and writes `latest.json` for the Stable channel
      (Windows and Linux),
    - attaches `SHA256SUMS`, a CycloneDX SBOM and a build provenance
@@ -64,8 +63,8 @@ requests to it. The Rust checks run on x86_64 Linux for every push.
 
 Installers contain Calcine only (on Linux, GenieX's official archive is
 unpacked to `~/.local/share/geniex-cli`, checked against its own pin). GenieX includes Qualcomm's proprietary
-runtimes (QAIRT), which can't be signed or redistributed under SignPath
-Foundation's terms, so the welcome screen downloads the official installer
+runtimes (QAIRT), which Calcine doesn't redistribute, so the welcome screen
+downloads the official installer
 from Qualcomm and checks it against the SHA-256 pinned in
 `runtime/geniex.json`, built into Calcine.
 
@@ -79,19 +78,11 @@ start CI: close and reopen the PR to run the checks.
 Users can also update GenieX from the app (Hardware › GenieX runtime), on the
 stable or pre-release channel, independently of Calcine releases.
 
-## Code signing (SignPath Foundation)
+## Code signing
 
-Installers aren't Authenticode-signed until the project is accepted by the
-[SignPath Foundation](https://signpath.org) (free for open source). Until
-then Windows SmartScreen warns before installing. Once accepted:
-
-1. Create a project with an artifact configuration for the NSIS installer
-   and a signing policy named `release-signing`.
-2. Repository variables: `SIGNPATH_ORGANIZATION_ID`, `SIGNPATH_PROJECT_SLUG`.
-3. Repository secret: `SIGNPATH_API_TOKEN`.
-
-`release.yml` then signs every stable installer before computing the update
-signature and checksums.
+Installers aren't Authenticode-signed, so Windows SmartScreen warns before
+installing. Updates are still signed with the Tauri updater key, and every
+release has checksums and a build provenance attestation.
 
 ## Manual checklist (Snapdragon PC)
 
