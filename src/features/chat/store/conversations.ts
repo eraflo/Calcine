@@ -3,6 +3,7 @@
 import { forgetDocuments } from "./documents";
 import type { ChatState, SetChat } from "./types";
 import { mapConversation } from "./update";
+import { patchReply } from "./versions";
 
 export const newId = () => crypto.randomUUID();
 
@@ -63,7 +64,7 @@ export function conversationActions(
       set((state) => ({
         conversations: mapConversation(state.conversations, id, (c) => ({
           ...c,
-          messages: c.messages.map((m) => (m.id === messageId ? { ...m, ...patch } : m)),
+          messages: c.messages.map((m) => (m.id === messageId ? patchReply(m, patch) : m)),
         })),
       })),
     setContext: (id, context) =>

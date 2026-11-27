@@ -14,9 +14,9 @@ import { stopAtSequences } from "./stop-sequences";
 import { type PendingAttachment, toTurns, userMessage } from "./turns";
 
 /**
- * Send a message in a conversation and stream the reply; stop it on demand.
- * In order: read the documents, fit the conversation in the model's window,
- * then stream the reply.
+ * Send a message, regenerate a reply or edit a message, streaming the
+ * reply; stop it on demand. Each writes a reply the same way: read the
+ * documents, fit the conversation in the model's window, then stream.
  */
 export function useSend() {
   const { data: connection } = useQuery(connectionQuery);
@@ -24,25 +24,20 @@ export function useSend() {
   const controller = useRef<AbortController | null>(null);
   const streaming = useLiveReply((state) => state.messageId !== null);
 
-  const send = useCallback(
-    async (
-      conversationId: string,
-      text: string,
-      pending: readonly PendingAttachment[] = [],
-      attached: readonly DocumentInfo[] = [],
-    ) => {
+  /** Write the reply `replyId` (already in the conversation) to what's before it. */
+  const respond = useCallback(
+    async (conversationId: string, replyId: string) => {
       const chat = useChat.getState();
       const conversation = chat.conversations.find((c) => c.id === conversationId);
-      if (!conversation || !connection || controller.current) return;
-      if (attached.length) chat.addDocuments(conversationId, [...attached]);
-      const documents =
-        useChat.getState().conversations.find((c) => c.id === conversationId)?.documents ?? [];
-
-      const message = userMessage(text, pending, attached);
-      let visible = visibleMessages([...conversation.messages, message], conversation.contextFrom);
-      chat.addMessage(conversationId, message);
-      const replyId = newId();
-      chat.addMessage(conversationId, { id: replyId, role: "assistant", content: "" });
+      if (!conversation || !connection) return;
+      const before = conversation.messages.slice(
+        0,
+        conversation.messages.findIndex((m) => m.id === replyId),
+      );
+      const asked = before.at(-1);
+      if (asked?.role !== "user") return;
+      const documents = conversation.documents ?? [];
+      let visible = visibleMessages(before, conversation.contextFrom);
 
       const live = useLiveReply.getState();
       live.start(conversationId, replyId);
@@ -70,8 +65,8 @@ export function useSend() {
           read = await readDocuments({
             modelId: conversation.modelId,
             documents,
-            text,
-            earlier: conversation.messages,
+            text: asked.content,
+            earlier: before.slice(0, -1),
             body: request(),
             maxTokens: settings.maxTokens,
           }).catch((error: unknown) => {
@@ -139,7 +134,59 @@ export function useSend() {
     [connection, models],
   );
 
+  /** An empty reply after the conversation's last message, then written. */
+  const reply = useCallback(
+    (conversationId: string) => {
+      const replyId = newId();
+      useChat
+        .getState()
+        .addMessage(conversationId, { id: replyId, role: "assistant", content: "" });
+      return respond(conversationId, replyId);
+    },
+    [respond],
+  );
+
+  const ready = Boolean(connection);
+  /** Nothing is written right now. */
+  const idle = useCallback(() => ready && controller.current === null, [ready]);
+
+  const send = useCallback(
+    async (
+      conversationId: string,
+      text: string,
+      pending: readonly PendingAttachment[] = [],
+      attached: readonly DocumentInfo[] = [],
+    ) => {
+      const chat = useChat.getState();
+      if (!idle() || !chat.conversations.some((c) => c.id === conversationId)) return;
+      if (attached.length) chat.addDocuments(conversationId, [...attached]);
+      chat.addMessage(conversationId, userMessage(text, pending, attached));
+      await reply(conversationId);
+    },
+    [reply, idle],
+  );
+
+  /** Write the reply again; earlier versions stay, to go back to. */
+  const regenerate = useCallback(
+    async (conversationId: string, replyId: string) => {
+      if (!idle()) return;
+      useChat.getState().newVersion(conversationId, replyId);
+      await respond(conversationId, replyId);
+    },
+    [respond, idle],
+  );
+
+  /** Change a message and answer it again; what came after it is dropped. */
+  const edit = useCallback(
+    async (conversationId: string, messageId: string, text: string) => {
+      if (!idle() || !text.trim()) return;
+      useChat.getState().editMessage(conversationId, messageId, text.trim());
+      await reply(conversationId);
+    },
+    [reply, idle],
+  );
+
   const stop = useCallback(() => controller.current?.abort(), []);
 
-  return { send, stop, streaming, ready: Boolean(connection) };
+  return { send, regenerate, edit, stop, streaming, ready };
 }

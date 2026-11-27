@@ -56,7 +56,7 @@ export function ChatPage() {
   const lastModelId = useChat((state) => state.lastModelId);
   const create = useChat((state) => state.create);
   const setModel = useChat((state) => state.setModel);
-  const { send, stop, streaming, ready } = useSend();
+  const { send, regenerate, edit, stop, streaming, ready } = useSend();
   // The settings panel squeezes the chat on small windows: hidden there
   // unless opened. Opening or closing it holds for that size of window.
   const wide = useMediaQuery(WIDE_WINDOW);
@@ -179,7 +179,12 @@ export function ChatPage() {
             </Button>
           </Tooltip>
         </header>
-        <Thread conversation={active} onSuggestion={(text) => sendText(text)} />
+        <Thread
+          conversation={active}
+          onSuggestion={(text) => sendText(text)}
+          onRegenerate={(messageId) => active && void regenerate(active.id, messageId)}
+          onEdit={(messageId, text) => active && void edit(active.id, messageId, text)}
+        />
         <Composer
           disabled={!model || !ready}
           disabledReason={!ready ? t("apiNotReady") : undefined}

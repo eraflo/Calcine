@@ -26,7 +26,17 @@ export type ChatMessage = {
   error?: string;
   /** Stopped by the user before the end. */
   stopped?: boolean;
+  /** Every version of a regenerated reply, the one shown included. */
+  versions?: ReplyVersion[];
+  /** Which of `versions` is shown. */
+  version?: number;
 };
+
+/** One version of a reply. */
+export type ReplyVersion = Pick<
+  ChatMessage,
+  "reasoning" | "stats" | "error" | "stopped" | "sources" | "documentMode" | "passagesRead"
+> & { content: string };
 
 export type Conversation = {
   id: string;
@@ -66,6 +76,12 @@ export type ChatState = {
   addDocuments: (id: string, documents: DocumentInfo[]) => void;
   /** Stop showing a document to the model; its text is deleted. */
   removeDocument: (id: string, documentId: string) => void;
+  /** Start another version of a reply, shown empty while it's written. */
+  newVersion: (id: string, messageId: string) => void;
+  /** Show another version of a reply. */
+  selectVersion: (id: string, messageId: string, index: number) => void;
+  /** Change a user message and drop what came after it. */
+  editMessage: (id: string, messageId: string, content: string) => void;
   prompts: SavedPrompt[];
   savePrompt: (name: string, text: string) => void;
   removePrompt: (id: string) => void;

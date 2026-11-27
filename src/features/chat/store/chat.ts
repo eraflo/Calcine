@@ -6,6 +6,7 @@ import { documentActions } from "./documents";
 import { CHAT_VERSION, migrateChat } from "./migrate";
 import { promptActions } from "./prompts";
 import type { ChatState } from "./types";
+import { versionActions } from "./versions";
 
 /** Conversations and chat settings, kept on this machine (localStorage). */
 export const useChat = create<ChatState>()(
@@ -20,6 +21,7 @@ export const useChat = create<ChatState>()(
       ...conversationActions(set),
       ...documentActions(set),
       ...promptActions(set),
+      ...versionActions(set),
     }),
     { name: "calcine.chat", version: CHAT_VERSION, migrate: migrateChat },
   ),
