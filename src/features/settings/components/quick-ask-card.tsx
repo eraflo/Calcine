@@ -20,6 +20,8 @@ const strings = defineMessages({
     press: "Press the new keys…",
     pressHint: "With Ctrl, Alt, Shift or Win. Esc cancels.",
     cancel: "Cancel",
+    taken: "{keys} is already used by another app: choose other keys.",
+    invalid: "{keys} can't be used as a shortcut: choose other keys.",
   },
   fr: {
     title: "Question rapide",
@@ -31,6 +33,8 @@ const strings = defineMessages({
     press: "Appuyez sur les nouvelles touches…",
     pressHint: "Avec Ctrl, Alt, Maj ou Win. Échap annule.",
     cancel: "Annuler",
+    taken: "{keys} est déjà utilisé par une autre appli : choisissez d'autres touches.",
+    invalid: "{keys} ne peut pas servir de raccourci : choisissez d'autres touches.",
   },
 });
 
@@ -49,7 +53,17 @@ export function QuickAskCard() {
     onSettled: () => queryClient.invalidateQueries({ queryKey: quickAskQuery.queryKey }),
   });
   const shortcut = status.data?.shortcut ?? null;
-  const problem = save.error?.message ?? status.data?.error;
+  // The shell says why in English: "<keys> is already used by another app"
+  // or "<keys> isn't a shortcut Calcine understands".
+  const reason = save.error?.message ?? status.data?.error;
+  const keys = reason?.split(" ")[0] ?? "";
+  const problem = !reason
+    ? null
+    : reason.includes("already used")
+      ? t("taken", { keys })
+      : reason.includes("isn't a shortcut")
+        ? t("invalid", { keys })
+        : reason;
 
   return (
     <Card>
