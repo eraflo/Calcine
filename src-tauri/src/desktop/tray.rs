@@ -8,20 +8,35 @@ use super::locale::Language;
 use super::show_main_window;
 
 const OPEN: &str = "open";
+const QUICK_ASK: &str = "quick-ask";
 const QUIT: &str = "quit";
 
 /// Menu entries kept to relabel them when the language changes.
 struct TrayItems {
     open: MenuItem<Wry>,
+    quick_ask: MenuItem<Wry>,
     quit: MenuItem<Wry>,
 }
 
 pub fn install(app: &App) -> tauri::Result<()> {
     let strings = Language::default().strings();
     let open = MenuItem::with_id(app, OPEN, strings.open, true, None::<&str>)?;
+    let quick_ask = MenuItem::with_id(app, QUICK_ASK, strings.quick_ask, true, None::<&str>)?;
     let quit = MenuItem::with_id(app, QUIT, strings.quit, true, None::<&str>)?;
-    let menu = Menu::with_items(app, &[&open, &PredefinedMenuItem::separator(app)?, &quit])?;
-    app.manage(TrayItems { open, quit });
+    let menu = Menu::with_items(
+        app,
+        &[
+            &open,
+            &quick_ask,
+            &PredefinedMenuItem::separator(app)?,
+            &quit,
+        ],
+    )?;
+    app.manage(TrayItems {
+        open,
+        quick_ask,
+        quit,
+    });
 
     let mut tray = TrayIconBuilder::with_id("main")
         .tooltip("Calcine")
@@ -29,6 +44,7 @@ pub fn install(app: &App) -> tauri::Result<()> {
         .show_menu_on_left_click(false)
         .on_menu_event(|app, event| match event.id().as_ref() {
             OPEN => show_main_window(app),
+            QUICK_ASK => super::quick_ask::toggle(app),
             QUIT => app.exit(0),
             _ => {}
         })
@@ -54,6 +70,7 @@ pub fn set_language(app: &AppHandle, language: Language) {
     let strings = language.strings();
     if let Some(items) = app.try_state::<TrayItems>() {
         let _ = items.open.set_text(strings.open);
+        let _ = items.quick_ask.set_text(strings.quick_ask);
         let _ = items.quit.set_text(strings.quit);
     }
 }

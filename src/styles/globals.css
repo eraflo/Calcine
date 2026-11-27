@@ -39,6 +39,8 @@
   --npu: #ff6b3d;
   --gpu: #a78bfa;
   --cpu: #2dd4bf;
+  /* Single-series charts: the brand hue, darkened into the dataviz lightness band. */
+  --chart: #ee5a28;
 
   --sidebar: #141419;
 }
@@ -72,6 +74,7 @@
   --npu: #e8501f;
   --gpu: #7c3aed;
   --cpu: #0d9488;
+  --chart: #c2410c;
 
   --sidebar: #f4f4f0;
 }
@@ -101,6 +104,7 @@
   --color-npu: var(--npu);
   --color-gpu: var(--gpu);
   --color-cpu: var(--cpu);
+  --color-chart: var(--chart);
   --color-sidebar: var(--sidebar);
 
   --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;

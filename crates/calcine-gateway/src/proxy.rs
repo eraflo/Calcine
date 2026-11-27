@@ -16,6 +16,7 @@ use crate::error::{api_error, is_context_error, upstream_error, upstream_message
 use crate::log::{RequestEntry, RequestLog, SseUsage, Usage};
 use crate::security::sanitize;
 use crate::state::{ActiveRequest, AppState};
+use crate::{aliases, battery};
 
 /// One request in flight: where it's logged, when it started, and its turn
 /// in the queue (released when this is dropped).
@@ -96,7 +97,7 @@ pub(crate) async fn send(
     logged_path: &'static str,
     upstream_path: &'static str,
     json: &Value,
-    body: Bytes,
+    mut body: Bytes,
 ) -> Result<(Exchange, reqwest::Response), Refused> {
     if !caller.can_infer() {
         return Err(Refused::new(
@@ -112,6 +113,12 @@ pub(crate) async fn send(
             reason,
         ));
     }
+
+    let rewritten = rewrite(app, upstream_path, json).await;
+    if let Some(rewritten) = &rewritten {
+        body = Bytes::from(rewritten.to_string());
+    }
+    let json = rewritten.as_ref().unwrap_or(json);
 
     let model = json.get("model").and_then(Value::as_str).map(str::to_owned);
     let stream = json.get("stream").and_then(Value::as_bool).unwrap_or(false);
@@ -187,6 +194,39 @@ pub(crate) async fn send(
             ))
         }
     }
+}
+
+/// The request GenieX should get instead, if any: an alias replaced by its
+/// model, and on battery, the battery saver's power mode.
+async fn rewrite(app: &AppState, upstream_path: &str, json: &Value) -> Option<Value> {
+    let settings = app.settings();
+    let mut rewritten = None;
+    let model = json
+        .get("model")
+        .and_then(Value::as_str)
+        .unwrap_or_default();
+    if aliases::resolve(&settings.model_aliases, model).is_some() {
+        let mut request = json.clone();
+        aliases::apply(&settings.model_aliases, &mut request);
+        rewritten = Some(request);
+    }
+    if let Some(mode) = settings.battery_power_mode
+        && battery::may_set_mode(upstream_path, json)
+        && app
+            .services
+            .hardware
+            .power_source()
+            .await
+            .ok()
+            .flatten()
+            .is_some_and(|source| source.on_battery)
+    {
+        tracing::debug!(%mode, "on battery: running the request in the battery saver mode");
+        let mut request = rewritten.unwrap_or_else(|| json.clone());
+        request["power_mode"] = Value::String(mode);
+        rewritten = Some(request);
+    }
+    rewritten
 }
 
 /// A response already read, to pass on as if it hadn't been.

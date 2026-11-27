@@ -9,6 +9,9 @@ const labels: ExportLabels = {
   reasoning: "Reasoning",
   exported: "exported",
   image: "Image",
+  document: "Document",
+  sources: "Sources",
+  page: "p. {page}",
   recording: "Recording",
   stopped: "Stopped",
 };
@@ -64,5 +67,43 @@ describe("toMarkdown", () => {
         "",
       ].join("\n"),
     );
+  });
+
+  it("names attached documents and the pages a reply came from", () => {
+    const document = {
+      id: "d",
+      name: "report.pdf",
+      kind: "pdf" as const,
+      pages: 12,
+      chars: 1000,
+      bytes: 2000,
+      passages: 30,
+    };
+    const source = (page: number | null) => ({
+      documentId: "d",
+      name: "report.pdf",
+      kind: "pdf" as const,
+      page,
+      excerpt: "…",
+    });
+    const markdown = toMarkdown(
+      {
+        ...conversation,
+        messages: [
+          { id: "1", role: "user", content: "Budget?", documents: [document] },
+          {
+            id: "2",
+            role: "assistant",
+            content: "4 M€.",
+            sources: [source(7), source(2)],
+            documentMode: "passages",
+          },
+        ],
+      },
+      labels,
+      new Date("2026-10-08T12:00:00Z"),
+    );
+    expect(markdown).toContain("*Document: report.pdf*\n\nBudget?");
+    expect(markdown).toContain("4 M€.\n\n*Sources: report.pdf (p. 2, p. 7)*");
   });
 });

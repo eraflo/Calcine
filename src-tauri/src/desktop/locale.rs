@@ -42,6 +42,7 @@ pub struct JobMessages {
 
 pub struct Strings {
     pub open: &'static str,
+    pub quick_ask: &'static str,
     pub quit: &'static str,
     pub download: JobMessages,
     pub import: JobMessages,
@@ -60,6 +61,7 @@ impl Language {
         match self {
             Self::En => Strings {
                 open: "Open Calcine",
+                quick_ask: "Quick question",
                 quit: "Quit Calcine",
                 download: JobMessages {
                     done: "Download finished",
@@ -83,6 +85,7 @@ impl Language {
             },
             Self::Fr => Strings {
                 open: "Ouvrir Calcine",
+                quick_ask: "Question rapide",
                 quit: "Quitter Calcine",
                 download: JobMessages {
                     done: "Téléchargement terminé",

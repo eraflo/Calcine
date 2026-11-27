@@ -10,7 +10,9 @@
 //! - `/api/*`: Ollama's API, translated (see [`ollama`]), also on port 11434
 //!   when turned on
 
+pub mod aliases;
 mod audio;
+mod battery;
 mod caller;
 mod context;
 mod error;
@@ -25,6 +27,7 @@ pub mod settings;
 mod state;
 pub mod structured;
 mod transcribe;
+pub mod usage;
 
 use std::path::PathBuf;
 use std::sync::{Arc, PoisonError, RwLock};
@@ -41,6 +44,7 @@ use crate::security::Listener;
 pub use crate::settings::GatewaySettings;
 use crate::state::AppState;
 pub use crate::state::{GatewayStatus, NetworkStatus};
+use crate::usage::Usage;
 
 /// Browser origins of Calcine's own webview (production and `tauri dev`).
 pub const CALCINE_ORIGINS: &[&str] = &[
@@ -59,6 +63,8 @@ pub struct GatewayOptions {
     /// Where the network port's certificate is kept (`None`: no network
     /// port).
     pub network_dir: Option<PathBuf>,
+    /// Where usage over time is kept (`None`: in memory).
+    pub usage_path: Option<PathBuf>,
 }
 
 #[derive(Debug)]
@@ -66,6 +72,7 @@ pub struct Gateway {
     services: Services,
     keys: Arc<KeyStore>,
     log: Arc<RequestLog>,
+    usage: Arc<Usage>,
     settings: Arc<RwLock<GatewaySettings>>,
     settings_path: Option<PathBuf>,
     builtin_origins: Vec<String>,
@@ -119,10 +126,14 @@ impl Gateway {
             network: None,
             network_error: None,
         };
+        let log = Arc::new(RequestLog::default());
+        let usage = Arc::new(Usage::load(options.usage_path));
+        usage.follow(&log, services.hardware.clone());
         Self {
             services,
             keys: options.keys,
-            log: Arc::new(RequestLog::default()),
+            log,
+            usage,
             settings: Arc::new(RwLock::new(settings)),
             settings_path: options.settings_path,
             builtin_origins: options.builtin_origins,
@@ -167,15 +178,18 @@ impl Gateway {
     async fn serve(&self, listener: tokio::net::TcpListener) -> Result<Running, String> {
         let port = listener.local_addr().map_err(|err| err.to_string())?.port();
 
-        let app = Arc::new(AppState::new(
-            self.services.clone(),
-            self.keys.clone(),
-            self.log.clone(),
-            self.settings.clone(),
-            self.builtin_origins.clone(),
-            self.status.clone(),
-            port,
-        ));
+        let app = Arc::new(
+            AppState::new(
+                self.services.clone(),
+                self.keys.clone(),
+                self.log.clone(),
+                self.settings.clone(),
+                self.builtin_origins.clone(),
+                self.status.clone(),
+                port,
+            )
+            .with_usage(self.usage.clone()),
+        );
         self.status.send_modify(|status| {
             status.listening = true;
             status.error = None;
@@ -394,6 +408,7 @@ impl Gateway {
         if let Some(running) = self.running.lock().await.take() {
             running.shut_down();
         }
+        self.usage.save();
         self.status.send_modify(|status| {
             status.listening = false;
             status.ollama_url = None;
@@ -410,6 +425,11 @@ impl Gateway {
 
     pub fn requests(&self) -> Vec<RequestEntry> {
         self.log.list()
+    }
+
+    /// Requests, tokens and energy over time.
+    pub fn usage(&self) -> &Arc<Usage> {
+        &self.usage
     }
 
     pub fn subscribe_requests(&self) -> broadcast::Receiver<RequestEntry> {
@@ -486,6 +506,26 @@ impl Gateway {
             settings.save(path)?;
         }
         Ok(())
+    }
+
+    /// On battery, run chat requests that don't choose a power mode in
+    /// `mode` (`None`: never). Takes effect with the next request.
+    pub fn set_battery_power_mode(&self, mode: Option<String>) -> Result<(), String> {
+        if let Some(mode) = &mode
+            && !calcine_core::bench::POWER_MODES.contains(&mode.as_str())
+        {
+            return Err(format!("unknown power mode: {mode}"));
+        }
+        self.update_settings(|settings| settings.battery_power_mode = mode)
+            .map_err(|err| err.to_string())
+    }
+
+    /// Answer the names in `aliases` with local models. Takes effect with
+    /// the next request.
+    pub fn set_model_aliases(&self, aliases: Vec<aliases::ModelAlias>) -> Result<(), String> {
+        let aliases = aliases::validate(aliases)?;
+        self.update_settings(|settings| settings.model_aliases = aliases)
+            .map_err(|err| err.to_string())
     }
 
     /// Require (or stop requiring) API keys. Takes effect immediately.

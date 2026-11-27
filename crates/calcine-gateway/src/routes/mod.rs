@@ -1,4 +1,5 @@
 mod manage;
+mod metrics;
 mod ollama;
 mod openai;
 
@@ -23,6 +24,7 @@ pub fn router(app: Arc<AppState>, listener: Listener) -> Router {
     let routes = Router::new()
         .merge(openai::router())
         .merge(manage::router())
+        .merge(metrics::router())
         .merge(ollama::router());
     let routes = match listener {
         Listener::Main | Listener::Network { .. } => routes,

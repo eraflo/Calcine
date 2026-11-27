@@ -11,12 +11,13 @@
 
 pub mod cli;
 mod desktop;
+mod documents;
 mod ipc;
 mod setup;
 #[cfg(windows)]
 mod user_path;
 
-use tauri::RunEvent;
+use tauri::{Manager, RunEvent};
 use tracing_subscriber::EnvFilter;
 
 /// Start the desktop app.
@@ -26,6 +27,10 @@ use tracing_subscriber::EnvFilter;
 /// If Tauri fails to start (for example, no WebView2 runtime).
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Started to read an attached document: do only that.
+    if let Some(code) = documents::run_child_if_asked() {
+        std::process::exit(code);
+    }
     init_tracing("info");
     desktop::process::kill_children_on_exit();
 
@@ -44,6 +49,8 @@ pub fn run() {
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             Some(vec![desktop::MINIMIZED_ARG]),
         ))
+        .plugin(tauri_plugin_clipboard_manager::init())
+        .plugin(desktop::quick_ask::plugin())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_opener::init())
@@ -55,6 +62,7 @@ pub fn run() {
             let services = setup::start(app)?;
             desktop::notifications::notify_finished_jobs(app.handle(), &services.jobs);
             desktop::tray::install(app)?;
+            desktop::quick_ask::install(app, &app.path().app_data_dir()?);
             // Started with Windows: stay in the tray until opened.
             if !std::env::args().any(|arg| arg == desktop::MINIMIZED_ARG) {
                 desktop::show_main_window(app.handle());

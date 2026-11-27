@@ -5,11 +5,12 @@ import type { LocalModel } from "@/lib/api";
 import { formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { fetchContextUsage, visibleMessages } from "../context-usage";
+import { documentMessages } from "../documents";
 import { fillLevel, totalTokens } from "../lib/context";
 import { buildChatRequest } from "../lib/request";
 import { messages } from "../messages";
+import { toTurns } from "../send";
 import { type Conversation, useChat } from "../store";
-import { toTurns } from "../use-send";
 
 const BAR = { ok: "bg-primary", high: "bg-warning", full: "bg-destructive" } as const;
 const TEXT = {
@@ -31,6 +32,7 @@ export function ContextMeter({
   streaming: boolean;
 }) {
   const t = useT(messages);
+  const td = useT(documentMessages);
   const settings = useChat((state) => state.settings);
   const all = conversation?.messages ?? [];
   const visible = visibleMessages(all, conversation?.contextFrom);
@@ -60,7 +62,11 @@ export function ContextMeter({
 
   const window = usage.data?.window;
   if (!usage.data || !window) return null;
-  const used = totalTokens(usage.data.tokens);
+  // Documents are read again with every message: count what the last reply read.
+  const documentTokens = conversation?.documents?.length
+    ? (all.findLast((message) => message.passagesRead?.tokens)?.passagesRead?.tokens ?? 0)
+    : 0;
+  const used = totalTokens(usage.data.tokens) + documentTokens;
   const level = fillLevel(used, window);
   const percent = Math.min(100, (used / window) * 100);
   const details = [
@@ -73,6 +79,7 @@ export function ContextMeter({
     forgotten > 0 ? t.plural("contextForgotten", forgotten) : null,
     forgotten > 0 && conversation?.summary ? t("contextSummary") : null,
     level === "ok" ? null : settings.forgetOldest ? t("contextFullForget") : t("contextFullStop"),
+    documentTokens > 0 ? td("contextDocuments", { tokens: formatNumber(documentTokens, 0) }) : null,
   ].filter(Boolean);
 
   return (

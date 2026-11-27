@@ -8,7 +8,7 @@
 
 use std::path::Path;
 
-use calcine_core::hardware::Accelerator;
+use calcine_core::hardware::{Accelerator, PowerSource};
 use calcine_core::models::ComputeUnit;
 
 use crate::snapshot::PlatformDevices;
@@ -90,6 +90,27 @@ fn soc(root: &Path) -> Option<String> {
         .map(|chip| format!("Qualcomm {}", chip.to_ascii_uppercase()))
 }
 
+/// Battery or mains, from `/sys/class/power_supply`: on battery when a
+/// battery is discharging. `None` without a battery.
+pub(crate) fn power_source() -> Option<PowerSource> {
+    power_source_in(Path::new("/"))
+}
+
+fn power_source_in(root: &Path) -> Option<PowerSource> {
+    let battery = entries(root, "sys/class/power_supply")
+        .into_iter()
+        .find(|supply| {
+            std::fs::read_to_string(supply.join("type")).is_ok_and(|kind| kind.trim() == "Battery")
+        })?;
+    let field = |name: &str| std::fs::read_to_string(battery.join(name)).ok();
+    Some(PowerSource {
+        on_battery: field("status").is_some_and(|status| status.trim() == "Discharging"),
+        battery_percent: field("capacity")
+            .and_then(|capacity| capacity.trim().parse::<u8>().ok())
+            .map(|percent| percent.min(100)),
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -141,5 +162,45 @@ mod tests {
         let empty = tree(&[("sys/class/drm/card0/device/uevent", b"DRIVER=virtio_gpu\n")]);
         assert_eq!(devices_in(&empty).accelerators, Vec::new());
         let _ = std::fs::remove_dir_all(empty);
+    }
+
+    #[test]
+    fn reads_the_battery() {
+        let root = tree(&[
+            (
+                "sys/class/power_supply/AC/type",
+                b"Mains
+",
+            ),
+            (
+                "sys/class/power_supply/AC/online",
+                b"0
+",
+            ),
+            (
+                "sys/class/power_supply/BAT0/type",
+                b"Battery
+",
+            ),
+            (
+                "sys/class/power_supply/BAT0/status",
+                b"Discharging
+",
+            ),
+            (
+                "sys/class/power_supply/BAT0/capacity",
+                b"72
+",
+            ),
+        ]);
+        assert_eq!(
+            power_source_in(&root),
+            Some(PowerSource {
+                on_battery: true,
+                battery_percent: Some(72)
+            })
+        );
+        let _ = std::fs::remove_dir_all(root);
+        assert_eq!(power_source_in(std::path::Path::new("/nonexistent")), None);
     }
 }

@@ -7,12 +7,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Field, Select } from "@/components/ui/field";
 import { Progress } from "@/components/ui/progress";
 import type { PowerMode } from "@/features/chat/lib/request";
-import { messages as chatMessages } from "@/features/chat/messages";
 import { usageQuery } from "@/features/hardware/api";
 import { modelsQuery } from "@/features/library/api";
 import { useCancelJob } from "@/features/tasks/api";
 import { useT } from "@/i18n";
 import { common } from "@/i18n/common";
+import { generationMessages } from "@/i18n/generation";
 import type { BenchResult, ComputeUnit } from "@/lib/api";
 import { formatNumber, formatRelative } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -65,7 +65,7 @@ export function EnergyCard() {
 function EnergyForm() {
   const t = useT(messages);
   const tc = useT(common);
-  const tchat = useT(chatMessages);
+  const tg = useT(generationMessages);
   const { data: models = [] } = useQuery(modelsQuery);
   const targets = benchTargets(models);
   const [targetId, setTargetId] = useState("");
@@ -160,7 +160,7 @@ function EnergyForm() {
           <Chips
             options={POWER_MODE_ORDER.map((mode) => ({
               value: mode,
-              label: tchat(`power_${mode}`),
+              label: tg(`power_${mode}`),
             }))}
             selected={chosen}
             onToggle={toggleMode}
@@ -279,7 +279,7 @@ function EnergyResults({
 }) {
   const t = useT(messages);
   const tc = useT(common);
-  const tchat = useT(chatMessages);
+  const tg = useT(generationMessages);
   const rows = energyRows(results);
   if (rows.length === 0) return null;
   const efficient = mostEfficient(rows);
@@ -292,7 +292,7 @@ function EnergyResults({
   const mode = (row: EnergyRow) =>
     [
       severalUnits || !severalModes ? tc(row.unit) : null,
-      severalModes ? tchat(`power_${row.mode as PowerMode}`) : null,
+      severalModes ? tg(`power_${row.mode as PowerMode}`) : null,
     ]
       .filter(Boolean)
       .join(" · ");

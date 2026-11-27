@@ -3,6 +3,9 @@
 use std::sync::Arc;
 use std::time::Duration;
 
+use calcine_core::hardware::{HardwareInfo, HardwareProbe, HardwareUsage, PowerSource};
+use calcine_gateway::aliases::ModelAlias;
+use calcine_gateway::usage::UsagePeriod;
 use calcine_gateway::{
     CALCINE_ORIGINS, Gateway, GatewayOptions, GatewaySettings, KeyScope, KeyStore, NewApiKey,
 };
@@ -26,6 +29,10 @@ impl Drop for TempDir {
 }
 
 async fn start(settings: GatewaySettings) -> Harness {
+    start_with(settings, MockBackend::services()).await
+}
+
+async fn start_with(settings: GatewaySettings, services: calcine_core::Services) -> Harness {
     let dir = std::env::temp_dir()
         .join(format!("calcine-gateway-{}", std::process::id()))
         .join(format!("{:?}", std::thread::current().id()).replace(['(', ')'], ""));
@@ -34,12 +41,13 @@ async fn start(settings: GatewaySettings) -> Harness {
     settings.save(&settings_path).unwrap();
 
     let gateway = Gateway::new(
-        MockBackend::services(),
+        services,
         GatewayOptions {
             keys: Arc::new(KeyStore::in_memory()),
             settings_path: Some(settings_path),
             builtin_origins: CALCINE_ORIGINS.iter().map(|o| (*o).to_owned()).collect(),
             network_dir: Some(dir.join("network")),
+            usage_path: None,
         },
     );
     gateway.start().await.unwrap();
@@ -313,6 +321,7 @@ async fn a_taken_port_is_reported() {
             settings_path: Some(path),
             builtin_origins: vec![],
             network_dir: None,
+            usage_path: None,
         },
     );
     assert!(gateway.start().await.is_err());
@@ -1109,4 +1118,181 @@ async fn transcribes_speech_like_openai() {
         .await
         .unwrap();
     assert_eq!(refused.status(), StatusCode::FORBIDDEN);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn usage_counts_finished_requests_for_metrics() {
+    let h = start(any_port()).await;
+    let token = h.key(&[KeyScope::Inference], false);
+    for stream in [false, true] {
+        let reply = h.chat(Some(&token), &hello(stream)).send().await.unwrap();
+        assert_eq!(reply.status(), StatusCode::OK);
+        let _ = reply.bytes().await.unwrap();
+    }
+
+    // The recorder follows the log in the background.
+    let mut summary = h.gateway.usage().summary(UsagePeriod::Day, 0);
+    for _ in 0..50 {
+        if summary.totals.requests == 2 {
+            break;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+        summary = h.gateway.usage().summary(UsagePeriod::Day, 0);
+    }
+    assert_eq!(summary.totals.requests, 2);
+    assert!(summary.totals.completion_tokens > 0);
+    assert_eq!(summary.by_client[0].name, "Test app");
+    assert!(
+        summary.totals.energy_joules.is_some(),
+        "the mock meters energy"
+    );
+
+    let anonymous = h
+        .http
+        .get(format!("{}/metrics", h.base))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(anonymous.status(), StatusCode::UNAUTHORIZED);
+    let metrics = h
+        .http
+        .get(format!("{}/metrics", h.base))
+        .bearer_auth(&token)
+        .send()
+        .await
+        .unwrap()
+        .text()
+        .await
+        .unwrap();
+    assert!(
+        metrics.contains(
+            "calcine_requests_total{client=\"Test app\",model=\"qualcomm/Qwen3-0.6B\"} 2"
+        ),
+        "{metrics}"
+    );
+}
+
+/// The mock's hardware, on battery.
+struct OnBattery(Arc<dyn HardwareProbe>);
+
+#[async_trait::async_trait]
+impl HardwareProbe for OnBattery {
+    async fn snapshot(
+        &self,
+        models_dir: Option<&std::path::Path>,
+    ) -> calcine_core::Result<HardwareInfo> {
+        self.0.snapshot(models_dir).await
+    }
+
+    async fn usage(&self) -> calcine_core::Result<HardwareUsage> {
+        self.0.usage().await
+    }
+
+    async fn power_source(&self) -> calcine_core::Result<Option<PowerSource>> {
+        Ok(Some(PowerSource {
+            on_battery: true,
+            battery_percent: Some(30),
+        }))
+    }
+}
+
+/// The speed the mock reports, which follows the power mode it ran in.
+async fn reported_speed(h: &Harness, token: &str, body: &Value) -> f64 {
+    let reply: Value = h
+        .chat(Some(token), body)
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    reply["timings"]["predicted_per_second"].as_f64().unwrap()
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn on_battery_requests_run_in_the_saver_mode() {
+    let mut services = MockBackend::services();
+    services.hardware = Arc::new(OnBattery(services.hardware.clone()));
+    let h = start_with(any_port(), services).await;
+    let token = h.key(&[KeyScope::Inference], false);
+
+    let burst = reported_speed(&h, &token, &hello(false)).await;
+    h.gateway
+        .set_battery_power_mode(Some("power_saver".into()))
+        .unwrap();
+    let saving = reported_speed(&h, &token, &hello(false)).await;
+    assert!(saving < burst, "{saving} should be slower than {burst}");
+
+    // A request that chooses its mode keeps it.
+    let mut chosen = hello(false);
+    chosen["power_mode"] = json!("burst");
+    assert!((reported_speed(&h, &token, &chosen).await - burst).abs() < f64::EPSILON);
+
+    assert!(
+        h.gateway
+            .set_battery_power_mode(Some("warp".into()))
+            .is_err()
+    );
+    assert_eq!(
+        h.gateway.settings().battery_power_mode.as_deref(),
+        Some("power_saver")
+    );
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn aliases_answer_with_their_model() {
+    let h = start(any_port()).await;
+    let token = h.key(&[KeyScope::Inference], false);
+    h.gateway
+        .set_model_aliases(vec![ModelAlias {
+            alias: "gpt-4o-mini".into(),
+            model: "qualcomm/Qwen3-4B".into(),
+        }])
+        .unwrap();
+
+    let get = async |path: &str| -> Value {
+        h.http
+            .get(format!("{}{path}", h.base))
+            .bearer_auth(&token)
+            .send()
+            .await
+            .unwrap()
+            .json()
+            .await
+            .unwrap()
+    };
+    let models = get("/v1/models").await;
+    assert!(
+        models["data"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|model| model["id"] == "gpt-4o-mini")
+    );
+    assert_eq!(get("/v1/models/gpt-4o-mini").await["id"], "gpt-4o-mini");
+    let tags = get("/api/tags").await;
+    assert!(
+        tags["models"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|model| model["name"] == "gpt-4o-mini")
+    );
+
+    let mut asked = hello(false);
+    asked["model"] = json!("GPT-4o-mini");
+    let response = h.chat(Some(&token), &asked).send().await.unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    // The log shows the model that answered.
+    let entry = h.gateway.requests().into_iter().next().unwrap();
+    assert_eq!(entry.model.as_deref(), Some("qualcomm/Qwen3-4B"));
+
+    assert!(
+        h.gateway
+            .set_model_aliases(vec![ModelAlias {
+                alias: "x".into(),
+                model: String::new(),
+            }])
+            .is_err()
+    );
 }

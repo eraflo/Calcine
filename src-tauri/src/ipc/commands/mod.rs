@@ -6,8 +6,11 @@
 
 pub mod app;
 pub mod bench;
+pub mod documents;
 pub mod jobs;
 pub mod models;
+pub mod quick_ask;
 pub mod runtime;
 pub mod server;
 pub mod updates;
+pub mod usage;

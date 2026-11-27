@@ -1,18 +1,18 @@
 {
   "$comment": "GenieX version Calcine was tested with and installs on first launch, per platform (downloaded from Qualcomm, checked against this SHA-256). Bumped by CI (geniex-bump workflow); values come from the official manifest at https://qaihub-public-assets.s3.us-west-2.amazonaws.com/qai-hub-geniex/manifest-<version>.json",
-  "version": "v0.11.0",
+  "version": "v0.12.0",
   "assets": {
     "windows-arm64": {
-      "name": "geniex-cli-setup-windows-arm64-v0.11.0.exe",
-      "url": "https://qaihub-public-assets.s3.us-west-2.amazonaws.com/qai-hub-geniex/geniex-cli-setup-windows-arm64-v0.11.0.exe",
-      "size": 71154113,
-      "sha256": "8470b8a1d51ae3a41040c831c76ec7e9e5fed72c51b49ef8a0f1bf2580cfb57f"
+      "name": "geniex-cli-setup-windows-arm64-v0.12.0.exe",
+      "url": "https://qaihub-public-assets.s3.us-west-2.amazonaws.com/qai-hub-geniex/geniex-cli-setup-windows-arm64-v0.12.0.exe",
+      "size": 72654512,
+      "sha256": "1d9de0144c42456cb89f7306e3f4885d5a5898def6c5dacd0f49cc91d07c10ce"
     },
     "linux-arm64": {
-      "name": "geniex-cli-linux-arm64-v0.11.0.tar.gz",
-      "url": "https://qaihub-public-assets.s3.us-west-2.amazonaws.com/qai-hub-geniex/geniex-cli-linux-arm64-v0.11.0.tar.gz",
-      "size": 117020386,
-      "sha256": "b80fbc2149784a5e01d2c48d4700a459d83ec340b1f28e9351eaa4549fb3d9f8"
+      "name": "geniex-cli-linux-arm64-v0.12.0.tar.gz",
+      "url": "https://qaihub-public-assets.s3.us-west-2.amazonaws.com/qai-hub-geniex/geniex-cli-linux-arm64-v0.12.0.tar.gz",
+      "size": 119269551,
+      "sha256": "ae9b616cfc28b8a245479e74fb1befb63f5b33bc8cd1a6d95c83b8bedc2a19fd"
     }
   }
 }

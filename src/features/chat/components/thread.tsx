@@ -5,8 +5,8 @@ import { LogoMark } from "@/components/calcine/brand/logo";
 import { useT } from "@/i18n";
 import { cn } from "@/lib/utils";
 import { messages as strings } from "../messages";
-import { type Conversation, useLiveReply } from "../store";
-import { Message } from "./message";
+import { type ChatMessage, type Conversation, useChat, useLiveReply } from "../store";
+import { Message, type MessageActions } from "./message/message";
 
 const SUGGESTIONS = ["suggestion1", "suggestion2", "suggestion3"] as const;
 
@@ -14,9 +14,13 @@ const SUGGESTIONS = ["suggestion1", "suggestion2", "suggestion3"] as const;
 export function Thread({
   conversation,
   onSuggestion,
+  onRegenerate,
+  onEdit,
 }: {
   conversation: Conversation | undefined;
   onSuggestion: (text: string) => void;
+  onRegenerate: (messageId: string) => void;
+  onEdit: (messageId: string, text: string) => void;
 }) {
   const t = useT(strings);
   const live = useLiveReply();
@@ -27,6 +31,9 @@ export function Thread({
     ? messages.findIndex((message) => message.id === conversation.contextFrom)
     : -1;
   const liveLength = live.content.length + live.reasoning.length;
+  // Nothing changes the conversation while a reply is written.
+  const busy = live.messageId !== null;
+  const selectVersion = useChat((state) => state.selectVersion);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: scroll on every new message or token.
   useEffect(() => {
@@ -66,7 +73,20 @@ export function Thread({
               <ForgottenDivider summary={conversation?.summary} />
             )}
             <div className={cn(index < seenFrom && "opacity-50")}>
-              <Message message={message} live={live.messageId === message.id ? live : undefined} />
+              <Message
+                message={message}
+                live={live.messageId === message.id ? live : undefined}
+                actions={
+                  busy
+                    ? undefined
+                    : actionsFor(message, index === messages.length - 1, {
+                        onRegenerate,
+                        onEdit,
+                        onSelectVersion: (messageId, version) =>
+                          conversation && selectVersion(conversation.id, messageId, version),
+                      })
+                }
+              />
             </div>
           </Fragment>
         ))}
@@ -100,4 +120,24 @@ function ForgottenDivider({ summary }: { summary: string | undefined }) {
       </Collapsible.Content>
     </Collapsible.Root>
   );
+}
+
+/** What a message offers: its reply regenerated (the last one), its
+ * versions browsed, or, for the user's, an edit. */
+function actionsFor(
+  message: ChatMessage,
+  last: boolean,
+  handlers: {
+    onRegenerate: (messageId: string) => void;
+    onEdit: (messageId: string, text: string) => void;
+    onSelectVersion: (messageId: string, version: number) => void;
+  },
+): MessageActions {
+  if (message.role === "user") {
+    return { onEdit: (text) => handlers.onEdit(message.id, text), hasFollowing: !last };
+  }
+  return {
+    ...(last ? { onRegenerate: () => handlers.onRegenerate(message.id) } : {}),
+    onSelectVersion: (version) => handlers.onSelectVersion(message.id, version),
+  };
 }

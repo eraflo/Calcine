@@ -1,38 +1,62 @@
 import { useQuery } from "@tanstack/react-query";
+import { isTauri } from "@tauri-apps/api/core";
 import { MessageSquarePlus, PanelLeft, PanelRight } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ErrorState } from "@/components/calcine/feedback/error-state";
 import { Button } from "@/components/ui/button";
 import { Tooltip } from "@/components/ui/tooltip";
 import { modelsQuery } from "@/features/library/api";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { useT } from "@/i18n";
+import { commands } from "@/lib/api";
 import { useLayout } from "@/stores/layout";
-import { Composer } from "./components/composer";
+import { Composer } from "./components/composer/composer";
 import { ContextMeter } from "./components/context-meter";
 import { ConversationList } from "./components/conversation-list";
 import { ExportButton } from "./components/export-button";
 import { ModelPicker } from "./components/model-picker";
 import { PreloadButton } from "./components/preload-button";
-import { SettingsPanel } from "./components/settings-panel";
+import { SettingsPanel } from "./components/settings/settings-panel";
 import { Thread } from "./components/thread";
+import {
+  type AttachmentProblem,
+  type DocumentInfo,
+  DocumentsButton,
+  DropZone,
+  documentMessages,
+  useAttachments,
+} from "./documents";
 import { supportsMedia } from "./lib/request";
 import { messages } from "./messages";
+import { type PendingAttachment, useSend } from "./send";
 import { useChat } from "./store";
-import { type PendingAttachment, useSend } from "./use-send";
 
 /** Wide enough for the conversations, the chat and the settings side by side. */
 const WIDE_WINDOW = "(min-width: 1200px)";
 
+let documentsPruned = false;
+/** Once per launch: delete the text of documents no conversation uses any
+ * more (a conversation deleted while the app was busy, a crash). */
+function pruneDocuments() {
+  if (documentsPruned || !isTauri()) return;
+  documentsPruned = true;
+  const keep = useChat
+    .getState()
+    .conversations.flatMap((conversation) => conversation.documents ?? [])
+    .map((document) => document.id);
+  void commands.retainDocuments(keep);
+}
+
 export function ChatPage() {
   const t = useT(messages);
+  const td = useT(documentMessages);
   const models = useQuery(modelsQuery);
   const conversations = useChat((state) => state.conversations);
   const activeId = useChat((state) => state.activeId);
   const lastModelId = useChat((state) => state.lastModelId);
   const create = useChat((state) => state.create);
   const setModel = useChat((state) => state.setModel);
-  const { send, stop, streaming, ready } = useSend();
+  const { send, regenerate, edit, stop, streaming, ready } = useSend();
   // The settings panel squeezes the chat on small windows: hidden there
   // unless opened. Opening or closing it holds for that size of window.
   const wide = useMediaQuery(WIDE_WINDOW);
@@ -49,10 +73,28 @@ export function ChatPage() {
   const model = installed.find((candidate) => candidate.name === modelId);
   const missingModel = Boolean(active && !model && models.isSuccess);
 
-  const sendText = (text: string, attachments: PendingAttachment[] = []) => {
+  const media = supportsMedia(model);
+  const [problem, setProblem] = useState<string | null>(null);
+  const onAttachmentProblem = useCallback(
+    (found: AttachmentProblem) =>
+      setProblem(
+        found.kind === "image-needs-vision"
+          ? td("imageNeedsVision", { name: found.name })
+          : t("attachFailed", { name: found.name, message: found.message }),
+      ),
+    [t, td],
+  );
+  const attachments = useAttachments({ media, onProblem: onAttachmentProblem });
+  useEffect(pruneDocuments, []);
+
+  const sendText = (
+    text: string,
+    images: PendingAttachment[] = [],
+    documents: DocumentInfo[] = [],
+  ) => {
     if (!modelId) return;
     const id = active?.id ?? create(modelId);
-    void send(id, text, attachments);
+    void send(id, text, images, documents);
   };
 
   if (models.isError) {
@@ -66,7 +108,12 @@ export function ChatPage() {
   return (
     <div className="flex h-full min-h-0">
       {!conversationsHidden && <ConversationList onNew={() => modelId && create(modelId)} />}
-      <section className="flex min-w-0 flex-1 flex-col">
+      <DropZone
+        enabled={Boolean(model) && ready && !streaming}
+        media={media}
+        onDrop={(paths) => void attachments.addPaths(paths)}
+        className="flex min-w-0 flex-1 flex-col"
+      >
         {/* A container: the header adapts to the chat column, not the window. */}
         <header className="@container flex h-12 min-w-0 shrink-0 items-center gap-3 border-b px-4">
           <div className="-ml-2 flex shrink-0 items-center">
@@ -110,6 +157,7 @@ export function ChatPage() {
           <div className="ml-auto" />
           {/* Left out when the column is too narrow for them (settings panel open on a small window). */}
           <div className="hidden shrink-0 items-center gap-3 @xs:flex">
+            <DocumentsButton conversation={active} onAdd={() => void attachments.pick()} />
             <ContextMeter
               conversation={active}
               model={model}
@@ -131,16 +179,24 @@ export function ChatPage() {
             </Button>
           </Tooltip>
         </header>
-        <Thread conversation={active} onSuggestion={(text) => sendText(text)} />
+        <Thread
+          conversation={active}
+          onSuggestion={(text) => sendText(text)}
+          onRegenerate={(messageId) => active && void regenerate(active.id, messageId)}
+          onEdit={(messageId, text) => active && void edit(active.id, messageId, text)}
+        />
         <Composer
           disabled={!model || !ready}
           disabledReason={!ready ? t("apiNotReady") : undefined}
           streaming={streaming}
-          media={supportsMedia(model)}
+          media={media}
+          attachments={attachments}
+          problem={problem}
+          onProblem={setProblem}
           onSend={sendText}
           onStop={stop}
         />
-      </section>
+      </DropZone>
       {showSettings && <SettingsPanel model={model} modelId={modelId} />}
     </div>
   );

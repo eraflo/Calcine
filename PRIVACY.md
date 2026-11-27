@@ -37,19 +37,31 @@ These services have their own privacy policies:
 ## Data kept on your PC
 
 - **Conversations and chat settings**: in Calcine's web storage, on this PC.
+- **Documents attached in the chat**: only their text, cut into passages, in the
+  `documents` folder of `%LOCALAPPDATA%\com.eraflo.calcine` (`~/.local/share/com.eraflo.calcine`
+  on Linux), never the original file. It's deleted with the conversation, or when you
+  remove the document from it. The documents are read on this PC: nothing is uploaded.
 - **Dictation**: your recording stays in memory while a model on this PC writes it
   down, then it's discarded. It's never saved or sent anywhere.
+- **Quick questions**: the copied text is read from the clipboard only when the quick
+  question window opens, and sent only to the model on this PC, only if you include it.
+  The question and its answer are kept in memory until you ask another, or saved as a
+  conversation when you continue in the chat.
 - **API keys**: only a SHA-256 fingerprint of each key, in `api-keys.json`.
 - **Request log**: who called which model, when, how fast and how many tokens,
   never the prompts or replies. Kept in memory and lost when Calcine closes.
+- **Activity**: counts per hour, app and model (requests, tokens, time taken,
+  energy while requests ran), never the prompts or replies, in `usage.json`. Kept 90
+  days; Activity › Clear history deletes them. The same counts are served at `/metrics`
+  on this PC, to callers with an API key.
 - **Settings and benchmark results**: JSON files in Calcine's data folder.
 - **Models**: in GenieX's model folder.
 
 Calcine's data folder is `%APPDATA%\com.eraflo.calcine` (settings, keys,
 benchmarks, the network certificate) and `%LOCALAPPDATA%\com.eraflo.calcine`
-(web storage, downloaded installers and tools). Uninstalling Calcine can remove
-them. On Linux both are `~/.local/share/com.eraflo.calcine` (or under
-`$XDG_DATA_HOME`), and GenieX lives in `~/.local/share/geniex-cli`.
+(web storage, the text of attached documents, downloaded installers and tools).
+Uninstalling Calcine can remove them. On Linux both are
+`~/.local/share/com.eraflo.calcine` (or under `$XDG_DATA_HOME`), and GenieX lives in `~/.local/share/geniex-cli`.
 
 ## The local API
 

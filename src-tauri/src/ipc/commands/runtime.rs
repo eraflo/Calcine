@@ -1,5 +1,5 @@
 use calcine_core::Services;
-use calcine_core::hardware::{HardwareInfo, HardwareUsage};
+use calcine_core::hardware::{HardwareInfo, HardwareUsage, PowerSource};
 use calcine_core::jobs::JobId;
 use calcine_core::models::Chipset;
 use calcine_core::runtime::{
@@ -51,6 +51,13 @@ pub async fn hardware_info(services: State<'_, Services>) -> ApiResult<HardwareI
 #[specta::specta]
 pub async fn hardware_usage(services: State<'_, Services>) -> ApiResult<HardwareUsage> {
     Ok(services.hardware.usage().await?)
+}
+
+/// Battery or mains (`None`: no battery). Poll every few seconds at most.
+#[tauri::command]
+#[specta::specta]
+pub async fn power_source(services: State<'_, Services>) -> ApiResult<Option<PowerSource>> {
+    Ok(services.hardware.power_source().await?)
 }
 
 /// The GenieX version Calcine was tested with, installed on first launch.

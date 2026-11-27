@@ -100,6 +100,9 @@ pub fn start(app: &App) -> tauri::Result<Services> {
         options_file,
     } = tauri::async_runtime::block_on(build(&dirs, bundled));
     app.manage(services.clone());
+    app.manage(crate::documents::Documents::new(
+        dirs.local.join("documents"),
+    ));
     app.manage(options_file);
     app.manage(gateway.clone());
     crate::ipc::events::forward(app.handle(), &services.jobs, &gateway);

@@ -1,5 +1,6 @@
 import { Outlet } from "@tanstack/react-router";
 import { useEffect } from "react";
+import { useQuickAskHandoff } from "@/features/quick-ask/use-handoff";
 import { useGatewayEvents } from "@/features/server/api";
 import { useJobEvents } from "@/features/tasks/api";
 import { TaskDrawer } from "@/features/tasks/components/task-drawer";
@@ -16,6 +17,7 @@ export function AppShell() {
   useSyncLanguage();
   useJobEvents();
   useGatewayEvents();
+  useQuickAskHandoff();
   const collapsed = useLayout((state) => state.sidebarCollapsed);
 
   return (

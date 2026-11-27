@@ -75,11 +75,15 @@ export function useGatewayEvents() {
       )
       .then(keep);
     events.requestLogged
-      .listen(({ payload }) =>
+      .listen(({ payload }) => {
         queryClient.setQueryData<RequestEntry[]>(requestsQuery.queryKey, (entries = []) =>
           upsertRequest(entries, payload),
-        ),
-      )
+        );
+        // Usage counts it once the energy meter is read, just after.
+        if (payload.status !== null) {
+          setTimeout(() => queryClient.invalidateQueries({ queryKey: ["usage"] }), 800);
+        }
+      })
       .then(keep);
 
     return () => {

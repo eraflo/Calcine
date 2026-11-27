@@ -88,14 +88,6 @@ export const messages = defineMessages({
     deleteSession: "Delete these results",
     show: "Show",
     // Usage
-    usageTitle: "Real-world speed",
-    usageHint:
-      "From the requests since Calcine started: the Chat and your other apps, with their real prompts.",
-    usageEmpty: "Chat with a model, or call the API, to see its everyday speed here.",
-    requests_one: "{count} request",
-    requests_other: "{count} requests",
-    firstTokenShort: "first token {value}",
-    speedShort: "{value} tok/s",
   },
   fr: {
     title: "Benchmark",
@@ -179,13 +171,5 @@ export const messages = defineMessages({
     exported: "Enregistré",
     deleteSession: "Supprimer ces résultats",
     show: "Afficher",
-    usageTitle: "Vitesse au quotidien",
-    usageHint:
-      "D'après les requêtes depuis le lancement de Calcine : le chat et vos autres applis, avec leurs vrais prompts.",
-    usageEmpty: "Discutez avec un modèle, ou appelez l'API, pour voir ici sa vitesse au quotidien.",
-    requests_one: "{count} requête",
-    requests_other: "{count} requêtes",
-    firstTokenShort: "premier token {value}",
-    speedShort: "{value} tok/s",
   },
 });

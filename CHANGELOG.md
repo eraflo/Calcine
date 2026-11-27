@@ -1,5 +1,53 @@
 # Changelog
 
+## 1.2.0 (2026-11-27)
+
+### Chat with your documents
+
+- Attach or drop PDF, Word, PowerPoint, OpenDocument, HTML, text, code and data files in the
+  chat. Short documents are read whole; for long ones, Calcine picks the passages that match
+  each message, so they fit even the NPU's 4096-token window, and shows the pages it used
+  under the reply. Only their text is kept, on this PC, and it's deleted with the
+  conversation (61de9fb)
+
+### Quick questions
+
+- **Ctrl+Shift+Space** opens a small window over any app, even with Calcine in the tray (or
+  Quick question in the tray menu): ask a model, or summarize, translate, fix or explain the
+  text you copied, then continue in the chat if you like. The shortcut can be changed or
+  turned off in Settings › Quick question (4571e86)
+
+### Chat
+
+- Regenerate a reply and go back to the earlier ones (‹ 1 / 2 ›), or edit a message you sent:
+  the replies after it are written again (01d4a91)
+- Formulas are drawn (KaTeX), whatever delimiters the model uses, and Mermaid code blocks
+  become diagrams, with their code a click away. Prices like "$5 and $10" stay text (cc2d286)
+
+### Activity
+
+- A new Activity page shows requests, tokens, speed and energy over 24 hours, 7 or 30 days,
+  per app and per model. The same counters are served at `/metrics` for Prometheus and
+  Grafana, to callers with an API key. Only counts are kept, never prompts or replies, for
+  90 days (a194f18, 1f64bdc, 7aa0f4e)
+
+### Battery saver
+
+- On battery, chat requests that don't choose a power mode run in the one you pick (Power
+  saver by default), from the chat and from apps, and at full speed again once plugged in.
+  Turn it on in Settings › Battery saver; a badge in the top bar shows when it's active
+  (7797e42)
+
+### Local API
+
+- Model aliases: apps that only offer OpenAI or Ollama model names (`gpt-4o-mini`,
+  `llama3.2`...) can ask for one of them, and the local model you chose answers. Aliases
+  are listed in `/v1/models` and `/api/tags` (d50cd5a)
+
+### Changes
+
+- First launch installs GenieX 0.12.0 (QAIRT 2.51) instead of 0.11.0 (bc41cae)
+
 ## 1.1.3 (2026-11-27)
 
 ### Fixes

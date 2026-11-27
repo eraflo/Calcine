@@ -1,11 +1,4 @@
-import type {
-  BenchResult,
-  BenchSource,
-  ComputeUnit,
-  LocalModel,
-  RequestEntry,
-  Runtime,
-} from "@/lib/api";
+import type { BenchResult, BenchSource, ComputeUnit, LocalModel, Runtime } from "@/lib/api";
 
 /** Units in the order they're shown: NPU first, CPU last. */
 export const UNIT_ORDER: readonly ComputeUnit[] = ["npu", "hybrid", "gpu", "cpu"];
@@ -188,43 +181,6 @@ export function toCsv(history: readonly BenchResult[]): string {
       .join(",");
   });
   return `${[header.join(","), ...rows].join("\n")}\n`;
-}
-
-/** Everyday speed per model, from the request log (Chat and other apps). */
-export type Usage = {
-  model: string;
-  requests: number;
-  completionTokens: number;
-  firstTokenMs: number | null;
-  tokensPerSecond: number | null;
-};
-
-export function usageByModel(entries: readonly RequestEntry[]): Usage[] {
-  const byModel = new Map<string, RequestEntry[]>();
-  for (const entry of entries) {
-    if (entry.status !== 200 || !entry.model || entry.error) continue;
-    const list = byModel.get(entry.model) ?? [];
-    list.push(entry);
-    byModel.set(entry.model, list);
-  }
-  return [...byModel.entries()]
-    .map(([model, list]) => ({
-      model,
-      requests: list.length,
-      completionTokens: list.reduce((sum, entry) => sum + (entry.completionTokens ?? 0), 0),
-      firstTokenMs: middle(list.map((entry) => entry.firstTokenMs)),
-      tokensPerSecond: middle(list.map((entry) => entry.tokensPerSecond)),
-    }))
-    .sort((a, b) => b.requests - a.requests);
-}
-
-function middle(values: readonly (number | null)[]): number | null {
-  const known = values.filter((value): value is number => value !== null).sort((a, b) => a - b);
-  if (known.length === 0) return null;
-  const half = Math.floor(known.length / 2);
-  return known.length % 2
-    ? (known[half] ?? null)
-    : ((known[half - 1] ?? 0) + (known[half] ?? 0)) / 2;
 }
 
 /** GenieX's power modes, fastest first (as `POWER_MODES` in the backend). */

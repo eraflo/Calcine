@@ -15,7 +15,7 @@ use crate::caller::Caller;
 use crate::error::api_error;
 use crate::state::AppState;
 use crate::structured::{self, tools};
-use crate::{context, proxy};
+use crate::{aliases, context, proxy};
 
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
@@ -48,12 +48,14 @@ async fn chat_completions(
     if !caller.can_infer() {
         return proxy::inference(app, caller, "/v1/chat/completions", body).await;
     }
+    // The model's window and capabilities are looked up below: by its name.
+    let aliased = aliases::apply(&app.settings().model_aliases, &mut json);
     // GenieX ignores `tool_choice` and `response_format`: Calcine enforces them.
     let refused = tools::refused(&json);
     if refused {
         json = tools::without_tools(&json);
     }
-    let changed = refused || json.get("truncation").is_some();
+    let changed = aliased || refused || json.get("truncation").is_some();
     let forgotten = if context::take_truncation(&mut json) {
         match context::fit(&app, &mut json).await {
             Ok(forgotten) => forgotten,
@@ -116,7 +118,7 @@ async fn list_models(
     }
     match app.services.models.list().await {
         Ok(models) => {
-            let data: Vec<Value> = models.iter().flat_map(model_entries).collect();
+            let data: Vec<Value> = entries(&app, &models);
             Json(json!({ "object": "list", "data": data })).into_response()
         }
         Err(err) => api_error(
@@ -149,9 +151,8 @@ async fn get_model(
             );
         }
     };
-    models
-        .iter()
-        .flat_map(model_entries)
+    entries(&app, &models)
+        .into_iter()
         .find(|entry| {
             entry["id"] == id
                 || entry["id"]
@@ -168,6 +169,22 @@ async fn get_model(
             },
             |entry| Json(entry).into_response(),
         )
+}
+
+/// The installed models, then the aliases of installed models.
+fn entries(app: &AppState, models: &[LocalModel]) -> Vec<Value> {
+    let mut entries: Vec<Value> = models.iter().flat_map(model_entries).collect();
+    for alias in app.settings().model_aliases {
+        if models.iter().any(|model| model.name == alias.model) {
+            entries.push(json!({
+                "id": alias.alias,
+                "object": "model",
+                "created": 0,
+                "owned_by": "calcine",
+            }));
+        }
+    }
+    entries
 }
 
 fn model_entries(model: &LocalModel) -> Vec<Value> {
