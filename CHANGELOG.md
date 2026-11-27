@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.1.3 (2026-11-27)
+
+### Fixes
+
+- Updating GenieX to 0.12 no longer fails with "the GenieX installer is signed by someone
+  else". GenieX 0.12 is the first installer Qualcomm signs, as "QUALCOMM Inc.", which Calcine
+  didn't recognize. Calcine now checks the certificate's organization, and still checks the
+  installer's SHA-256 first (b407924)
+- Dependencies updated, with fixes for security advisories in `cookie`, `url` and `seroval`
+  (5db3949)
+
 ## 1.1.2 (2026-11-18)
 
 ### Changes
