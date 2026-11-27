@@ -4,6 +4,7 @@
 pub mod locale;
 pub mod notifications;
 pub mod process;
+pub mod quick_ask;
 pub mod tray;
 
 use tauri::webview::{PermissionKind, PermissionResponse};
@@ -22,10 +23,17 @@ pub fn show_main_window(app: &AppHandle) {
 }
 
 /// Closing the window keeps Calcine in the tray; quit from the tray menu.
+/// The quick question window goes away when something else is clicked.
 pub fn on_window_event(window: &Window, event: &WindowEvent) {
-    if let WindowEvent::CloseRequested { api, .. } = event {
-        api.prevent_close();
-        let _ = window.hide();
+    match event {
+        WindowEvent::CloseRequested { api, .. } => {
+            api.prevent_close();
+            let _ = window.hide();
+        }
+        WindowEvent::Focused(false) if window.label() == quick_ask::LABEL => {
+            let _ = window.hide();
+        }
+        _ => {}
     }
 }
 

@@ -1,0 +1,51 @@
+import { defineMessages } from "@/i18n";
+
+export const messages = defineMessages({
+  en: {
+    placeholder: "Ask a question…",
+    model: "Model",
+    copied_one: "Copied text · {count} character",
+    copied_other: "Copied text · {count} characters",
+    includeCopied: "Include the copied text",
+    action_summarize: "Summarize",
+    action_translate: "Translate",
+    action_fix: "Fix",
+    action_explain: "Explain",
+    prompt_summarize: "Summarize this text in a few sentences.",
+    prompt_translate:
+      "Translate this text into English; if it's already in English, translate it into French. Reply with the translation only.",
+    prompt_fix: "Fix the spelling and grammar of this text. Reply with the corrected text only.",
+    prompt_explain: "Explain this simply.",
+    hint: "Enter to ask · Esc to close",
+    hintBusy: "Esc to stop",
+    empty: "Ask anything: the answer is written on this PC.",
+    noModel: "Download a model in Calcine first.",
+    notReady: "Calcine's API isn't ready yet.",
+    continue: "Continue in Calcine",
+    stop: "Stop",
+  },
+  fr: {
+    placeholder: "Posez une question…",
+    model: "Modèle",
+    copied_one: "Texte copié · {count} caractère",
+    copied_other: "Texte copié · {count} caractères",
+    includeCopied: "Inclure le texte copié",
+    action_summarize: "Résumer",
+    action_translate: "Traduire",
+    action_fix: "Corriger",
+    action_explain: "Expliquer",
+    prompt_summarize: "Résume ce texte en quelques phrases.",
+    prompt_translate:
+      "Traduis ce texte en français ; s'il est déjà en français, traduis-le en anglais. Réponds seulement avec la traduction.",
+    prompt_fix:
+      "Corrige l'orthographe et la grammaire de ce texte. Réponds seulement avec le texte corrigé.",
+    prompt_explain: "Explique ceci simplement.",
+    hint: "Entrée pour demander · Échap pour fermer",
+    hintBusy: "Échap pour arrêter",
+    empty: "Demandez ce que vous voulez : la réponse est écrite sur ce PC.",
+    noModel: "Téléchargez d'abord un modèle dans Calcine.",
+    notReady: "L'API de Calcine n'est pas encore prête.",
+    continue: "Continuer dans Calcine",
+    stop: "Arrêter",
+  },
+});

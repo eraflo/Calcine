@@ -43,6 +43,10 @@ These services have their own privacy policies:
   remove the document from it. The documents are read on this PC: nothing is uploaded.
 - **Dictation**: your recording stays in memory while a model on this PC writes it
   down, then it's discarded. It's never saved or sent anywhere.
+- **Quick questions**: the copied text is read from the clipboard only when the quick
+  question window opens, and sent only to the model on this PC, only if you include it.
+  The question and its answer are kept in memory until you ask another, or saved as a
+  conversation when you continue in the chat.
 - **API keys**: only a SHA-256 fingerprint of each key, in `api-keys.json`.
 - **Request log**: who called which model, when, how fast and how many tokens,
   never the prompts or replies. Kept in memory and lost when Calcine closes.

@@ -24,6 +24,20 @@ export const commands = {
 	/**  Whether Calcine starts with Windows (in the tray). */
 	autostartEnabled: () => typedError<boolean, ApiError>(__TAURI_INVOKE("autostart_enabled")),
 	setAutostart: (enabled: boolean) => typedError<null, ApiError>(__TAURI_INVOKE("set_autostart", { enabled })),
+	/**  The shortcut that opens the quick question window, and whether it works. */
+	quickAskStatus: () => __TAURI_INVOKE<QuickAskStatus>("quick_ask_status"),
+	/**  Open the quick question window with `shortcut` (`None`: never). */
+	setQuickAskShortcut: (shortcut: string | null) => typedError<null, ApiError>(__TAURI_INVOKE("set_quick_ask_shortcut", { shortcut })),
+	/**
+	 *  Close the quick question window; with `open_calcine`, bring Calcine up
+	 *  (where the question continues).
+	 */
+	hideQuickAsk: (openCalcine: boolean) => __TAURI_INVOKE<void>("hide_quick_ask", { openCalcine }),
+	/**
+	 *  The text on the clipboard, to ask about it. Read only when the quick
+	 *  question window opens; it stays on this PC.
+	 */
+	copiedText: () => __TAURI_INVOKE<string | null>("copied_text"),
 	/**  The newest Calcine on `channel`, or `None` when up to date. */
 	checkAppUpdate: (channel: AppChannel) => typedError<{
 	version: string,
@@ -836,6 +850,15 @@ export type PullRequest = {
 	 *  for [`ModelHub::LocalFs`].
 	 */
 	localPath: string | null,
+};
+
+/**
+ *  The shortcut chosen, and why it doesn't work, if it doesn't (taken by
+ *  another app).
+ */
+export type QuickAskStatus = {
+	shortcut: string | null,
+	error: string | null,
 };
 
 /**  Which GenieX releases to follow. */

@@ -40,6 +40,10 @@ every web page you visit.
 - **Chat with every option.** Thinking, temperature, max tokens, compute unit and power
   mode, adapted to each model's runtime, with tokens per second. Images and voice for
   vision models. Regenerate a reply and go back to earlier versions, or edit a message.
+  Formulas and Mermaid diagrams are drawn in replies.
+- **Ask from anywhere.** <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>Space</kbd> opens a small window over any
+  app, even with Calcine in the tray: ask a question, or summarize, translate, fix or explain
+  what you copied, then continue in the chat if you like.
 - **Chat with your documents.** Attach or drop PDF, Word, PowerPoint, text, code and data
   files. Short ones are read whole; for long ones, Calcine picks the passages that match each
   message, so they fit even the NPU's 4096-token window, and shows the pages it used under
@@ -73,7 +77,8 @@ every web page you visit.
 - **Works with Ollama apps.** Ollama's API is translated too, and can answer on Ollama's
   port, 11434, for apps that only speak Ollama.
 - **OpenAI-compatible API.** On `127.0.0.1:18181`, GenieX's default port, with per-app keys,
-  a request queue and a request log that never records prompts.
+  a request queue and a request log that never records prompts. Aliases let apps that only
+  know `gpt-4o-mini` or `llama3.2` reach your local models.
 - **Share with your other devices.** Optional, over HTTPS with a certificate made on this PC,
   for keys you allow on the network and private networks only.
 - **Without the window.** `calcine-cli` serves the same API from a terminal or a server,

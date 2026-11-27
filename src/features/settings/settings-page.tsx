@@ -21,6 +21,7 @@ import { AliasesCard } from "./components/aliases";
 import { BatteryCard } from "./components/battery";
 import { DictationCard } from "./components/dictation-card";
 import { NetworkCard } from "./components/network-card";
+import { QuickAskCard } from "./components/quick-ask-card";
 import { LocalApiCard, StartupCard } from "./components/system-cards";
 import { UpdatesCard } from "./components/updates-card";
 import { messages } from "./messages";
@@ -30,6 +31,7 @@ export function SettingsPage() {
   return (
     <Page title={t("title")}>
       <AppearanceCard />
+      <QuickAskCard />
       <DictationCard />
       <StartupCard />
       <BatteryCard />
