@@ -4,6 +4,7 @@ import { Fragment, useEffect, useRef, useState } from "react";
 import { LogoMark } from "@/components/calcine/brand/logo";
 import { useT } from "@/i18n";
 import { cn } from "@/lib/utils";
+import { useUi } from "@/stores/ui";
 import { messages as strings } from "../messages";
 import { type ChatMessage, type Conversation, useChat, useLiveReply } from "../store";
 import { Message, type MessageActions } from "./message/message";
@@ -40,6 +41,26 @@ export function Thread({
     bottom.current?.scrollIntoView({ block: "end" });
   }, [messages.length, liveLength]);
 
+  // A message found by a search: shown in the middle, flashed, then forgotten.
+  const focus = useUi((state) => state.focusMessage);
+  const conversationId = conversation?.id;
+  useEffect(() => {
+    if (!focus || !conversationId) return;
+    const frame = requestAnimationFrame(() => {
+      const element = document.querySelector(`[data-message-id="${CSS.escape(focus)}"]`);
+      element?.scrollIntoView({ block: "center" });
+      element?.classList.add("search-flash");
+    });
+    const done = setTimeout(() => {
+      document.querySelector(".search-flash")?.classList.remove("search-flash");
+      useUi.getState().setFocusMessage(null);
+    }, 1600);
+    return () => {
+      cancelAnimationFrame(frame);
+      clearTimeout(done);
+    };
+  }, [focus, conversationId]);
+
   if (messages.length === 0) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-5 px-6 text-center">
@@ -72,7 +93,10 @@ export function Thread({
             {index === seenFrom && index > 0 && (
               <ForgottenDivider summary={conversation?.summary} />
             )}
-            <div className={cn(index < seenFrom && "opacity-50")}>
+            <div
+              data-message-id={message.id}
+              className={cn("rounded-lg transition-colors", index < seenFrom && "opacity-50")}
+            >
               <Message
                 message={message}
                 live={live.messageId === message.id ? live : undefined}

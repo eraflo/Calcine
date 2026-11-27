@@ -176,6 +176,22 @@
   }
 }
 
+/* A message found by a search, flashed once it's scrolled to. */
+@layer components {
+  .search-flash {
+    animation: search-flash 1.6s ease-out;
+  }
+  @keyframes search-flash {
+    0%,
+    30% {
+      background-color: color-mix(in oklab, var(--primary) 16%, transparent);
+    }
+    100% {
+      background-color: transparent;
+    }
+  }
+}
+
 /* Markdown replies in the Chat. */
 @layer components {
   .markdown > * + * {
