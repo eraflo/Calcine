@@ -12,11 +12,11 @@ import {
   SPEC_TYPES,
   type SpecType,
 } from "@/features/chat/lib/request";
-import { messages as chatMessages } from "@/features/chat/messages";
 import { modelsQuery } from "@/features/library/api";
 import { useCancelJob } from "@/features/tasks/api";
 import { useT } from "@/i18n";
 import { common } from "@/i18n/common";
+import { generationMessages } from "@/i18n/generation";
 import type { ComputeUnit } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { benchToolQuery, useRunningJob, useStartBenchmark } from "../api";
@@ -32,7 +32,7 @@ const REPETITIONS = [3, 5, 10] as const;
 export function RunCard() {
   const t = useT(messages);
   const tc = useT(common);
-  const tchat = useT(chatMessages);
+  const tg = useT(generationMessages);
   const { data: models = [] } = useQuery(modelsQuery);
   const { data: tool } = useQuery(benchToolQuery);
   const targets = benchTargets(models);
@@ -176,7 +176,7 @@ export function RunCard() {
                 >
                   {POWER_MODES.map((mode) => (
                     <option key={mode} value={mode}>
-                      {tchat(`power_${mode}`)}
+                      {tg(`power_${mode}`)}
                     </option>
                   ))}
                 </Select>
@@ -185,7 +185,7 @@ export function RunCard() {
 
             {target?.model.runtime === "llama_cpp" && (
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field label={tchat("speculative")} htmlFor="bench-spec" hint={t("specHint")}>
+                <Field label={tg("speculative")} htmlFor="bench-spec" hint={t("specHint")}>
                   <Select
                     id="bench-spec"
                     value={specType ?? ""}
@@ -194,19 +194,19 @@ export function RunCard() {
                       setSpecType((event.target.value || null) as SpecType | null)
                     }
                   >
-                    <option value="">{tchat("spec_off")}</option>
+                    <option value="">{tg("spec_off")}</option>
                     {SPEC_TYPES.map((type) => (
                       <option key={type} value={type}>
-                        {tchat(`spec_${type}`)}
+                        {tg(`spec_${type}`)}
                       </option>
                     ))}
                   </Select>
                 </Field>
                 {needsDraftModel(specType) && (
                   <Field
-                    label={tchat("draftModel")}
+                    label={tg("draftModel")}
                     htmlFor="bench-draft"
-                    hint={drafts.length ? tchat("draftModelHint") : tchat("noDraftModels")}
+                    hint={drafts.length ? tg("draftModelHint") : tg("noDraftModels")}
                   >
                     <Select
                       id="bench-draft"
@@ -215,7 +215,7 @@ export function RunCard() {
                       onChange={(event) => setDraftModel(event.target.value || null)}
                       className="font-mono"
                     >
-                      <option value="">{tchat("draftModelNone")}</option>
+                      <option value="">{tg("draftModelNone")}</option>
                       {drafts.map(({ id }) => (
                         <option key={id} value={id}>
                           {id}

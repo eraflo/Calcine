@@ -1,8 +1,8 @@
 import { useCallback, useState } from "react";
 import { commands, type DocumentInfo, type DocumentProblem, unwrap } from "@/lib/api";
 import { prepareImage } from "../../lib/attachments";
+import type { PendingAttachment } from "../../send";
 import { newId } from "../../store";
-import type { PendingAttachment } from "../../use-send";
 import { fileName, isImagePath } from "./files";
 
 /** A document being read, read, or that couldn't be. */

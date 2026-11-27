@@ -8,7 +8,7 @@ import { useT } from "@/i18n";
 import type { LocalModel } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { buildChatRequest, type ChatSettings, toCurl } from "../../lib/request";
-import { messages } from "../../messages";
+import { settingsMessages as messages } from "./messages";
 
 /** The exact API call Calcine makes, to reuse from another app. */
 export function RequestPreview({

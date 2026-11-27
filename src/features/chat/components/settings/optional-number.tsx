@@ -1,7 +1,7 @@
 import { Field, Input } from "@/components/ui/field";
 import { useT } from "@/i18n";
 import { parseOptional } from "../../lib/inputs";
-import { messages } from "../../messages";
+import { settingsMessages as messages } from "./messages";
 
 /** A number that can be left empty to keep GenieX's default. */
 export function OptionalNumber({

@@ -9,8 +9,8 @@ import { documentMessages } from "../documents";
 import { fillLevel, totalTokens } from "../lib/context";
 import { buildChatRequest } from "../lib/request";
 import { messages } from "../messages";
+import { toTurns } from "../send";
 import { type Conversation, useChat } from "../store";
-import { toTurns } from "../use-send";
 
 const BAR = { ok: "bg-primary", high: "bg-warning", full: "bg-destructive" } as const;
 const TEXT = {

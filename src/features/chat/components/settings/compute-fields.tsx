@@ -1,15 +1,17 @@
 import { Field, Select } from "@/components/ui/field";
 import { useT } from "@/i18n";
 import { common } from "@/i18n/common";
+import { generationMessages } from "@/i18n/generation";
 import { cn } from "@/lib/utils";
 import { POWER_MODES, type PowerMode } from "../../lib/request";
-import { messages } from "../../messages";
 import { useChat } from "../../store";
+import { settingsMessages as messages } from "./messages";
 import { COMPUTE_UNITS } from "./options";
 
 /** Where the model runs, and how hard the NPU works. */
 export function ComputeFields({ llamaCpp }: { llamaCpp: boolean }) {
   const t = useT(messages);
+  const tg = useT(generationMessages);
   const settings = useChat((state) => state.settings);
   const setSettings = useChat((state) => state.setSettings);
   const tc = useT(common);
@@ -45,7 +47,7 @@ export function ComputeFields({ llamaCpp }: { llamaCpp: boolean }) {
         </fieldset>
       </Field>
 
-      <Field label={t("powerMode")} htmlFor="power-mode" hint={t("powerModeHint")}>
+      <Field label={tg("powerMode")} htmlFor="power-mode" hint={t("powerModeHint")}>
         <Select
           id="power-mode"
           value={settings.powerMode}
@@ -53,7 +55,7 @@ export function ComputeFields({ llamaCpp }: { llamaCpp: boolean }) {
         >
           {POWER_MODES.map((value) => (
             <option key={value} value={value}>
-              {t(`power_${value}`)}
+              {tg(`power_${value}`)}
             </option>
           ))}
         </Select>

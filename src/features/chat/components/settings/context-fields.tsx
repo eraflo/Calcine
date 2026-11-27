@@ -1,7 +1,7 @@
 import { Switch } from "@/components/ui/switch";
 import { useT } from "@/i18n";
-import { messages } from "../../messages";
 import { useChat } from "../../store";
+import { settingsMessages as messages } from "./messages";
 
 /** What happens when the conversation outgrows the model's window. */
 export function ContextFields() {

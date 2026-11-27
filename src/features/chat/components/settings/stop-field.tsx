@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Field, Input } from "@/components/ui/field";
 import { useT } from "@/i18n";
 import { escapeStop, unescapeStop } from "../../lib/inputs";
-import { messages } from "../../messages";
+import { settingsMessages as messages } from "./messages";
 
 /** Sequences that end the reply when the model writes them. */
 export function StopField({

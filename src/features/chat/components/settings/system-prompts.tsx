@@ -5,8 +5,8 @@ import { Field, Input, Textarea } from "@/components/ui/field";
 import { useT } from "@/i18n";
 import { common } from "@/i18n/common";
 import { cn } from "@/lib/utils";
-import { messages } from "../../messages";
 import { useChat } from "../../store";
+import { settingsMessages as messages } from "./messages";
 
 /** The system prompt, with prompts saved for reuse as chips below it. */
 export function SystemPromptField() {

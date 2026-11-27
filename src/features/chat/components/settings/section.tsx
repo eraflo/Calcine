@@ -3,7 +3,7 @@ import { ChevronRight } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { useT } from "@/i18n";
 import { cn } from "@/lib/utils";
-import { messages } from "../../messages";
+import { settingsMessages as messages } from "./messages";
 
 /** A collapsible group of options, flagged when some differ from the defaults. */
 export function Section({

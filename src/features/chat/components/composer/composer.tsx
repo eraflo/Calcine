@@ -15,7 +15,7 @@ import { type Attachments, type DocumentInfo, documentMessages } from "../../doc
 import { insertDictation } from "../../lib/dictation";
 import { useDictation } from "../../lib/use-dictation";
 import { messages } from "../../messages";
-import type { PendingAttachment } from "../../use-send";
+import type { PendingAttachment } from "../../send";
 import { AttachButton } from "./attach-button";
 import { AttachmentList } from "./attachment-list";
 import { DictateButton } from "./dictate-button";

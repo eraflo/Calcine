@@ -28,8 +28,8 @@ import {
 } from "./documents";
 import { supportsMedia } from "./lib/request";
 import { messages } from "./messages";
+import { type PendingAttachment, useSend } from "./send";
 import { useChat } from "./store";
-import { type PendingAttachment, useSend } from "./use-send";
 
 /** Wide enough for the conversations, the chat and the settings side by side. */
 const WIDE_WINDOW = "(min-width: 1200px)";

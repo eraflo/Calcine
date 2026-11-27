@@ -4,10 +4,10 @@ import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { messages as chatMessages } from "@/features/chat/messages";
 import { requestsQuery } from "@/features/server/api";
 import { useT } from "@/i18n";
 import { common } from "@/i18n/common";
+import { generationMessages } from "@/i18n/generation";
 import type { BenchResult } from "@/lib/api";
 import { commands, unwrap } from "@/lib/api";
 import { formatCount, formatNumber, formatRelative } from "@/lib/format";
@@ -20,7 +20,7 @@ import { MetricBars, UNIT_COLOR } from "./metric-bars";
 /** One session: generation, prompt reading and first token, per unit. */
 export function SessionCard({ session, latest }: { session: Session; latest: boolean }) {
   const t = useT(messages);
-  const tchat = useT(chatMessages);
+  const tg = useT(generationMessages);
   const failures = session.results.filter((result) => result.error);
   return (
     <Card>
@@ -39,11 +39,11 @@ export function SessionCard({ session, latest }: { session: Session; latest: boo
             prompt: String(session.promptTokens),
             generated: String(session.generatedTokens),
             runs: String(session.repetitions),
-            power: tchat(`power_${session.powerMode}` as "power_burst"),
+            power: tg(`power_${session.powerMode}` as "power_burst"),
           })}
           {session.specType &&
             ` · ${t("withSpec", {
-              method: [tchat(`spec_${session.specType}` as "spec_off"), session.draftModel]
+              method: [tg(`spec_${session.specType}` as "spec_off"), session.draftModel]
                 .filter(Boolean)
                 .join(" + "),
             })}`}

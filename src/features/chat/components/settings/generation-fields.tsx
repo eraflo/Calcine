@@ -5,8 +5,8 @@ import { useT } from "@/i18n";
 import { formatNumber } from "@/lib/format";
 import { clamp } from "../../lib/inputs";
 import { activePreset, PRESETS, type Preset } from "../../lib/request";
-import { messages } from "../../messages";
 import { useChat } from "../../store";
+import { settingsMessages as messages } from "./messages";
 import { Value } from "./value";
 
 /** Thinking, style, temperature and reply length. */

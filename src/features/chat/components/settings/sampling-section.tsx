@@ -1,7 +1,7 @@
 import { useT } from "@/i18n";
 import { DEFAULT_SETTINGS } from "../../lib/request";
-import { messages } from "../../messages";
 import { useChat } from "../../store";
+import { settingsMessages as messages } from "./messages";
 import { OptionalNumber } from "./optional-number";
 import { ADVANCED_SAMPLING, isChanged, pick } from "./options";
 import { Section } from "./section";

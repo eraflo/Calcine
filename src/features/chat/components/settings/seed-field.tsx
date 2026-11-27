@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
 import { useT } from "@/i18n";
 import { parseOptional } from "../../lib/inputs";
-import { messages } from "../../messages";
+import { settingsMessages as messages } from "./messages";
 import { MAX_SEED } from "./options";
 
 /** Same seed and settings give the same reply (llama.cpp only). */

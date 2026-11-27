@@ -2,14 +2,16 @@ import { useQuery } from "@tanstack/react-query";
 import { Field, Select } from "@/components/ui/field";
 import { modelsQuery } from "@/features/library/api";
 import { useT } from "@/i18n";
+import { generationMessages } from "@/i18n/generation";
 import { needsDraftModel, SPEC_TYPES, type SpecType } from "../../lib/request";
-import { messages } from "../../messages";
 import { useChat } from "../../store";
+import { settingsMessages as messages } from "./messages";
 import { OptionalNumber } from "./optional-number";
 
 /** Method, draft model and draft sizes for speculative decoding. */
 export function SpeculativeFields({ modelId }: { modelId: string | undefined }) {
   const t = useT(messages);
+  const tg = useT(generationMessages);
   const settings = useChat((state) => state.settings);
   const setSettings = useChat((state) => state.setSettings);
   const { data: models = [] } = useQuery(modelsQuery);
@@ -39,19 +41,19 @@ export function SpeculativeFields({ modelId }: { modelId: string | undefined }) 
             setSettings({ specType: (event.target.value || null) as SpecType | null })
           }
         >
-          <option value="">{t("spec_off")}</option>
+          <option value="">{tg("spec_off")}</option>
           {SPEC_TYPES.map((type) => (
             <option key={type} value={type}>
-              {t(`spec_${type}`)}
+              {tg(`spec_${type}`)}
             </option>
           ))}
         </Select>
       </Field>
       {drafting && (
         <Field
-          label={t("draftModel")}
+          label={tg("draftModel")}
           htmlFor="draft-model"
-          hint={drafts.length ? t("draftModelHint") : t("noDraftModels")}
+          hint={drafts.length ? tg("draftModelHint") : tg("noDraftModels")}
         >
           <Select
             id="draft-model"
@@ -60,7 +62,7 @@ export function SpeculativeFields({ modelId }: { modelId: string | undefined }) 
             onChange={(event) => setSettings({ draftModel: event.target.value || null })}
             className="font-mono"
           >
-            <option value="">{t("draftModelNone")}</option>
+            <option value="">{tg("draftModelNone")}</option>
             {drafts.map((draft) => (
               <option key={draft} value={draft}>
                 {draft}

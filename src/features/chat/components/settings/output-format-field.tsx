@@ -2,8 +2,8 @@ import { Field, Textarea } from "@/components/ui/field";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { useT } from "@/i18n";
 import { type OutputFormat, parseSchema } from "../../lib/request";
-import { messages } from "../../messages";
 import { useChat } from "../../store";
+import { settingsMessages as messages } from "./messages";
 
 /** Text, any JSON object, or JSON matching a schema. */
 export function OutputFormatField() {

@@ -1,7 +1,8 @@
 import { useT } from "@/i18n";
+import { generationMessages } from "@/i18n/generation";
 import { DEFAULT_SETTINGS } from "../../lib/request";
-import { messages } from "../../messages";
 import { useChat } from "../../store";
+import { settingsMessages as messages } from "./messages";
 import { isChanged, pick, SPECULATIVE } from "./options";
 import { Section } from "./section";
 import { SpeculativeFields } from "./speculative-fields";
@@ -15,11 +16,12 @@ export function SpeculativeSection({
   llamaCpp: boolean;
 }) {
   const t = useT(messages);
+  const tg = useT(generationMessages);
   const settings = useChat((state) => state.settings);
   const setSettings = useChat((state) => state.setSettings);
   return (
     <Section
-      title={t("speculative")}
+      title={tg("speculative")}
       changed={SPECULATIVE.some((key) => isChanged(settings, key))}
       onReset={() => setSettings(pick(DEFAULT_SETTINGS, SPECULATIVE))}
     >
