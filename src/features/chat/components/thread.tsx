@@ -6,7 +6,7 @@ import { useT } from "@/i18n";
 import { cn } from "@/lib/utils";
 import { messages as strings } from "../messages";
 import { type Conversation, useLiveReply } from "../store";
-import { Message } from "./message";
+import { Message } from "./message/message";
 
 const SUGGESTIONS = ["suggestion1", "suggestion2", "suggestion3"] as const;
 

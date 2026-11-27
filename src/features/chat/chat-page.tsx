@@ -10,19 +10,23 @@ import { useMediaQuery } from "@/hooks/use-media-query";
 import { useT } from "@/i18n";
 import { commands } from "@/lib/api";
 import { useLayout } from "@/stores/layout";
-import { Composer } from "./components/composer";
+import { Composer } from "./components/composer/composer";
 import { ContextMeter } from "./components/context-meter";
 import { ConversationList } from "./components/conversation-list";
-import { DocumentsButton } from "./components/documents-button";
-import { DropZone } from "./components/drop-zone";
 import { ExportButton } from "./components/export-button";
 import { ModelPicker } from "./components/model-picker";
 import { PreloadButton } from "./components/preload-button";
-import { SettingsPanel } from "./components/settings-panel";
+import { SettingsPanel } from "./components/settings/settings-panel";
 import { Thread } from "./components/thread";
-import type { DocumentInfo } from "./lib/documents";
+import {
+  type AttachmentProblem,
+  type DocumentInfo,
+  DocumentsButton,
+  DropZone,
+  documentMessages,
+  useAttachments,
+} from "./documents";
 import { supportsMedia } from "./lib/request";
-import { type AttachmentProblem, useAttachments } from "./lib/use-attachments";
 import { messages } from "./messages";
 import { useChat } from "./store";
 import { type PendingAttachment, useSend } from "./use-send";
@@ -45,6 +49,7 @@ function pruneDocuments() {
 
 export function ChatPage() {
   const t = useT(messages);
+  const td = useT(documentMessages);
   const models = useQuery(modelsQuery);
   const conversations = useChat((state) => state.conversations);
   const activeId = useChat((state) => state.activeId);
@@ -74,10 +79,10 @@ export function ChatPage() {
     (found: AttachmentProblem) =>
       setProblem(
         found.kind === "image-needs-vision"
-          ? t("imageNeedsVision", { name: found.name })
+          ? td("imageNeedsVision", { name: found.name })
           : t("attachFailed", { name: found.name, message: found.message }),
       ),
-    [t],
+    [t, td],
   );
   const attachments = useAttachments({ media, onProblem: onAttachmentProblem });
   useEffect(pruneDocuments, []);

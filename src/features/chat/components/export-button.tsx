@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Tooltip } from "@/components/ui/tooltip";
 import { useT } from "@/i18n";
 import { commands, unwrap } from "@/lib/api";
+import { documentMessages } from "../documents";
 import { toMarkdown } from "../lib/export";
 import { messages } from "../messages";
 import type { Conversation } from "../store";
@@ -12,6 +13,7 @@ import type { Conversation } from "../store";
 /** Save the conversation as a Markdown file. */
 export function ExportButton({ conversation }: { conversation: Conversation | undefined }) {
   const t = useT(messages);
+  const td = useT(documentMessages);
   const [saved, setSaved] = useState(false);
   const title = conversation?.title || t("newChat");
   const save = useMutation({
@@ -28,8 +30,8 @@ export function ExportButton({ conversation }: { conversation: Conversation | un
           recording: t("recordingName"),
           stopped: t("stopped"),
           document: t("exportDocument"),
-          sources: t("sources"),
-          page: t("sourcePage"),
+          sources: td("sources"),
+          page: td("sourcePage"),
         },
         new Date(),
       );

@@ -2,17 +2,12 @@ import { useQuery } from "@tanstack/react-query";
 import { useCallback, useRef } from "react";
 import { modelsQuery } from "@/features/library/api";
 import { connectionQuery } from "@/features/server/api";
-import { commands, unwrap } from "@/lib/api";
+import { commands, type DocumentContext, type DocumentInfo, unwrap } from "@/lib/api";
 import { fetchContextUsage, fittedStart, summarize, visibleMessages } from "./context-usage";
+import { documentBudget } from "./documents/lib/budget";
+import { documentParts, documentQueries } from "./documents/lib/prompt";
 import type { Attachment } from "./lib/attachments";
 import { totalTokens } from "./lib/context";
-import {
-  type DocumentContext,
-  type DocumentInfo,
-  documentBudget,
-  documentParts,
-  documentQueries,
-} from "./lib/documents";
 import { buildChatRequest, type ChatTurn, type MediaPart, stopIndex } from "./lib/request";
 import { streamChat } from "./lib/sse";
 import { SUMMARY_MAX_TOKENS } from "./lib/summary";

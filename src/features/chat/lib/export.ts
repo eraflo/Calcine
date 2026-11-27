@@ -1,5 +1,5 @@
+import { groupSources } from "../documents/lib/sources";
 import type { Conversation } from "../store";
-import { groupSources } from "./documents";
 
 /** Words of the export, in the UI language. */
 export type ExportLabels = {

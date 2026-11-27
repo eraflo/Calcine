@@ -5,6 +5,7 @@ import type { LocalModel } from "@/lib/api";
 import { formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { fetchContextUsage, visibleMessages } from "../context-usage";
+import { documentMessages } from "../documents";
 import { fillLevel, totalTokens } from "../lib/context";
 import { buildChatRequest } from "../lib/request";
 import { messages } from "../messages";
@@ -31,6 +32,7 @@ export function ContextMeter({
   streaming: boolean;
 }) {
   const t = useT(messages);
+  const td = useT(documentMessages);
   const settings = useChat((state) => state.settings);
   const all = conversation?.messages ?? [];
   const visible = visibleMessages(all, conversation?.contextFrom);
@@ -77,7 +79,7 @@ export function ContextMeter({
     forgotten > 0 ? t.plural("contextForgotten", forgotten) : null,
     forgotten > 0 && conversation?.summary ? t("contextSummary") : null,
     level === "ok" ? null : settings.forgetOldest ? t("contextFullForget") : t("contextFullStop"),
-    documentTokens > 0 ? t("contextDocuments", { tokens: formatNumber(documentTokens, 0) }) : null,
+    documentTokens > 0 ? td("contextDocuments", { tokens: formatNumber(documentTokens, 0) }) : null,
   ].filter(Boolean);
 
   return (

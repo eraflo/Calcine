@@ -1,9 +1,9 @@
 import { isTauri } from "@tauri-apps/api/core";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { commands } from "@/lib/api";
+import { type ContextMode, commands, type DocumentInfo, type Source } from "@/lib/api";
+import { newDocuments } from "./documents/lib/sources";
 import type { Attachment } from "./lib/attachments";
-import { type ContextMode, type DocumentInfo, newDocuments, type Source } from "./lib/documents";
 import {
   type ChatSettings,
   DEFAULT_SETTINGS,
