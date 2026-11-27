@@ -2,8 +2,17 @@ import { useQuery } from "@tanstack/react-query";
 import { useCallback, useRef } from "react";
 import { modelsQuery } from "@/features/library/api";
 import { connectionQuery } from "@/features/server/api";
+import { commands, unwrap } from "@/lib/api";
 import { fetchContextUsage, fittedStart, summarize, visibleMessages } from "./context-usage";
 import type { Attachment } from "./lib/attachments";
+import { totalTokens } from "./lib/context";
+import {
+  type DocumentContext,
+  type DocumentInfo,
+  documentBudget,
+  documentParts,
+  documentQueries,
+} from "./lib/documents";
 import { buildChatRequest, type ChatTurn, type MediaPart, stopIndex } from "./lib/request";
 import { streamChat } from "./lib/sse";
 import { SUMMARY_MAX_TOKENS } from "./lib/summary";
@@ -30,10 +39,18 @@ export function useSend() {
   const streaming = useLiveReply((state) => state.messageId !== null);
 
   const send = useCallback(
-    async (conversationId: string, text: string, pending: readonly PendingAttachment[] = []) => {
+    async (
+      conversationId: string,
+      text: string,
+      pending: readonly PendingAttachment[] = [],
+      attached: readonly DocumentInfo[] = [],
+    ) => {
       const chat = useChat.getState();
       const conversation = chat.conversations.find((c) => c.id === conversationId);
       if (!conversation || !connection || controller.current) return;
+      if (attached.length) chat.addDocuments(conversationId, [...attached]);
+      const documents =
+        useChat.getState().conversations.find((c) => c.id === conversationId)?.documents ?? [];
 
       useMediaPayloads.setState(
         Object.fromEntries(pending.map(({ attachment, payload }) => [attachment.id, payload])),
@@ -43,6 +60,7 @@ export function useSend() {
         role: "user",
         content: text,
         ...(pending.length ? { attachments: pending.map(({ attachment }) => attachment) } : {}),
+        ...(attached.length ? { documents: [...attached] } : {}),
       };
       let visible = visibleMessages(
         [...conversation.messages, userMessage],
@@ -61,8 +79,56 @@ export function useSend() {
       const model = models.find((candidate) => candidate.name === conversation.modelId);
       const { settings } = chat;
       let summary = conversation.summary;
+      let read: DocumentContext | null = null;
       const request = () =>
-        buildChatRequest(model, conversation.modelId, settings, toTurns(visible), summary);
+        buildChatRequest(
+          model,
+          conversation.modelId,
+          settings,
+          toTurns(visible),
+          summary,
+          documentParts(read),
+        );
+      // What the model reads of the documents: in the room the conversation
+      // leaves, the passages that best match the message (or all of them).
+      const readDocuments = async () => {
+        if (documents.length === 0) return;
+        live.setStatus("reading");
+        try {
+          const usage = await fetchContextUsage(conversation.modelId, request());
+          const budget = documentBudget(
+            usage.window,
+            totalTokens(usage.tokens),
+            settings.maxTokens,
+          );
+          read = await unwrap(() =>
+            commands.documentContext(
+              conversation.modelId,
+              documents.map((document) => document.id),
+              documentQueries(text, conversation.messages),
+              budget,
+            ),
+          );
+        } catch (error) {
+          // Without its documents, the model still answers.
+          if (abort.signal.aborted) throw error;
+          console.warn("couldn't read the documents", error);
+        } finally {
+          live.setStatus(null);
+        }
+      };
+      const sources = () =>
+        read && read.sources.length > 0
+          ? {
+              sources: read.sources,
+              documentMode: read.mode,
+              passagesRead: {
+                read: read.passagesRead,
+                total: read.passagesTotal,
+                tokens: read.tokens,
+              },
+            }
+          : {};
       // Too long for the model's context window: stop showing it the oldest
       // messages, enough of them that the start stays put for a few turns,
       // and have the model summarize them.
@@ -109,6 +175,7 @@ export function useSend() {
         abort.abort();
       };
       try {
+        await readDocuments();
         await fitContext();
         const body = request();
         const result = await streamChat({
@@ -122,6 +189,7 @@ export function useSend() {
           content: result.content,
           reasoning: result.reasoning || undefined,
           stats: result.stats,
+          ...sources(),
         });
         // The gateway forgot more than counted here (an estimate was short).
         if (result.forgotten > 0) {
@@ -133,12 +201,14 @@ export function useSend() {
           chat.updateMessage(conversationId, replyId, {
             content: partial.content,
             reasoning: partial.reasoning || undefined,
+            ...sources(),
           });
         } else if (abort.signal.aborted) {
           chat.updateMessage(conversationId, replyId, {
             content: partial.content,
             reasoning: partial.reasoning || undefined,
             stopped: true,
+            ...sources(),
           });
         } else {
           chat.updateMessage(conversationId, replyId, {

@@ -27,6 +27,9 @@ export function ExportButton({ conversation }: { conversation: Conversation | un
           image: t("exportImage"),
           recording: t("recordingName"),
           stopped: t("stopped"),
+          document: t("exportDocument"),
+          sources: t("sources"),
+          page: t("sourcePage"),
         },
         new Date(),
       );

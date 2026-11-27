@@ -21,7 +21,9 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build.workspace = true
 
 [dependencies]
+base64.workspace = true
 calcine-core.workspace = true
+calcine-docs.workspace = true
 calcine-gateway.workspace = true
 calcine-geniex.workspace = true
 calcine-hub.workspace = true

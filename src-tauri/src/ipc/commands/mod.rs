@@ -6,6 +6,7 @@
 
 pub mod app;
 pub mod bench;
+pub mod documents;
 pub mod jobs;
 pub mod models;
 pub mod runtime;

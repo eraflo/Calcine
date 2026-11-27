@@ -60,7 +60,11 @@ export function ContextMeter({
 
   const window = usage.data?.window;
   if (!usage.data || !window) return null;
-  const used = totalTokens(usage.data.tokens);
+  // Documents are read again with every message: count what the last reply read.
+  const documentTokens = conversation?.documents?.length
+    ? (all.findLast((message) => message.passagesRead?.tokens)?.passagesRead?.tokens ?? 0)
+    : 0;
+  const used = totalTokens(usage.data.tokens) + documentTokens;
   const level = fillLevel(used, window);
   const percent = Math.min(100, (used / window) * 100);
   const details = [
@@ -73,6 +77,7 @@ export function ContextMeter({
     forgotten > 0 ? t.plural("contextForgotten", forgotten) : null,
     forgotten > 0 && conversation?.summary ? t("contextSummary") : null,
     level === "ok" ? null : settings.forgetOldest ? t("contextFullForget") : t("contextFullStop"),
+    documentTokens > 0 ? t("contextDocuments", { tokens: formatNumber(documentTokens, 0) }) : null,
   ].filter(Boolean);
 
   return (

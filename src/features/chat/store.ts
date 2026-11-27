@@ -1,6 +1,9 @@
+import { isTauri } from "@tauri-apps/api/core";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { commands } from "@/lib/api";
 import type { Attachment } from "./lib/attachments";
+import { type ContextMode, type DocumentInfo, newDocuments, type Source } from "./lib/documents";
 import {
   type ChatSettings,
   DEFAULT_SETTINGS,
@@ -16,6 +19,16 @@ export type ChatMessage = {
   content: string;
   /** Images and recordings; their data is in {@link useMediaPayloads}. */
   attachments?: Attachment[];
+  /** Documents attached with this message (they then belong to the
+   * conversation). */
+  documents?: DocumentInfo[];
+  /** Where the reply may come from, in the attached documents. */
+  sources?: Source[];
+  /** Whether the model read the documents whole, or passages of them. */
+  documentMode?: ContextMode;
+  /** Passages read, out of all of them, and the tokens they took, for
+   * this reply. */
+  passagesRead?: { read: number; total: number; tokens?: number };
   reasoning?: string;
   stats?: StreamStats;
   error?: string;
@@ -34,6 +47,8 @@ export type Conversation = {
   contextFrom?: string;
   /** What came before `contextFrom`, summarized by the model. */
   summary?: string;
+  /** Documents the model can read, in the order they were attached. */
+  documents?: DocumentInfo[];
 };
 
 /** A system prompt saved for reuse. */
@@ -54,6 +69,10 @@ type ChatState = {
   /** Where the model's view starts, and the summary of what's before. */
   setContext: (id: string, context: Pick<Conversation, "contextFrom" | "summary">) => void;
   setSettings: (patch: Partial<ChatSettings>) => void;
+  /** Attach documents to a conversation (those already there are skipped). */
+  addDocuments: (id: string, documents: DocumentInfo[]) => void;
+  /** Stop showing a document to the model; its text is deleted. */
+  removeDocument: (id: string, documentId: string) => void;
   prompts: SavedPrompt[];
   savePrompt: (name: string, text: string) => void;
   removePrompt: (id: string) => void;
@@ -83,10 +102,14 @@ export const useChat = create<ChatState>()(
       },
       select: (activeId) => set({ activeId }),
       remove: (id) =>
-        set((state) => ({
-          conversations: state.conversations.filter((c) => c.id !== id),
-          activeId: state.activeId === id ? null : state.activeId,
-        })),
+        set((state) => {
+          const removed = state.conversations.find((c) => c.id === id);
+          forgetDocuments(removed?.documents?.map((document) => document.id) ?? []);
+          return {
+            conversations: state.conversations.filter((c) => c.id !== id),
+            activeId: state.activeId === id ? null : state.activeId,
+          };
+        }),
       setModel: (id, modelId) =>
         set((state) => ({
           lastModelId: modelId,
@@ -124,6 +147,30 @@ export const useChat = create<ChatState>()(
           conversations: state.conversations.map((c) => (c.id === id ? { ...c, ...context } : c)),
         })),
       setSettings: (patch) => set((state) => ({ settings: { ...state.settings, ...patch } })),
+      addDocuments: (id, documents) =>
+        set((state) => ({
+          conversations: state.conversations.map((c) =>
+            c.id === id
+              ? {
+                  ...c,
+                  documents: [
+                    ...(c.documents ?? []),
+                    ...newDocuments(c.documents ?? [], documents),
+                  ],
+                }
+              : c,
+          ),
+        })),
+      removeDocument: (id, documentId) => {
+        forgetDocuments([documentId]);
+        set((state) => ({
+          conversations: state.conversations.map((c) =>
+            c.id === id
+              ? { ...c, documents: c.documents?.filter((document) => document.id !== documentId) }
+              : c,
+          ),
+        }));
+      },
       prompts: [],
       // Saving under an existing name replaces that prompt.
       savePrompt: (name, text) =>
@@ -159,6 +206,12 @@ export const useChat = create<ChatState>()(
   ),
 );
 
+/** Delete documents' text from disk (outside Tauri, there's none). */
+function forgetDocuments(ids: string[]) {
+  if (ids.length === 0 || !isTauri()) return;
+  void commands.removeDocuments(ids);
+}
+
 export function titleFrom(text: string): string {
   const line = text.trim().split("\n")[0] ?? "";
   return line.length > 48 ? `${line.slice(0, 47)}…` : line;
@@ -177,7 +230,7 @@ type LiveReply = {
   content: string;
   reasoning: string;
   /** Work before the reply starts. */
-  status: "summarizing" | null;
+  status: "summarizing" | "reading" | null;
   start: (conversationId: string, messageId: string) => void;
   setStatus: (status: LiveReply["status"]) => void;
   append: (delta: { content?: string; reasoning?: string }) => void;

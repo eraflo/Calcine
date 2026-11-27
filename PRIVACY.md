@@ -37,6 +37,10 @@ These services have their own privacy policies:
 ## Data kept on your PC
 
 - **Conversations and chat settings**: in Calcine's web storage, on this PC.
+- **Documents attached in the chat**: only their text, cut into passages, in the
+  `documents` folder of `%LOCALAPPDATA%\com.eraflo.calcine` (`~/.local/share/com.eraflo.calcine`
+  on Linux), never the original file. It's deleted with the conversation, or when you
+  remove the document from it. The documents are read on this PC: nothing is uploaded.
 - **Dictation**: your recording stays in memory while a model on this PC writes it
   down, then it's discarded. It's never saved or sent anywhere.
 - **API keys**: only a SHA-256 fingerprint of each key, in `api-keys.json`.
@@ -47,9 +51,9 @@ These services have their own privacy policies:
 
 Calcine's data folder is `%APPDATA%\com.eraflo.calcine` (settings, keys,
 benchmarks, the network certificate) and `%LOCALAPPDATA%\com.eraflo.calcine`
-(web storage, downloaded installers and tools). Uninstalling Calcine can remove
-them. On Linux both are `~/.local/share/com.eraflo.calcine` (or under
-`$XDG_DATA_HOME`), and GenieX lives in `~/.local/share/geniex-cli`.
+(web storage, the text of attached documents, downloaded installers and tools).
+Uninstalling Calcine can remove them. On Linux both are
+`~/.local/share/com.eraflo.calcine` (or under `$XDG_DATA_HOME`), and GenieX lives in `~/.local/share/geniex-cli`.
 
 ## The local API
 

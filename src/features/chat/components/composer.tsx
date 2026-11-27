@@ -1,4 +1,4 @@
-import { ArrowUp, AudioLines, ImagePlus, Loader2, Mic, Square, X } from "lucide-react";
+import { ArrowUp, Loader2, Mic, Paperclip, Sparkles, Square, X } from "lucide-react";
 import {
   type ClipboardEvent,
   type FormEvent,
@@ -13,22 +13,30 @@ import { Tooltip } from "@/components/ui/tooltip";
 import { formatDuration } from "@/features/tasks/lib/format";
 import { useT } from "@/i18n";
 import { cn } from "@/lib/utils";
-import { prepareImage } from "../lib/attachments";
 import { insertDictation } from "../lib/dictation";
+import type { DocumentInfo } from "../lib/documents";
+import type { Attachments } from "../lib/use-attachments";
 import { type DictationState, useDictation } from "../lib/use-dictation";
 import { messages } from "../messages";
-import { newId } from "../store";
 import type { PendingAttachment } from "../use-send";
+import { DocumentChip } from "./document-chip";
+
+/** Quick requests offered once documents are attached. */
+const DOCUMENT_ACTIONS = ["docSummarize", "docKeyPoints", "docFigures"] as const;
 
 /**
- * Message box: Enter sends, Shift+Enter adds a line. Vision models also take
- * images. Dictation writes what you say into the box, whatever the model.
+ * Message box: Enter sends, Shift+Enter adds a line. Documents go to every
+ * model, images to vision models. Dictation writes what you say into the
+ * box, whatever the model.
  */
 export function Composer({
   disabled,
   disabledReason,
   streaming,
   media,
+  attachments,
+  problem,
+  onProblem,
   onSend,
   onStop,
 }: {
@@ -37,15 +45,16 @@ export function Composer({
   streaming: boolean;
   /** The model takes images and audio. */
   media: boolean;
-  onSend: (text: string, attachments: PendingAttachment[]) => void;
+  attachments: Attachments;
+  /** Something couldn't be attached or dictated. */
+  problem: string | null;
+  onProblem: (problem: string | null) => void;
+  onSend: (text: string, images: PendingAttachment[], documents: DocumentInfo[]) => void;
   onStop: () => void;
 }) {
   const t = useT(messages);
   const [text, setText] = useState("");
-  const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
-  const [problem, setProblem] = useState<string | null>(null);
   const area = useRef<HTMLTextAreaElement>(null);
-  const fileInput = useRef<HTMLInputElement>(null);
 
   // Dictated words go where the caret is.
   const onDictated = useCallback((spoken: string) => {
@@ -61,7 +70,7 @@ export function Composer({
       return value;
     });
   }, []);
-  const dictation = useDictation({ onText: onDictated, onProblem: setProblem });
+  const dictation = useDictation({ onText: onDictated, onProblem });
   // Nothing is sent while the microphone or a transcription is busy.
   const busy = dictation.state.status !== "idle";
 
@@ -74,38 +83,29 @@ export function Composer({
     element.style.height = `${Math.min(element.scrollHeight, 200)}px`;
   }, [text]);
 
-  // Media can't go to a text-only model.
+  // Images can't go to a text-only model.
+  const { dropImages } = attachments;
   useEffect(() => {
-    if (!media) setAttachments([]);
-  }, [media]);
+    if (!media) dropImages();
+  }, [media, dropImages]);
 
-  const addImages = async (files: Iterable<File>) => {
-    setProblem(null);
-    for (const file of files) {
-      if (!file.type.startsWith("image/")) continue;
-      try {
-        const { dataUrl, thumbnail } = await prepareImage(file);
-        setAttachments((current) => [
-          ...current,
-          {
-            attachment: { id: newId(), kind: "image", name: file.name || "image", thumbnail },
-            payload: { kind: "image", dataUrl },
-          },
-        ]);
-      } catch (error) {
-        setProblem(t("attachFailed", { name: file.name, message: describe(error) }));
-      }
-    }
+  const { images, documents, ready: readyDocuments, reading } = attachments;
+  const hasDocuments = readyDocuments.length > 0;
+  const canSend = Boolean(text.trim() || images.length || hasDocuments);
+  const blocked = disabled || streaming || busy || reading;
+
+  const send = (message: string) => {
+    if (blocked) return;
+    onSend(message, images, readyDocuments);
+    setText("");
+    attachments.clear();
+    onProblem(null);
   };
-
-  const ready = Boolean(text.trim() || attachments.length);
   const submit = (event?: FormEvent) => {
     event?.preventDefault();
-    if (!ready || disabled || streaming || busy) return;
-    onSend(text.trim(), attachments);
-    setText("");
-    setAttachments([]);
-    setProblem(null);
+    if (!canSend) return;
+    // Documents alone: summarize them.
+    send(text.trim() || (hasDocuments ? t.plural("docSummarize", readyDocuments.length) : ""));
   };
 
   const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -117,41 +117,59 @@ export function Composer({
 
   const onPaste = (event: ClipboardEvent<HTMLTextAreaElement>) => {
     if (!media) return;
-    const images = [...event.clipboardData.files].filter((file) => file.type.startsWith("image/"));
-    if (images.length === 0) return;
+    const pasted = [...event.clipboardData.files].filter((file) => file.type.startsWith("image/"));
+    if (pasted.length === 0) return;
     event.preventDefault();
-    void addImages(images);
+    void attachments.addImageFiles(pasted);
   };
 
+  const showActions = hasDocuments && !text.trim() && !reading;
   return (
     <form onSubmit={submit} className="mx-auto w-full max-w-3xl px-6 pb-5">
-      <div className="flex flex-col gap-2 rounded-lg border bg-card p-2 focus-within:ring-2 focus-within:ring-ring">
-        {attachments.length > 0 && (
+      {showActions && (
+        <div className="mb-2 flex flex-wrap items-center gap-1.5 px-1 animate-in fade-in-0 slide-in-from-bottom-1">
+          <Sparkles className="size-3.5 text-primary" />
+          {DOCUMENT_ACTIONS.map((key) => {
+            const label = t.plural(key, readyDocuments.length);
+            return (
+              <button
+                key={key}
+                type="button"
+                disabled={blocked}
+                onClick={() => send(label)}
+                className="rounded-full border bg-card px-3 py-1 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground disabled:opacity-50"
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+      <div className="flex flex-col gap-2 rounded-xl border bg-card p-2 shadow-xs transition-shadow focus-within:ring-2 focus-within:ring-ring">
+        {(images.length > 0 || documents.length > 0) && (
           <ul className="flex flex-wrap gap-2 px-1 pt-1">
-            {attachments.map(({ attachment }) => (
+            {documents.map((item) => (
+              <li key={item.key}>
+                <DocumentChip
+                  name={item.name}
+                  state={item}
+                  onRemove={() => attachments.removeDocument(item.key)}
+                />
+              </li>
+            ))}
+            {images.map(({ attachment }) => (
               <li
                 key={attachment.id}
-                className="group relative flex h-14 items-center gap-2 overflow-hidden rounded-md border bg-background"
+                className="group relative flex h-12 items-center overflow-hidden rounded-lg border bg-background"
               >
-                {attachment.kind === "image" ? (
-                  <img
-                    src={attachment.thumbnail}
-                    alt={attachment.name}
-                    className="h-full w-14 object-cover"
-                  />
-                ) : (
-                  <span className="flex items-center gap-1.5 px-3 text-xs">
-                    <AudioLines className="size-3.5 text-primary" />
-                    {formatDuration(attachment.durationSeconds ?? 0)}
-                  </span>
-                )}
+                <img
+                  src={attachment.thumbnail}
+                  alt={attachment.name}
+                  className="h-full w-14 object-cover"
+                />
                 <button
                   type="button"
-                  onClick={() =>
-                    setAttachments((current) =>
-                      current.filter((item) => item.attachment.id !== attachment.id),
-                    )
-                  }
+                  onClick={() => attachments.removeImage(attachment.id)}
                   className="absolute top-0.5 right-0.5 rounded-full bg-background/80 p-0.5 text-muted-foreground hover:text-foreground"
                   aria-label={t("removeAttachment", { name: attachment.name })}
                 >
@@ -162,10 +180,10 @@ export function Composer({
           </ul>
         )}
         <div className="flex items-end gap-1.5">
-          <ImageButton
+          <AttachButton
             media={media}
             disabled={disabled || streaming || busy}
-            onPick={() => fileInput.current?.click()}
+            onPick={() => void attachments.pick().then(() => area.current?.focus())}
           />
           <textarea
             ref={area}
@@ -174,7 +192,13 @@ export function Composer({
             onKeyDown={onKeyDown}
             onPaste={onPaste}
             rows={1}
-            placeholder={disabled ? (disabledReason ?? t("pickModelFirst")) : t("placeholder")}
+            placeholder={
+              disabled
+                ? (disabledReason ?? t("pickModelFirst"))
+                : hasDocuments
+                  ? t("placeholderDocuments")
+                  : t("placeholder")
+            }
             disabled={disabled}
             aria-label={t("message")}
             className="max-h-[200px] min-h-9 flex-1 resize-none bg-transparent px-2 py-2 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed"
@@ -190,36 +214,29 @@ export function Composer({
               <Square className="fill-current" />
             </Button>
           ) : (
-            <Button
-              type="submit"
-              size="icon"
-              variant="default"
-              disabled={disabled || !ready || busy}
-              aria-label={t("send")}
-            >
-              <ArrowUp />
-            </Button>
+            <Tooltip content={reading ? t("waitForDocuments") : t("send")}>
+              <span>
+                <Button
+                  type="submit"
+                  size="icon"
+                  variant="default"
+                  disabled={blocked || !canSend}
+                  aria-label={reading ? t("waitForDocuments") : t("send")}
+                >
+                  {reading ? <Loader2 className="animate-spin" /> : <ArrowUp />}
+                </Button>
+              </span>
+            </Tooltip>
           )}
         </div>
       </div>
-      <input
-        ref={fileInput}
-        type="file"
-        accept="image/*"
-        multiple
-        hidden
-        onChange={(event) => {
-          void addImages(event.target.files ?? []);
-          event.target.value = "";
-        }}
-      />
       {problem && <p className="mt-1.5 px-1 text-xs text-destructive">{problem}</p>}
     </form>
   );
 }
 
-/** Add an image, for vision models. */
-function ImageButton({
+/** Attach documents, and images for vision models. */
+function AttachButton({
   media,
   disabled,
   onPick,
@@ -229,21 +246,22 @@ function ImageButton({
   onPick: () => void;
 }) {
   const t = useT(messages);
+  const label = media ? t("attachDocumentsOrImages") : t("attachDocuments");
   return (
-    <Tooltip content={media ? t("attachImage") : t("textOnly")}>
-      <div>
+    <Tooltip content={label}>
+      <span>
         <Button
           type="button"
           size="icon"
           variant="ghost"
           className="size-9"
           onClick={onPick}
-          disabled={!media || disabled}
-          aria-label={t("attachImage")}
+          disabled={disabled}
+          aria-label={label}
         >
-          <ImagePlus />
+          <Paperclip />
         </Button>
-      </div>
+      </span>
     </Tooltip>
   );
 }
@@ -306,8 +324,4 @@ function DictateButton({
       <div>{button}</div>
     </Tooltip>
   );
-}
-
-function describe(error: unknown) {
-  return error instanceof Error ? error.message : String(error);
 }

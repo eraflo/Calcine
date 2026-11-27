@@ -1,5 +1,5 @@
 import * as Collapsible from "@radix-ui/react-collapsible";
-import { Brain, ChevronRight, CircleAlert, ImageOff, Mic } from "lucide-react";
+import { Brain, ChevronRight, CircleAlert, FileSearch, ImageOff, Mic } from "lucide-react";
 import { memo, useState } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -14,6 +14,8 @@ import { prettyJson } from "../lib/request";
 import type { StreamStats } from "../lib/sse";
 import { messages } from "../messages";
 import { type ChatMessage, useMediaPayloads } from "../store";
+import { DocumentChip } from "./document-chip";
+import { Sources } from "./sources";
 
 /** One turn. `live` is the reply still being generated. */
 export function Message({
@@ -21,7 +23,7 @@ export function Message({
   live,
 }: {
   message: ChatMessage;
-  live?: { content: string; reasoning: string; status?: "summarizing" | null };
+  live?: { content: string; reasoning: string; status?: "summarizing" | "reading" | null };
 }) {
   const t = useT(messages);
   const content = live?.content ?? message.content;
@@ -30,6 +32,18 @@ export function Message({
   if (message.role === "user") {
     return (
       <div className="flex flex-col items-end gap-1.5">
+        {message.documents && message.documents.length > 0 && (
+          <div className="flex max-w-[80%] flex-wrap justify-end gap-1.5">
+            {message.documents.map((document) => (
+              <DocumentChip
+                key={document.id}
+                name={document.name}
+                state={{ status: "ready", document }}
+                className="pr-2.5"
+              />
+            ))}
+          </div>
+        )}
         {message.attachments && message.attachments.length > 0 && (
           <div className="flex max-w-[80%] flex-wrap justify-end gap-1.5">
             {message.attachments.map((attachment) => (
@@ -56,6 +70,14 @@ export function Message({
         <p className="animate-pulse text-xs text-muted-foreground" role="status">
           {t("summarizing")}
         </p>
+      ) : live?.status === "reading" ? (
+        <p
+          className="flex animate-pulse items-center gap-1.5 text-xs text-muted-foreground"
+          role="status"
+        >
+          <FileSearch className="size-3.5 text-primary" />
+          {t("readingDocuments")}
+        </p>
       ) : live && !reasoning ? (
         <TypingDots />
       ) : null}
@@ -76,6 +98,13 @@ export function Message({
             )}
           </span>
         </p>
+      )}
+      {!live && message.sources && message.sources.length > 0 && (
+        <Sources
+          sources={message.sources}
+          mode={message.documentMode}
+          passages={message.passagesRead}
+        />
       )}
       {!live && (message.stats || message.stopped) && (
         <div className="flex items-center gap-2 text-[11px] text-muted-foreground">

@@ -1,4 +1,5 @@
 import type { ComputeUnit, LocalModel } from "@/lib/api";
+import { withDocuments, withPassages } from "./documents";
 import { withSummary } from "./summary";
 
 /** GenieX power modes, fastest first. Labels live in the chat messages. */
@@ -257,11 +258,21 @@ export function buildChatRequest(
   history: readonly ChatTurn[],
   /** What the model no longer sees, summarized: goes in the system prompt. */
   summary?: string,
+  /** Attached documents: read whole (`system`), or the passages that may
+   * answer the last message (`prefix`). */
+  documents: { system?: string; prefix?: string } = {},
 ) {
-  const turns = history.map(toApiMessage);
+  const lastUser = history.findLastIndex((turn) => turn.role === "user");
+  const turns = history
+    .map((turn, index) =>
+      index === lastUser && documents.prefix
+        ? { ...turn, content: withPassages(turn.content, documents.prefix) }
+        : turn,
+    )
+    .map(toApiMessage);
   const llamaCpp = supportsComputeChoice(model);
   const stop = settings.stop.filter((sequence) => sequence !== "");
-  const system = withSummary(settings.systemPrompt, summary);
+  const system = withSummary(withDocuments(settings.systemPrompt, documents.system), summary);
   const messages = system ? [{ role: "system" as const, content: system }, ...turns] : turns;
   return {
     model: modelId,

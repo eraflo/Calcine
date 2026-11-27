@@ -11,6 +11,7 @@
 
 pub mod cli;
 mod desktop;
+mod documents;
 mod ipc;
 mod setup;
 #[cfg(windows)]
@@ -26,6 +27,10 @@ use tracing_subscriber::EnvFilter;
 /// If Tauri fails to start (for example, no WebView2 runtime).
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Started to read an attached document: do only that.
+    if let Some(code) = documents::run_child_if_asked() {
+        std::process::exit(code);
+    }
     init_tracing("info");
     desktop::process::kill_children_on_exit();
 

@@ -40,6 +40,10 @@ every web page you visit.
 - **Chat with every option.** Thinking, temperature, max tokens, compute unit and power
   mode, adapted to each model's runtime, with tokens per second. Images and voice for
   vision models.
+- **Chat with your documents.** Attach or drop PDF, Word, PowerPoint, text, code and data
+  files. Short ones are read whole; for long ones, Calcine picks the passages that match each
+  message, so they fit even the NPU's 4096-token window, and shows the pages it used under
+  the reply. Everything is read on this PC.
 - **Dictate.** The microphone button writes down what you say, in French, English and more,
   with a model that understands speech (Gemma 4 E4B), on this PC. Silence is skipped, so
   nothing is made up. The same transcription answers `/v1/audio/transcriptions`.

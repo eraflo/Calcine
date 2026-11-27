@@ -180,6 +180,30 @@ export const commands = {
 	/**  Create a key. The token is returned once and never stored in clear. */
 	createApiKey: (request: NewApiKey) => typedError<CreatedApiKey, ApiError>(__TAURI_INVOKE("create_api_key", { request })),
 	revokeApiKey: (id: string) => typedError<boolean, ApiError>(__TAURI_INVOKE("revoke_api_key", { id })),
+	/**
+	 *  Choose files to attach: documents, and images when the model takes
+	 *  them. Empty when the user cancels.
+	 */
+	pickAttachments: (images: boolean) => __TAURI_INVOKE<string[]>("pick_attachments", { images }),
+	/**
+	 *  Read a document's text and keep it for the chat. Reading failures come
+	 *  back as [`Imported::Failed`], with a reason the chat can explain.
+	 */
+	importDocument: (path: string) => typedError<Imported, ApiError>(__TAURI_INVOKE("import_document", { path })),
+	/**  An image file as a data URL, for the webview to resize. */
+	readImage: (path: string) => typedError<string, ApiError>(__TAURI_INVOKE("read_image", { path })),
+	/**
+	 *  What `model` reads of these documents for the user's last messages
+	 *  (newest first), within `budget` tokens.
+	 */
+	documentContext: (model: string, ids: string[], queries: string[], budget: number) => typedError<DocumentContext, ApiError>(__TAURI_INVOKE("document_context", { model, ids, queries, budget })),
+	/**
+	 *  Forget documents (their conversation was deleted, or they were removed
+	 *  from it).
+	 */
+	removeDocuments: (ids: string[]) => typedError<null, ApiError>(__TAURI_INVOKE("remove_documents", { ids })),
+	/**  Delete the documents no conversation uses any more; returns how many. */
+	retainDocuments: (keep: string[]) => typedError<number, ApiError>(__TAURI_INVOKE("retain_documents", { keep })),
 };
 
 /** Events */
@@ -372,6 +396,12 @@ export type ComputeUnit =
 /**  Split between units. */
 "hybrid";
 
+export type ContextMode = 
+/**  The documents are read whole. */
+"full" | 
+/**  Too long: only the passages that match the message are read. */
+"passages";
+
 /**  How full a conversation is. */
 export type ContextUsage = {
 	tokens: TokenCount,
@@ -391,6 +421,51 @@ export type DiskSpace = {
 	totalBytes: number,
 	availableBytes: number,
 };
+
+/**  The documents' share of the next request. */
+export type DocumentContext = {
+	mode: ContextMode,
+	/**
+	 *  What the model is given: the whole documents (for the system prompt)
+	 *  or the chosen passages (before the user's message).
+	 */
+	text: string,
+	/**  Tokens `text` takes, about. */
+	tokens: number,
+	sources: Source[],
+	/**  Passages read, out of all the documents' passages. */
+	passagesRead: number,
+	passagesTotal: number,
+};
+
+/**  What the chat knows about an attached document. */
+export type DocumentInfo = {
+	id: string,
+	/**  File name, as shown to the user and the model. */
+	name: string,
+	kind: DocumentKind,
+	/**  Pages or slides, when the format has them. */
+	pages: number | null,
+	/**  Characters of text found. */
+	chars: number,
+	/**  Size of the original file. */
+	bytes: number,
+	passages: number,
+};
+
+/**  What a document is, for its icon and how its pages are named. */
+export type DocumentKind = "pdf" | 
+/**  Word and OpenDocument text. */
+"word" | 
+/**  PowerPoint and OpenDocument presentations: one page per slide. */
+"slides" | "web" | 
+/**  CSV, JSON, XML, YAML… */
+"data" | "code" | "text";
+
+/**  Why a file couldn't be read, for a message in the user's language. */
+export type DocumentProblem = "unsupported" | "no_text" | "too_large" | "protected" | 
+/**  Damaged, or a variant of the format Calcine can't read. */
+"unreadable";
 
 /**  What energy a power mode used. */
 export type EnergyMeasure = {
@@ -540,6 +615,9 @@ export type ImportSource =
 "folder" | 
 /**  An AI Hub `.zip`. */
 "archive";
+
+/**  The outcome of attaching a file. */
+export type Imported = { status: "ready"; document: DocumentInfo } | { status: "failed"; name: string; problem: DocumentProblem; detail: string };
 
 /**  What to install. */
 export type InstallSource = 
@@ -850,6 +928,17 @@ export type ServerState = { state: "stopped" } | { state: "starting" } |
 { state: "ready"; url: string; startedAtMs: number } | 
 /**  The process exited or never became ready. */
 { state: "failed"; message: string };
+
+/**  Where an answer may come from, shown under the reply. */
+export type Source = {
+	documentId: string,
+	name: string,
+	kind: DocumentKind,
+	/**  Page or slide, for documents that have them. */
+	page: number | null,
+	/**  The start of the passage. */
+	excerpt: string,
+};
 
 /**  Tokens a chat request takes. */
 export type TokenCount = {

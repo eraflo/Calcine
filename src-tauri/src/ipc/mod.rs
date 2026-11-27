@@ -80,6 +80,12 @@ pub fn builder() -> Builder<Wry> {
             commands::server::list_api_keys,
             commands::server::create_api_key,
             commands::server::revoke_api_key,
+            commands::documents::pick_attachments,
+            commands::documents::import_document,
+            commands::documents::read_image,
+            commands::documents::document_context,
+            commands::documents::remove_documents,
+            commands::documents::retain_documents,
         ])
         .events(collect_events![
             events::JobUpdated,
