@@ -1,7 +1,7 @@
 import { useT } from "@/i18n";
 import type { UsageShare } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import { type Metric, topShares, valueOf } from "../lib/metrics";
+import { type Metric, metricValue, topShares } from "../lib/metrics";
 import { messages } from "../messages";
 import { useFormatMetric } from "./usage-chart";
 
@@ -25,8 +25,8 @@ export function ShareList({
   const t = useT(messages);
   const format = useFormatMetric();
   const { top, others } = topShares(shares, metric);
-  const max = Math.max(1, ...top.map((share) => valueOf(share, metric)));
-  const total = shares.reduce((sum, share) => sum + valueOf(share, metric), 0);
+  const max = Math.max(1, ...top.map((share) => metricValue(share, metric)));
+  const total = shares.reduce((sum, share) => sum + metricValue(share, metric), 0);
 
   const row = (key: string, name: string, value: number, muted = false) => (
     <li key={key} className="grid grid-cols-[minmax(0,12rem)_1fr_auto] items-center gap-3 py-1.5">
@@ -59,7 +59,7 @@ export function ShareList({
 
   return (
     <ul className="flex flex-col">
-      {top.map((share) => row(share.name, label(share.name), valueOf(share, metric)))}
+      {top.map((share) => row(share.name, label(share.name), metricValue(share, metric)))}
       {others && row("others", t.plural("others", others.count), others.value, true)}
     </ul>
   );

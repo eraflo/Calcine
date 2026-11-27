@@ -6,7 +6,7 @@ import type { UsagePoint, UsageShare, UsageTotals } from "@/lib/api";
 export type Metric = "requests" | "tokens" | "energy";
 
 /** A point's or share's value for `metric`. */
-export function valueOf(item: UsagePoint | UsageShare, metric: Metric): number {
+export function metricValue(item: UsagePoint | UsageShare, metric: Metric): number {
   if (metric === "requests") return item.requests;
   if (metric === "tokens") return item.completionTokens;
   return item.energyJoules ?? 0;
@@ -49,7 +49,7 @@ export function topShares(
   metric: Metric,
   shown = 6,
 ): { top: UsageShare[]; others: { count: number; value: number } | null } {
-  const sorted = [...shares].sort((a, b) => valueOf(b, metric) - valueOf(a, metric));
+  const sorted = [...shares].sort((a, b) => metricValue(b, metric) - metricValue(a, metric));
   const top = sorted.slice(0, shown);
   const rest = sorted.slice(shown);
   if (rest.length === 0) return { top, others: null };
@@ -57,7 +57,7 @@ export function topShares(
     top,
     others: {
       count: rest.length,
-      value: rest.reduce((sum, share) => sum + valueOf(share, metric), 0),
+      value: rest.reduce((sum, share) => sum + metricValue(share, metric), 0),
     },
   };
 }

@@ -3,7 +3,7 @@ import { useLanguage, useT } from "@/i18n";
 import type { UsagePoint, UsageSummary } from "@/lib/api";
 import { formatCount, formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { energyParts, type Metric, niceMax, valueOf } from "../lib/metrics";
+import { energyParts, type Metric, metricValue, niceMax } from "../lib/metrics";
 import { axisLabel, labelEvery, pointLabel } from "../lib/time";
 import { messages } from "../messages";
 
@@ -29,7 +29,10 @@ export function UsageChart({ summary, metric }: { summary: UsageSummary; metric:
   const format = useFormatMetric();
   const [active, setActive] = useState<number | null>(null);
   const { series, period, stepMs } = summary;
-  const { max, unit } = axis(Math.max(0, ...series.map((point) => valueOf(point, metric))), metric);
+  const { max, unit } = axis(
+    Math.max(0, ...series.map((point) => metricValue(point, metric))),
+    metric,
+  );
   const every = labelEvery(period);
   const hovered = active === null ? undefined : series[active];
 
@@ -48,7 +51,15 @@ export function UsageChart({ summary, metric }: { summary: UsageSummary; metric:
             </span>
           ))}
         </div>
-        <div className="relative flex-1" onMouseLeave={() => setActive(null)}>
+        <div
+          className="relative flex-1"
+          role="group"
+          aria-label={t("chartLabel", {
+            metric: t(`metric_${metric}`),
+            period: t(`period_${period}`),
+          })}
+          onMouseLeave={() => setActive(null)}
+        >
           {[0, 50, 100].map((top) => (
             <span
               key={top}
@@ -63,9 +74,9 @@ export function UsageChart({ summary, metric }: { summary: UsageSummary; metric:
             {series.map((point, index) => (
               <Column
                 key={point.startMs}
-                share={valueOf(point, metric) / max}
+                share={metricValue(point, metric) / max}
                 dimmed={active !== null && active !== index}
-                label={`${pointLabel(point.startMs, stepMs, period, language)}: ${format(valueOf(point, metric), metric)}`}
+                label={`${pointLabel(point.startMs, stepMs, period, language)}: ${format(metricValue(point, metric), metric)}`}
                 onActive={() => setActive(index)}
                 onInactive={() => setActive((current) => (current === index ? null : current))}
               />
@@ -103,7 +114,7 @@ export function UsageChart({ summary, metric }: { summary: UsageSummary; metric:
           {series.map((point) => (
             <tr key={point.startMs}>
               <th scope="row">{pointLabel(point.startMs, stepMs, period, language)}</th>
-              <td>{format(valueOf(point, metric), metric)}</td>
+              <td>{format(metricValue(point, metric), metric)}</td>
             </tr>
           ))}
         </tbody>
