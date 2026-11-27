@@ -12,3 +12,4 @@ pub mod models;
 pub mod runtime;
 pub mod server;
 pub mod updates;
+pub mod usage;

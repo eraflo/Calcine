@@ -13,6 +13,7 @@ use crate::keys::KeyStore;
 use crate::log::RequestLog;
 use crate::network::limiter::Limiter;
 use crate::settings::GatewaySettings;
+use crate::usage::Usage;
 
 /// What the Server page shows.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Type)]
@@ -56,6 +57,8 @@ pub struct AppState {
     pub services: Services,
     pub keys: Arc<KeyStore>,
     pub log: Arc<RequestLog>,
+    /// Usage over time, for `/metrics`.
+    pub usage: Arc<Usage>,
     pub http: reqwest::Client,
     /// GenieX runs one inference at a time; waiting here makes the queue visible.
     pub queue: Arc<Semaphore>,
@@ -83,6 +86,7 @@ impl AppState {
             services,
             keys,
             log,
+            usage: Arc::new(Usage::load(None)),
             http: reqwest::Client::new(),
             queue: Arc::new(Semaphore::new(1)),
             port,
@@ -93,6 +97,13 @@ impl AppState {
             queued: AtomicU32::new(0),
             status,
         }
+    }
+
+    /// Share the gateway's usage (a new state starts with an empty one).
+    #[must_use]
+    pub fn with_usage(mut self, usage: Arc<Usage>) -> Self {
+        self.usage = usage;
+        self
     }
 
     pub fn settings(&self) -> GatewaySettings {

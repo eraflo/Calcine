@@ -3,6 +3,7 @@
 use std::sync::Arc;
 use std::time::Duration;
 
+use calcine_gateway::usage::UsagePeriod;
 use calcine_gateway::{
     CALCINE_ORIGINS, Gateway, GatewayOptions, GatewaySettings, KeyScope, KeyStore, NewApiKey,
 };
@@ -40,6 +41,7 @@ async fn start(settings: GatewaySettings) -> Harness {
             settings_path: Some(settings_path),
             builtin_origins: CALCINE_ORIGINS.iter().map(|o| (*o).to_owned()).collect(),
             network_dir: Some(dir.join("network")),
+            usage_path: None,
         },
     );
     gateway.start().await.unwrap();
@@ -313,6 +315,7 @@ async fn a_taken_port_is_reported() {
             settings_path: Some(path),
             builtin_origins: vec![],
             network_dir: None,
+            usage_path: None,
         },
     );
     assert!(gateway.start().await.is_err());
@@ -1109,4 +1112,56 @@ async fn transcribes_speech_like_openai() {
         .await
         .unwrap();
     assert_eq!(refused.status(), StatusCode::FORBIDDEN);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn usage_counts_finished_requests_for_metrics() {
+    let h = start(any_port()).await;
+    let token = h.key(&[KeyScope::Inference], false);
+    for stream in [false, true] {
+        let reply = h.chat(Some(&token), &hello(stream)).send().await.unwrap();
+        assert_eq!(reply.status(), StatusCode::OK);
+        let _ = reply.bytes().await.unwrap();
+    }
+
+    // The recorder follows the log in the background.
+    let mut summary = h.gateway.usage().summary(UsagePeriod::Day, 0);
+    for _ in 0..50 {
+        if summary.totals.requests == 2 {
+            break;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+        summary = h.gateway.usage().summary(UsagePeriod::Day, 0);
+    }
+    assert_eq!(summary.totals.requests, 2);
+    assert!(summary.totals.completion_tokens > 0);
+    assert_eq!(summary.by_client[0].name, "Test app");
+    assert!(
+        summary.totals.energy_joules.is_some(),
+        "the mock meters energy"
+    );
+
+    let anonymous = h
+        .http
+        .get(format!("{}/metrics", h.base))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(anonymous.status(), StatusCode::UNAUTHORIZED);
+    let metrics = h
+        .http
+        .get(format!("{}/metrics", h.base))
+        .bearer_auth(&token)
+        .send()
+        .await
+        .unwrap()
+        .text()
+        .await
+        .unwrap();
+    assert!(
+        metrics.contains(
+            "calcine_requests_total{client=\"Test app\",model=\"qualcomm/Qwen3-0.6B\"} 2"
+        ),
+        "{metrics}"
+    );
 }

@@ -26,6 +26,7 @@ pub fn create(services: Services, data_dir: &Path) -> Gateway {
             settings_path: Some(data_dir.join("gateway.json")),
             builtin_origins: origins,
             network_dir: Some(data_dir.join("network")),
+            usage_path: Some(data_dir.join("usage.json")),
         },
     )
 }

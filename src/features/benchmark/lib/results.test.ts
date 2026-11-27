@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { BenchResult, RequestEntry } from "@/lib/api";
+import type { BenchResult } from "@/lib/api";
 import {
   benchTargets,
   best,
@@ -8,7 +8,6 @@ import {
   mostEfficient,
   sessions,
   toCsv,
-  usageByModel,
 } from "./results";
 
 const stat = (median: number) => ({ median, min: median, max: median, stdev: 1 });
@@ -105,43 +104,6 @@ describe("benchTargets", () => {
       { name: "c/d", sizeBytes: 1, runtime: "qairt", modelType: "llm", precisions: [] },
     ]);
     expect(targets.map((target) => target.id)).toEqual(["a/b:Q4_0", "a/b:Q8_0", "c/d"]);
-  });
-});
-
-describe("usageByModel", () => {
-  const entry = (overrides: Partial<RequestEntry>): RequestEntry => ({
-    id: 1,
-    startedAtMs: 0,
-    client: "Calcine",
-    method: "POST",
-    path: "/v1/chat/completions",
-    model: "m",
-    stream: true,
-    status: 200,
-    durationMs: 1000,
-    firstTokenMs: 100,
-    promptTokens: 10,
-    completionTokens: 50,
-    tokensPerSecond: 20,
-    error: null,
-    ...overrides,
-  });
-
-  it("summarizes successful requests per model", () => {
-    const usage = usageByModel([
-      entry({ firstTokenMs: 100, tokensPerSecond: 20 }),
-      entry({ firstTokenMs: 300, tokensPerSecond: 30 }),
-      entry({ status: 500 }),
-      entry({ model: "other" }),
-    ]);
-    expect(usage[0]).toEqual({
-      model: "m",
-      requests: 2,
-      completionTokens: 100,
-      firstTokenMs: 200,
-      tokensPerSecond: 25,
-    });
-    expect(usage).toHaveLength(2);
   });
 });
 

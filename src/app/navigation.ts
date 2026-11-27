@@ -1,5 +1,14 @@
 import type { LucideIcon } from "lucide-react";
-import { Compass, Cpu, Gauge, Library, MessagesSquare, Server, Settings } from "lucide-react";
+import {
+  Activity,
+  Compass,
+  Cpu,
+  Gauge,
+  Library,
+  MessagesSquare,
+  Server,
+  Settings,
+} from "lucide-react";
 import type { messages } from "./messages";
 
 type NavItem = { to: string; label: keyof (typeof messages)["en"]; icon: LucideIcon };
@@ -13,6 +22,7 @@ export const mainNavigation = [
   { to: "/library", label: "nav_library", icon: Library },
   { to: "/discover", label: "nav_discover", icon: Compass },
   { to: "/server", label: "nav_server", icon: Server },
+  { to: "/activity", label: "nav_activity", icon: Activity },
   { to: "/hardware", label: "nav_hardware", icon: Cpu },
   { to: "/benchmark", label: "nav_benchmark", icon: Gauge },
 ] as const satisfies readonly NavItem[];

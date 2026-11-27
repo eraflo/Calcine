@@ -204,6 +204,13 @@ export const commands = {
 	removeDocuments: (ids: string[]) => typedError<null, ApiError>(__TAURI_INVOKE("remove_documents", { ids })),
 	/**  Delete the documents no conversation uses any more; returns how many. */
 	retainDocuments: (keep: string[]) => typedError<number, ApiError>(__TAURI_INVOKE("retain_documents", { keep })),
+	/**
+	 *  Requests, tokens, speed and energy for `period`, ending now. Days start
+	 *  at local midnight: `utc_offset_minutes` is the webview's offset from UTC.
+	 */
+	usageSummary: (period: UsagePeriod, utcOffsetMinutes: number) => __TAURI_INVOKE<UsageSummary>("usage_summary", { period, utcOffsetMinutes }),
+	/**  Forget all recorded usage. */
+	clearUsage: () => __TAURI_INVOKE<void>("clear_usage"),
 };
 
 /** Events */
@@ -954,6 +961,58 @@ export type TokenCount = {
 	 *  GenieX counts) rather than estimated from the text's length.
 	 */
 	exact: boolean,
+};
+
+/**  The span the Activity page shows. */
+export type UsagePeriod = 
+/**  The last 24 hours, hour by hour. */
+"day" | 
+/**  The last 7 days, day by day. */
+"week" | 
+/**  The last 30 days, day by day. */
+"month";
+
+export type UsagePoint = {
+	startMs: number,
+	requests: number,
+	completionTokens: number,
+	errors: number,
+	energyJoules: number | null,
+};
+
+/**  One app's or model's part of the period. */
+export type UsageShare = {
+	name: string,
+	requests: number,
+	completionTokens: number,
+	energyJoules: number | null,
+};
+
+export type UsageSummary = {
+	period: UsagePeriod,
+	/**  What each point of `series` covers. */
+	stepMs: number,
+	startMs: number,
+	endMs: number,
+	totals: UsageTotals,
+	/**  The same span just before, for trends. */
+	previous: UsageTotals,
+	series: UsagePoint[],
+	/**  Most requests first. */
+	byClient: UsageShare[],
+	byModel: UsageShare[],
+};
+
+export type UsageTotals = {
+	requests: number,
+	errors: number,
+	promptTokens: number,
+	completionTokens: number,
+	/**  Generated tokens per second, weighted by tokens. */
+	averageSpeed: number | null,
+	averageFirstTokenMs: number | null,
+	/**  System energy while requests ran; `None` without energy metering. */
+	energyJoules: number | null,
 };
 
 /* Tauri Specta runtime */

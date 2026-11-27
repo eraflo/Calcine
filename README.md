@@ -55,6 +55,9 @@ every web page you visit.
 - **Benchmark properly.** Qualcomm's `geniex-bench`, downloaded and verified for you:
   time to first token, prompt and generation speed per unit, with warmup, repetitions,
   history and CSV export.
+- **See your activity.** Requests, tokens, speed and energy over 24 hours, 7 or 30 days,
+  per app and per model, with the same counters at `/metrics` for Prometheus and Grafana.
+  Only counts are kept, never what's asked or answered.
 - **Measure energy.** On Snapdragon X, the chip's own energy metering shows live power, and
   energy per token on each compute unit and power mode, so you can pick the most efficient.
 - **Structured output and tools on the NPU.** `response_format` (JSON or a JSON Schema) and

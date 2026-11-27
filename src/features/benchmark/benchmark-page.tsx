@@ -6,7 +6,7 @@ import { Page } from "@/components/calcine/layout/page";
 import { useT } from "@/i18n";
 import { benchHistoryQuery } from "./api";
 import { EnergyCard } from "./components/energy-card";
-import { HistoryCard, LeaderboardCard, SessionCard, UsageCard } from "./components/results-cards";
+import { HistoryCard, LeaderboardCard, SessionCard } from "./components/results-cards";
 import { RunCard } from "./components/run-card";
 import { ToolCard } from "./components/tool-card";
 import { sessions as groupSessions } from "./lib/results";
@@ -33,7 +33,6 @@ export function BenchmarkPage() {
       )}
       <EnergyCard />
       <LeaderboardCard history={history} />
-      <UsageCard />
       {sessions.length > 0 && (
         <HistoryCard
           sessions={sessions}

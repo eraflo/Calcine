@@ -86,6 +86,8 @@ pub fn builder() -> Builder<Wry> {
             commands::documents::document_context,
             commands::documents::remove_documents,
             commands::documents::retain_documents,
+            commands::usage::usage_summary,
+            commands::usage::clear_usage,
         ])
         .events(collect_events![
             events::JobUpdated,

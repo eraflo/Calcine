@@ -1,19 +1,18 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { Check, FileDown, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { requestsQuery } from "@/features/server/api";
 import { useT } from "@/i18n";
 import { common } from "@/i18n/common";
 import { generationMessages } from "@/i18n/generation";
 import type { BenchResult } from "@/lib/api";
 import { commands, unwrap } from "@/lib/api";
-import { formatCount, formatNumber, formatRelative } from "@/lib/format";
+import { formatNumber, formatRelative } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { useForgetResults } from "../api";
-import { leaderboard, median, type Session, toCsv, usageByModel } from "../lib/results";
+import { leaderboard, median, type Session, toCsv } from "../lib/results";
 import { messages } from "../messages";
 import { MetricBars, UNIT_COLOR } from "./metric-bars";
 
@@ -209,49 +208,6 @@ export function HistoryCard({
         </ul>
         {exportCsv.isError && (
           <p className="mt-2 text-xs text-destructive">{exportCsv.error.message}</p>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-/** Speed with real prompts, from the request log since Calcine started. */
-export function UsageCard() {
-  const t = useT(messages);
-  const { data: entries = [] } = useQuery(requestsQuery);
-  const usage = usageByModel(entries);
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{t("usageTitle")}</CardTitle>
-        <CardDescription>{t("usageHint")}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        {usage.length === 0 ? (
-          <p className="text-sm text-muted-foreground">{t("usageEmpty")}</p>
-        ) : (
-          <ul className="flex flex-col divide-y">
-            {usage.map((row) => (
-              <li key={row.model} className="flex items-center gap-3 py-2 text-xs">
-                <span className="min-w-0 flex-1 truncate font-mono">{row.model}</span>
-                <span className="text-muted-foreground">
-                  {t.plural("requests", row.requests, { count: formatCount(row.requests) })}
-                </span>
-                {row.firstTokenMs !== null && (
-                  <span className="w-36 text-right text-muted-foreground tabular-nums">
-                    {t("firstTokenShort", {
-                      value: t("ms", { value: formatNumber(row.firstTokenMs, 0) }),
-                    })}
-                  </span>
-                )}
-                {row.tokensPerSecond !== null && (
-                  <span className="w-20 text-right font-medium tabular-nums">
-                    {t("speedShort", { value: formatNumber(row.tokensPerSecond, 1) })}
-                  </span>
-                )}
-              </li>
-            ))}
-          </ul>
         )}
       </CardContent>
     </Card>

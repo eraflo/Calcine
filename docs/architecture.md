@@ -30,7 +30,7 @@ Security of the gateway is described in [security-model.md](security-model.md).
 |---|---|---|
 | `crates/calcine-core` | Domain types, model references (pasted names and links), service traits (`ModelStore`, `ModelCatalog`, `RuntimeManager`, `HardwareProbe`), the `JobManager` for long-running work, errors, `Services` | No |
 | `crates/calcine-geniex` | GenieX CLI adapter: discovery, command runner (`platform.rs`: what differs on Linux, `LD_LIBRARY_PATH`, parent-death signal, archive install), `pull` with live progress, `geniex serve` supervisor, output parsers tested on real captures (`tests/fixtures/`), installing and updating GenieX (`update/`: release index, verified download, signature, silent installer, cache for rolling back), context windows and token counts with each model's `tokenizer.json` (`context.rs`) | No |
-| `crates/calcine-gateway` | Local HTTP API (axum): Host/Origin/API-key checks, optional local network port (`network/`: HTTPS with rustls and a self-signed certificate, allowed address ranges, key-guessing limiter), body sanitizing, OpenAI-compatible proxy with streaming and a one-at-a-time queue, request log, `/calcine/v1` management API | No |
+| `crates/calcine-gateway` | Local HTTP API (axum): Host/Origin/API-key checks, optional local network port (`network/`: HTTPS with rustls and a self-signed certificate, allowed address ranges, key-guessing limiter), body sanitizing, OpenAI-compatible proxy with streaming and a one-at-a-time queue, request log, usage over time (`usage/`: hourly counts per app and model with the energy meter read around each request, saved for 90 days, summaries for the Activity page, `/metrics` in Prometheus' format), `/calcine/v1` management API | No |
 | `crates/calcine-docs` | Documents attached in the chat: text of PDF (`pdf-extract`, `lopdf` as a fallback), Word, PowerPoint, OpenDocument, HTML and text files; passages with their page; keyword ranking (BM25, French and English); what fits in a token budget (whole documents or matching passages); the text kept on disk. The app reads files in a child process (`src-tauri/src/documents/`), as PDF readers can panic | No |
 | `crates/calcine-hub` | Hub lookups over HTTPS: Hugging Face search, precisions with sizes (named like GenieX), AI Hub chipsets (`ModelDirectory`) | No |
 | `crates/calcine-hw` | Hardware probe: CPU, memory and disk (sysinfo), NPU/GPU and drivers (Windows WMI; on Linux the FastRPC device, the `msm`/KGSL GPU and the device tree's SoC), live NPU/GPU load (performance counters), power and energy from the SoC's energy metering (`Energy Meter` counters, found by their English names through PerfLib) | No |
@@ -61,6 +61,7 @@ calcine-gateway/src/
 ├─ routes/     openai.rs (/v1) · manage.rs (/calcine/v1)
 ├─ proxy.rs    forwarding and streaming to geniex serve
 ├─ keys.rs     API keys (hashed, scoped) · caller.rs (who is calling)
+├─ usage/      bucket.rs · store.rs · recorder.rs · summary.rs · prometheus.rs
 └─ log.rs · settings.rs · state.rs · error.rs
 
 calcine-docs/src/   kind.rs (extensions) · error.rs

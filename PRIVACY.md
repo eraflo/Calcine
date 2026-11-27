@@ -46,6 +46,10 @@ These services have their own privacy policies:
 - **API keys**: only a SHA-256 fingerprint of each key, in `api-keys.json`.
 - **Request log**: who called which model, when, how fast and how many tokens,
   never the prompts or replies. Kept in memory and lost when Calcine closes.
+- **Activity**: counts per hour, app and model (requests, tokens, time taken,
+  energy while requests ran), never the prompts or replies, in `usage.json`. Kept 90
+  days; Activity › Clear history deletes them. The same counts are served at `/metrics`
+  on this PC, to callers with an API key.
 - **Settings and benchmark results**: JSON files in Calcine's data folder.
 - **Models**: in GenieX's model folder.
 
