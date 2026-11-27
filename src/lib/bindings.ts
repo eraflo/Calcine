@@ -155,12 +155,8 @@ export const commands = {
 	gatewaySettings: () => __TAURI_INVOKE<GatewaySettings>("gateway_settings"),
 	/**  Move the local API to another port. Apps must use the new address. */
 	setGatewayPort: (port: number) => typedError<null, ApiError>(__TAURI_INVOKE("set_gateway_port", { port })),
-	/**
-	 *  On battery, run chat requests that don't choose a power mode in `mode`
-	 *  (`None`: never).
-	 */
-	setBatteryPowerMode: (mode: string | null) => typedError<null, ApiError>(__TAURI_INVOKE("set_battery_power_mode", { mode })),
-	/**  Model names apps ask for (`gpt-4o-mini`), answered by local models. */
+	/**  What chat requests save on battery: thinking, reply length, power mode. */
+	setBatterySaver: (saver: BatterySaver) => typedError<null, ApiError>(__TAURI_INVOKE("set_battery_saver", { saver })),
 	setModelAliases: (aliases: ModelAlias[]) => typedError<null, ApiError>(__TAURI_INVOKE("set_model_aliases", { aliases })),
 	/**  Browser origins allowed to call the local API (local web apps). */
 	setAllowedOrigins: (origins: string[]) => typedError<null, ApiError>(__TAURI_INVOKE("set_allowed_origins", { origins })),
@@ -309,6 +305,19 @@ export type BackendKind =
 "geniex" | 
 /**  In-memory fake data (`CALCINE_BACKEND=mock`). */
 "mock";
+
+export type BatterySaver = {
+	enabled?: boolean,
+	/**  Turn thinking off: reasoning is often most of a reply's tokens. */
+	noThinking?: boolean,
+	/**  Longest reply, in tokens (`None`: as asked). */
+	maxReplyTokens?: number | null,
+	/**
+	 *  For requests that don't choose one. GenieX ignores power modes for
+	 *  now; this is ready for when it doesn't.
+	 */
+	powerMode?: string,
+};
 
 /**  What one compute unit measured. */
 export type BenchMeasure = {
@@ -575,11 +584,8 @@ export type GatewaySettings = {
 	 *  `192.168.1.0/24`. Empty means private networks.
 	 */
 	networkAllowed?: string[],
-	/**
-	 *  On battery, the power mode for chat requests that don't choose one
-	 *  (`None`: off).
-	 */
-	batteryPowerMode?: string | null,
+	/**  On battery, what chat requests save. */
+	batterySaver?: BatterySaver,
 	/**  Model names apps ask for, answered by local models. */
 	modelAliases?: ModelAlias[],
 };

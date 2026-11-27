@@ -64,8 +64,9 @@ every web page you visit.
   Only counts are kept, never what's asked or answered.
 - **Measure energy.** On Snapdragon X, the chip's own energy metering shows live power, and
   energy per token on each compute unit and power mode, so you can pick the most efficient.
-- **Last longer on battery.** Unplugged, models run in the power mode you pick (Power saver
-  by default) for the chat and for apps, and at full speed again once plugged in.
+- **Last longer on battery.** Unplugged, models write less, for the chat and for apps:
+  thinking off and replies up to 512 tokens by default. Each token costs about the same
+  energy, so fewer tokens use less battery. Back to normal once plugged in.
 - **Structured output and tools on the NPU.** `response_format` (JSON or a JSON Schema) and
   `tool_choice` work on every model: Calcine asks for JSON or for the call, checks the reply
   against the schema and has the model fix it if needed. Agents can rely on them.

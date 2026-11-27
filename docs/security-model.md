@@ -43,8 +43,9 @@ you in Settings:
   window is looked up. Aliases can't point to another alias. `/v1/models` and
   `/api/tags` list an alias only while its model is installed. The request log
   shows the model that answered.
-- **Battery saver**: on battery, a chat request that doesn't choose a
-  `power_mode` gets the one you picked. A request that chooses one keeps it.
+- **Battery saver**: on battery, chat requests get `enable_think: false` and a
+  `max_tokens` no higher than the limit you chose (both can be turned off), and
+  the power mode you picked when they don't choose one.
 
 ## `/metrics`
 

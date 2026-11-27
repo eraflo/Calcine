@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use specta::Type;
 
 use crate::aliases::ModelAlias;
+use crate::battery::BatterySaver;
 
 pub const DEFAULT_PORT: u16 = 18181;
 
@@ -32,9 +33,8 @@ pub struct GatewaySettings {
     /// Who may connect over the network: addresses or ranges like
     /// `192.168.1.0/24`. Empty means private networks.
     pub network_allowed: Vec<String>,
-    /// On battery, the power mode for chat requests that don't choose one
-    /// (`None`: off).
-    pub battery_power_mode: Option<String>,
+    /// On battery, what chat requests save.
+    pub battery_saver: BatterySaver,
     /// Model names apps ask for, answered by local models.
     pub model_aliases: Vec<ModelAlias>,
 }
@@ -50,7 +50,7 @@ impl Default for GatewaySettings {
             network_enabled: false,
             network_port: crate::network::DEFAULT_PORT,
             network_allowed: Vec::new(),
-            battery_power_mode: None,
+            battery_saver: BatterySaver::default(),
             model_aliases: Vec::new(),
         }
     }
@@ -61,7 +61,16 @@ impl GatewaySettings {
     pub fn load(path: &Path) -> Self {
         std::fs::read(path)
             .ok()
-            .and_then(|bytes| serde_json::from_slice(&bytes).ok())
+            .and_then(|bytes| serde_json::from_slice::<serde_json::Value>(&bytes).ok())
+            .and_then(|json| {
+                let legacy = legacy_battery_mode(&json);
+                let mut settings: Self = serde_json::from_value(json).ok()?;
+                if let Some(mode) = legacy {
+                    settings.battery_saver.enabled = true;
+                    settings.battery_saver.power_mode = mode;
+                }
+                Some(settings)
+            })
             .unwrap_or_default()
     }
 
@@ -71,5 +80,39 @@ impl GatewaySettings {
         }
         let json = serde_json::to_vec_pretty(self).map_err(std::io::Error::other)?;
         std::fs::write(path, json)
+    }
+}
+
+/// Calcine 1.2.0 saved the battery saver as a power mode alone
+/// (`batteryPowerMode`); it's the saver turned on, with that mode.
+fn legacy_battery_mode(json: &serde_json::Value) -> Option<String> {
+    if json.get("batterySaver").is_some() {
+        return None;
+    }
+    json.get("batteryPowerMode")?.as_str().map(str::to_owned)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn carries_over_the_1_2_0_battery_saver() {
+        let dir = std::env::temp_dir().join(format!("calcine-settings-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("gateway.json");
+        std::fs::write(
+            &path,
+            r#"{ "port": 18181, "batteryPowerMode": "balanced" }"#,
+        )
+        .unwrap();
+        let settings = GatewaySettings::load(&path);
+        assert!(settings.battery_saver.enabled);
+        assert_eq!(settings.battery_saver.power_mode, "balanced");
+        assert!(settings.battery_saver.no_thinking);
+
+        std::fs::write(&path, r#"{ "port": 18181 }"#).unwrap();
+        assert!(!GatewaySettings::load(&path).battery_saver.enabled);
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }

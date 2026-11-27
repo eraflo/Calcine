@@ -75,7 +75,7 @@ pub fn builder() -> Builder<Wry> {
             commands::server::set_require_api_key,
             commands::server::gateway_settings,
             commands::server::set_gateway_port,
-            commands::server::set_battery_power_mode,
+            commands::server::set_battery_saver,
             commands::server::set_model_aliases,
             commands::server::set_allowed_origins,
             commands::server::set_ollama_port,

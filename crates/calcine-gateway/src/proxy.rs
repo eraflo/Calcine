@@ -11,12 +11,12 @@ use serde_json::Value;
 use tokio::sync::{OwnedSemaphorePermit, mpsc};
 use tokio_stream::wrappers::ReceiverStream;
 
+use crate::aliases;
 use crate::caller::Caller;
 use crate::error::{api_error, is_context_error, upstream_error, upstream_message};
 use crate::log::{RequestEntry, RequestLog, SseUsage, Usage};
 use crate::security::sanitize;
 use crate::state::{ActiveRequest, AppState};
-use crate::{aliases, battery};
 
 /// One request in flight: where it's logged, when it started, and its turn
 /// in the queue (released when this is dropped).
@@ -197,7 +197,7 @@ pub(crate) async fn send(
 }
 
 /// The request GenieX should get instead, if any: an alias replaced by its
-/// model, and on battery, the battery saver's power mode.
+/// model, and on battery, the battery saver's changes.
 async fn rewrite(app: &AppState, upstream_path: &str, json: &Value) -> Option<Value> {
     let settings = app.settings();
     let mut rewritten = None;
@@ -210,8 +210,9 @@ async fn rewrite(app: &AppState, upstream_path: &str, json: &Value) -> Option<Va
         aliases::apply(&settings.model_aliases, &mut request);
         rewritten = Some(request);
     }
-    if let Some(mode) = settings.battery_power_mode
-        && battery::may_set_mode(upstream_path, json)
+    let saver = settings.battery_saver;
+    if saver.enabled
+        && json.is_object()
         && app
             .services
             .hardware
@@ -221,10 +222,13 @@ async fn rewrite(app: &AppState, upstream_path: &str, json: &Value) -> Option<Va
             .flatten()
             .is_some_and(|source| source.on_battery)
     {
-        tracing::debug!(%mode, "on battery: running the request in the battery saver mode");
-        let mut request = rewritten.unwrap_or_else(|| json.clone());
-        request["power_mode"] = Value::String(mode);
-        rewritten = Some(request);
+        let mut request = rewritten.clone().unwrap_or_else(|| json.clone());
+        if let Some(object) = request.as_object_mut()
+            && saver.apply(upstream_path, object)
+        {
+            tracing::debug!("on battery: the battery saver shortened the request");
+            rewritten = Some(request);
+        }
     }
     rewritten
 }

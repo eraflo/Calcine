@@ -5,6 +5,7 @@ use std::time::Duration;
 
 use calcine_core::hardware::{HardwareInfo, HardwareProbe, HardwareUsage, PowerSource};
 use calcine_gateway::aliases::ModelAlias;
+use calcine_gateway::battery::BatterySaver;
 use calcine_gateway::usage::UsagePeriod;
 use calcine_gateway::{
     CALCINE_ORIGINS, Gateway, GatewayOptions, GatewaySettings, KeyScope, KeyStore, NewApiKey,
@@ -1196,47 +1197,58 @@ impl HardwareProbe for OnBattery {
     }
 }
 
-/// The speed the mock reports, which follows the power mode it ran in.
-async fn reported_speed(h: &Harness, token: &str, body: &Value) -> f64 {
-    let reply: Value = h
-        .chat(Some(token), body)
-        .send()
-        .await
-        .unwrap()
-        .json()
-        .await
-        .unwrap();
-    reply["timings"]["predicted_per_second"].as_f64().unwrap()
-}
-
 #[tokio::test(flavor = "multi_thread")]
-async fn on_battery_requests_run_in_the_saver_mode() {
+async fn on_battery_requests_make_fewer_tokens() {
     let mut services = MockBackend::services();
     services.hardware = Arc::new(OnBattery(services.hardware.clone()));
     let h = start_with(any_port(), services).await;
     let token = h.key(&[KeyScope::Inference], false);
+    let ask = async |body: &Value| -> Value {
+        h.chat(Some(&token), body)
+            .send()
+            .await
+            .unwrap()
+            .json()
+            .await
+            .unwrap()
+    };
 
-    let burst = reported_speed(&h, &token, &hello(false)).await;
+    // Off: the model thinks, at full speed.
+    let before = ask(&hello(false)).await;
+    assert_ne!(before["choices"][0]["message"]["reasoning_content"], "");
+    let burst = before["timings"]["predicted_per_second"].as_f64().unwrap();
+
     h.gateway
-        .set_battery_power_mode(Some("power_saver".into()))
+        .set_battery_saver(BatterySaver {
+            enabled: true,
+            ..BatterySaver::default()
+        })
         .unwrap();
-    let saving = reported_speed(&h, &token, &hello(false)).await;
-    assert!(saving < burst, "{saving} should be slower than {burst}");
+    let saving = ask(&hello(false)).await;
+    assert_eq!(saving["choices"][0]["message"]["reasoning_content"], "");
+    // The mock reports a speed that follows the power mode it ran in.
+    let speed = saving["timings"]["predicted_per_second"].as_f64().unwrap();
+    assert!(speed < burst, "{speed} should be slower than {burst}");
 
     // A request that chooses its mode keeps it.
     let mut chosen = hello(false);
     chosen["power_mode"] = json!("burst");
-    assert!((reported_speed(&h, &token, &chosen).await - burst).abs() < f64::EPSILON);
+    let kept = ask(&chosen).await["timings"]["predicted_per_second"].as_f64();
+    assert!((kept.unwrap() - burst).abs() < f64::EPSILON);
 
-    assert!(
-        h.gateway
-            .set_battery_power_mode(Some("warp".into()))
-            .is_err()
-    );
-    assert_eq!(
-        h.gateway.settings().battery_power_mode.as_deref(),
-        Some("power_saver")
-    );
+    for wrong in [
+        BatterySaver {
+            power_mode: "warp".into(),
+            ..BatterySaver::default()
+        },
+        BatterySaver {
+            max_reply_tokens: Some(8),
+            ..BatterySaver::default()
+        },
+    ] {
+        assert!(h.gateway.set_battery_saver(wrong).is_err());
+    }
+    assert!(h.gateway.settings().battery_saver.enabled);
 }
 
 #[tokio::test(flavor = "multi_thread")]

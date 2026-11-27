@@ -27,7 +27,7 @@ export const settingsMessages = defineMessages({
     computeUnit: "Compute unit",
     computeHint: "Where llama.cpp runs this model.",
     computeQairt: "Pre-compiled AI Hub models always run on the Hexagon NPU.",
-    powerModeHint: "Lower modes run cooler and save battery.",
+    powerModeHint: "GenieX 0.12 runs at the same speed and draw in every mode (measured).",
     equivalentRequest: "Equivalent API request",
     promptName: "Name this prompt",
     save: "Save",
@@ -108,7 +108,8 @@ export const settingsMessages = defineMessages({
     computeUnit: "Unité de calcul",
     computeHint: "Où llama.cpp exécute ce modèle.",
     computeQairt: "Les modèles AI Hub précompilés tournent toujours sur le NPU Hexagon.",
-    powerModeHint: "Les modes bas chauffent moins et économisent la batterie.",
+    powerModeHint:
+      "GenieX 0.12 tourne à la même vitesse et la même puissance dans tous les modes (mesuré).",
     equivalentRequest: "Requête API équivalente",
     promptName: "Nom de ce prompt",
     save: "Enregistrer",

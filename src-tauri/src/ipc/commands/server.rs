@@ -4,6 +4,7 @@ use calcine_core::Services;
 use calcine_core::context::ContextUsage;
 use calcine_core::runtime::ServerOptions;
 use calcine_gateway::aliases::ModelAlias;
+use calcine_gateway::battery::BatterySaver;
 use calcine_gateway::{
     ApiKeyInfo, CreatedApiKey, Gateway, GatewaySettings, GatewayStatus, KeyError, NewApiKey,
     RequestEntry,
@@ -158,20 +159,15 @@ pub fn gateway_settings(gateway: State<'_, Arc<Gateway>>) -> GatewaySettings {
     gateway.settings()
 }
 
-/// On battery, run chat requests that don't choose a power mode in `mode`
-/// (`None`: never).
+/// What chat requests save on battery: thinking, reply length, power mode.
 #[tauri::command]
 #[specta::specta]
-pub fn set_battery_power_mode(
-    gateway: State<'_, Arc<Gateway>>,
-    mode: Option<String>,
-) -> ApiResult<()> {
+pub fn set_battery_saver(gateway: State<'_, Arc<Gateway>>, saver: BatterySaver) -> ApiResult<()> {
     gateway
-        .set_battery_power_mode(mode)
+        .set_battery_saver(saver)
         .map_err(ApiError::invalid_input)
 }
 
-/// Model names apps ask for (`gpt-4o-mini`), answered by local models.
 #[tauri::command]
 #[specta::specta]
 pub fn set_model_aliases(

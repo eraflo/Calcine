@@ -12,7 +12,7 @@
 
 pub mod aliases;
 mod audio;
-mod battery;
+pub mod battery;
 mod caller;
 mod context;
 mod error;
@@ -508,15 +508,21 @@ impl Gateway {
         Ok(())
     }
 
-    /// On battery, run chat requests that don't choose a power mode in
-    /// `mode` (`None`: never). Takes effect with the next request.
-    pub fn set_battery_power_mode(&self, mode: Option<String>) -> Result<(), String> {
-        if let Some(mode) = &mode
-            && !calcine_core::bench::POWER_MODES.contains(&mode.as_str())
-        {
-            return Err(format!("unknown power mode: {mode}"));
+    /// What chat requests save on battery. Takes effect with the next request.
+    pub fn set_battery_saver(&self, saver: battery::BatterySaver) -> Result<(), String> {
+        if !calcine_core::bench::POWER_MODES.contains(&saver.power_mode.as_str()) {
+            return Err(format!("unknown power mode: {}", saver.power_mode));
         }
-        self.update_settings(|settings| settings.battery_power_mode = mode)
+        if saver
+            .max_reply_tokens
+            .is_some_and(|tokens| tokens < battery::MIN_REPLY_TOKENS)
+        {
+            return Err(format!(
+                "replies need at least {} tokens",
+                battery::MIN_REPLY_TOKENS
+            ));
+        }
+        self.update_settings(|settings| settings.battery_saver = saver)
             .map_err(|err| err.to_string())
     }
 
