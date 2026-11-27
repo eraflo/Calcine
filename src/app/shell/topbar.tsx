@@ -8,6 +8,7 @@ import { Tooltip } from "@/components/ui/tooltip";
 import { gatewayQuery } from "@/features/server/api";
 import { describeStatus } from "@/features/server/lib/status";
 import { messages as serverMessages } from "@/features/server/messages";
+import { BatterySaverBadge } from "@/features/settings/components/battery";
 import { jobsQuery } from "@/features/tasks/api";
 import { isRunning } from "@/features/tasks/lib/format";
 import { useT } from "@/i18n";
@@ -38,6 +39,7 @@ export function Topbar() {
       </button>
 
       <div className="ml-auto flex items-center gap-1">
+        <BatterySaverBadge />
         <Tooltip content={api.detail}>
           <Link
             to="/server"

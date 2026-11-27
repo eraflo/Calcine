@@ -82,6 +82,12 @@ export const commands = {
 	hardwareInfo: () => typedError<HardwareInfo, ApiError>(__TAURI_INVOKE("hardware_info")),
 	/**  Live CPU, GPU, NPU and memory load. Poll about once a second. */
 	hardwareUsage: () => typedError<HardwareUsage, ApiError>(__TAURI_INVOKE("hardware_usage")),
+	/**  Battery or mains (`None`: no battery). Poll every few seconds at most. */
+	powerSource: () => typedError<{
+	onBattery: boolean,
+	/**  Charge left, 0-100, when the battery reports it. */
+	batteryPercent: number | null,
+} | null, ApiError>(__TAURI_INVOKE("power_source")),
 	/**  The newest GenieX on `channel`, compared with the installed one. */
 	checkRuntimeUpdate: (channel: ReleaseChannel) => typedError<RuntimeUpdateCheck, ApiError>(__TAURI_INVOKE("check_runtime_update", { channel })),
 	/**
@@ -135,6 +141,11 @@ export const commands = {
 	gatewaySettings: () => __TAURI_INVOKE<GatewaySettings>("gateway_settings"),
 	/**  Move the local API to another port. Apps must use the new address. */
 	setGatewayPort: (port: number) => typedError<null, ApiError>(__TAURI_INVOKE("set_gateway_port", { port })),
+	/**
+	 *  On battery, run chat requests that don't choose a power mode in `mode`
+	 *  (`None`: never).
+	 */
+	setBatteryPowerMode: (mode: string | null) => typedError<null, ApiError>(__TAURI_INVOKE("set_battery_power_mode", { mode })),
 	/**  Browser origins allowed to call the local API (local web apps). */
 	setAllowedOrigins: (origins: string[]) => typedError<null, ApiError>(__TAURI_INVOKE("set_allowed_origins", { origins })),
 	/**  Also answer Ollama apps on port 11434, without a key (inference only). */
@@ -548,6 +559,11 @@ export type GatewaySettings = {
 	 *  `192.168.1.0/24`. Empty means private networks.
 	 */
 	networkAllowed?: string[],
+	/**
+	 *  On battery, the power mode for chat requests that don't choose one
+	 *  (`None`: off).
+	 */
+	batteryPowerMode?: string | null,
 };
 
 /**  What the Server page shows. */
@@ -785,6 +801,13 @@ export type PowerDraw = {
 	systemWatts: number | null,
 	cpuWatts: number | null,
 	gpuWatts: number | null,
+};
+
+/**  Where a laptop takes its power from. */
+export type PowerSource = {
+	onBattery: boolean,
+	/**  Charge left, 0-100, when the battery reports it. */
+	batteryPercent: number | null,
 };
 
 export type Processor = {

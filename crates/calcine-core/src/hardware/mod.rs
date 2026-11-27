@@ -6,5 +6,5 @@ mod types;
 pub use probe::HardwareProbe;
 pub use types::{
     Accelerator, DiskSpace, EnergyReading, HardwareInfo, HardwareUsage, MemoryInfo, PowerDraw,
-    Processor,
+    PowerSource, Processor,
 };

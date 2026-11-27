@@ -148,6 +148,8 @@ async fn chat_completions(Json(request): Json<Value>) -> Response {
         .unwrap_or("")
         .to_owned();
     let think = request["enable_think"].as_bool().unwrap_or(true);
+    // Reported like GenieX does; it follows the power mode, as in `complete`.
+    let speed = mode_speed(request["power_mode"].as_str().unwrap_or("burst"));
     let reasoning = if think {
         "The user wants a demo reply. I'll answer briefly and mention the mock backend."
     } else {
@@ -184,6 +186,7 @@ async fn chat_completions(Json(request): Json<Value>) -> Response {
                 "message": { "role": "assistant", "content": reply, "reasoning_content": reasoning },
             }],
             "usage": usage(&reply),
+            "timings": { "prompt_ms": 30.0, "predicted_per_second": speed },
         }))
         .into_response();
     }
@@ -206,7 +209,7 @@ async fn chat_completions(Json(request): Json<Value>) -> Response {
             }
         }
         let done = json!({ "object": "chat.completion.chunk", "choices": [{ "index": 0, "delta": {}, "finish_reason": "stop" }] });
-        let stats = json!({ "object": "chat.completion.chunk", "choices": [], "usage": usage(&reply), "timings": { "prompt_ms": 30.0, "predicted_per_second": 40.0 } });
+        let stats = json!({ "object": "chat.completion.chunk", "choices": [], "usage": usage(&reply), "timings": { "prompt_ms": 30.0, "predicted_per_second": speed } });
         let _ = tx.send(Ok(sse(&done))).await;
         let _ = tx.send(Ok(sse(&stats))).await;
         let _ = tx.send(Ok(Bytes::from_static(b"data:[DONE]\n\n"))).await;

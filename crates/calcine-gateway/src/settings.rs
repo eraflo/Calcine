@@ -30,6 +30,9 @@ pub struct GatewaySettings {
     /// Who may connect over the network: addresses or ranges like
     /// `192.168.1.0/24`. Empty means private networks.
     pub network_allowed: Vec<String>,
+    /// On battery, the power mode for chat requests that don't choose one
+    /// (`None`: off).
+    pub battery_power_mode: Option<String>,
 }
 
 impl Default for GatewaySettings {
@@ -43,6 +46,7 @@ impl Default for GatewaySettings {
             network_enabled: false,
             network_port: crate::network::DEFAULT_PORT,
             network_allowed: Vec::new(),
+            battery_power_mode: None,
         }
     }
 }

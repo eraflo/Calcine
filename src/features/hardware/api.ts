@@ -90,3 +90,12 @@ export function useInstallRuntime() {
     onSuccess: () => setTasksOpen(true),
   });
 }
+
+/** Battery or mains (`null`: no battery). The OS is asked every few seconds at most. */
+export const powerSourceQuery = queryOptions({
+  queryKey: ["power-source"],
+  queryFn: () => unwrap(commands.powerSource),
+  refetchInterval: 15_000,
+  staleTime: 10_000,
+  retry: false,
+});

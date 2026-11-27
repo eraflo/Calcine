@@ -39,7 +39,7 @@ every web page you visit.
 
 - **Chat with every option.** Thinking, temperature, max tokens, compute unit and power
   mode, adapted to each model's runtime, with tokens per second. Images and voice for
-  vision models.
+  vision models. Regenerate a reply and go back to earlier versions, or edit a message.
 - **Chat with your documents.** Attach or drop PDF, Word, PowerPoint, text, code and data
   files. Short ones are read whole; for long ones, Calcine picks the passages that match each
   message, so they fit even the NPU's 4096-token window, and shows the pages it used under
@@ -60,6 +60,8 @@ every web page you visit.
   Only counts are kept, never what's asked or answered.
 - **Measure energy.** On Snapdragon X, the chip's own energy metering shows live power, and
   energy per token on each compute unit and power mode, so you can pick the most efficient.
+- **Last longer on battery.** Unplugged, models run in the power mode you pick (Power saver
+  by default) for the chat and for apps, and at full speed again once plugged in.
 - **Structured output and tools on the NPU.** `response_format` (JSON or a JSON Schema) and
   `tool_choice` work on every model: Calcine asks for JSON or for the call, checks the reply
   against the schema and has the model fix it if needed. Agents can rely on them.

@@ -3,12 +3,14 @@
 //! - `snapshot`: what the machine has (CPU, memory, disk, accelerators)
 //! - `usage`: live load, sampled on demand
 //! - `power`: power and energy, on devices with energy metering
+//! - `battery`: battery or mains, for the gateway's battery saver
 //! - `system`: CPU, memory and disk, portable (`sysinfo`)
 //! - `windows`: Hexagon NPU and Adreno GPU, from the driver database (WMI)
 //!   and the performance counters
 //! - `linux`: the Hexagon NPU and Adreno GPU from `/dev` and `/sys`, no load
 //!   or power yet. Other platforms report no accelerators.
 
+mod battery;
 #[cfg(target_os = "linux")]
 mod linux;
 mod power;
@@ -22,9 +24,12 @@ use std::path::Path;
 use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
-use calcine_core::hardware::{EnergyReading, HardwareInfo, HardwareProbe, HardwareUsage};
+use calcine_core::hardware::{
+    EnergyReading, HardwareInfo, HardwareProbe, HardwareUsage, PowerSource,
+};
 use calcine_core::{Error, Result};
 
+use crate::battery::BatteryCache;
 use crate::usage::UsageSampler;
 
 /// Probe for the machine Calcine runs on.
@@ -32,6 +37,7 @@ use crate::usage::UsageSampler;
 pub struct SystemProbe {
     /// Opened on first use, then kept so each read measures since the last.
     sampler: Arc<Mutex<Option<UsageSampler>>>,
+    battery: Arc<BatteryCache>,
 }
 
 impl SystemProbe {
@@ -57,6 +63,11 @@ impl HardwareProbe for SystemProbe {
             sampler.get_or_insert_with(UsageSampler::new).read()
         })
         .await
+    }
+
+    async fn power_source(&self) -> Result<Option<PowerSource>> {
+        let battery = self.battery.clone();
+        blocking(move || battery.read()).await
     }
 
     async fn energy(&self) -> Result<Option<EnergyReading>> {

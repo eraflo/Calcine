@@ -87,3 +87,12 @@ pub struct DiskSpace {
     pub total_bytes: u64,
     pub available_bytes: u64,
 }
+
+/// Where a laptop takes its power from.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct PowerSource {
+    pub on_battery: bool,
+    /// Charge left, 0-100, when the battery reports it.
+    pub battery_percent: Option<u8>,
+}

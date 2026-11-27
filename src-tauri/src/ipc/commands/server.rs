@@ -157,6 +157,19 @@ pub fn gateway_settings(gateway: State<'_, Arc<Gateway>>) -> GatewaySettings {
     gateway.settings()
 }
 
+/// On battery, run chat requests that don't choose a power mode in `mode`
+/// (`None`: never).
+#[tauri::command]
+#[specta::specta]
+pub fn set_battery_power_mode(
+    gateway: State<'_, Arc<Gateway>>,
+    mode: Option<String>,
+) -> ApiResult<()> {
+    gateway
+        .set_battery_power_mode(mode)
+        .map_err(ApiError::invalid_input)
+}
+
 /// Move the local API to another port. Apps must use the new address.
 #[tauri::command]
 #[specta::specta]

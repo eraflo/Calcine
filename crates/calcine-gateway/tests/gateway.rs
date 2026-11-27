@@ -3,6 +3,7 @@
 use std::sync::Arc;
 use std::time::Duration;
 
+use calcine_core::hardware::{HardwareInfo, HardwareProbe, HardwareUsage, PowerSource};
 use calcine_gateway::usage::UsagePeriod;
 use calcine_gateway::{
     CALCINE_ORIGINS, Gateway, GatewayOptions, GatewaySettings, KeyScope, KeyStore, NewApiKey,
@@ -27,6 +28,10 @@ impl Drop for TempDir {
 }
 
 async fn start(settings: GatewaySettings) -> Harness {
+    start_with(settings, MockBackend::services()).await
+}
+
+async fn start_with(settings: GatewaySettings, services: calcine_core::Services) -> Harness {
     let dir = std::env::temp_dir()
         .join(format!("calcine-gateway-{}", std::process::id()))
         .join(format!("{:?}", std::thread::current().id()).replace(['(', ')'], ""));
@@ -35,7 +40,7 @@ async fn start(settings: GatewaySettings) -> Harness {
     settings.save(&settings_path).unwrap();
 
     let gateway = Gateway::new(
-        MockBackend::services(),
+        services,
         GatewayOptions {
             keys: Arc::new(KeyStore::in_memory()),
             settings_path: Some(settings_path),
@@ -1163,5 +1168,72 @@ async fn usage_counts_finished_requests_for_metrics() {
             "calcine_requests_total{client=\"Test app\",model=\"qualcomm/Qwen3-0.6B\"} 2"
         ),
         "{metrics}"
+    );
+}
+
+/// The mock's hardware, on battery.
+struct OnBattery(Arc<dyn HardwareProbe>);
+
+#[async_trait::async_trait]
+impl HardwareProbe for OnBattery {
+    async fn snapshot(
+        &self,
+        models_dir: Option<&std::path::Path>,
+    ) -> calcine_core::Result<HardwareInfo> {
+        self.0.snapshot(models_dir).await
+    }
+
+    async fn usage(&self) -> calcine_core::Result<HardwareUsage> {
+        self.0.usage().await
+    }
+
+    async fn power_source(&self) -> calcine_core::Result<Option<PowerSource>> {
+        Ok(Some(PowerSource {
+            on_battery: true,
+            battery_percent: Some(30),
+        }))
+    }
+}
+
+/// The speed the mock reports, which follows the power mode it ran in.
+async fn reported_speed(h: &Harness, token: &str, body: &Value) -> f64 {
+    let reply: Value = h
+        .chat(Some(token), body)
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    reply["timings"]["predicted_per_second"].as_f64().unwrap()
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn on_battery_requests_run_in_the_saver_mode() {
+    let mut services = MockBackend::services();
+    services.hardware = Arc::new(OnBattery(services.hardware.clone()));
+    let h = start_with(any_port(), services).await;
+    let token = h.key(&[KeyScope::Inference], false);
+
+    let burst = reported_speed(&h, &token, &hello(false)).await;
+    h.gateway
+        .set_battery_power_mode(Some("power_saver".into()))
+        .unwrap();
+    let saving = reported_speed(&h, &token, &hello(false)).await;
+    assert!(saving < burst, "{saving} should be slower than {burst}");
+
+    // A request that chooses its mode keeps it.
+    let mut chosen = hello(false);
+    chosen["power_mode"] = json!("burst");
+    assert!((reported_speed(&h, &token, &chosen).await - burst).abs() < f64::EPSILON);
+
+    assert!(
+        h.gateway
+            .set_battery_power_mode(Some("warp".into()))
+            .is_err()
+    );
+    assert_eq!(
+        h.gateway.settings().battery_power_mode.as_deref(),
+        Some("power_saver")
     );
 }

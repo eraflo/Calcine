@@ -11,6 +11,7 @@
 //!   when turned on
 
 mod audio;
+mod battery;
 mod caller;
 mod context;
 mod error;
@@ -504,6 +505,18 @@ impl Gateway {
             settings.save(path)?;
         }
         Ok(())
+    }
+
+    /// On battery, run chat requests that don't choose a power mode in
+    /// `mode` (`None`: never). Takes effect with the next request.
+    pub fn set_battery_power_mode(&self, mode: Option<String>) -> Result<(), String> {
+        if let Some(mode) = &mode
+            && !calcine_core::bench::POWER_MODES.contains(&mode.as_str())
+        {
+            return Err(format!("unknown power mode: {mode}"));
+        }
+        self.update_settings(|settings| settings.battery_power_mode = mode)
+            .map_err(|err| err.to_string())
     }
 
     /// Require (or stop requiring) API keys. Takes effect immediately.

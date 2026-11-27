@@ -11,6 +11,7 @@ use serde_json::Value;
 use tokio::sync::{OwnedSemaphorePermit, mpsc};
 use tokio_stream::wrappers::ReceiverStream;
 
+use crate::battery;
 use crate::caller::Caller;
 use crate::error::{api_error, is_context_error, upstream_error, upstream_message};
 use crate::log::{RequestEntry, RequestLog, SseUsage, Usage};
@@ -96,7 +97,7 @@ pub(crate) async fn send(
     logged_path: &'static str,
     upstream_path: &'static str,
     json: &Value,
-    body: Bytes,
+    mut body: Bytes,
 ) -> Result<(Exchange, reqwest::Response), Refused> {
     if !caller.can_infer() {
         return Err(Refused::new(
@@ -111,6 +112,14 @@ pub(crate) async fn send(
             "permission_error",
             reason,
         ));
+    }
+
+    if let Some(mode) = app.settings().battery_power_mode {
+        let source = app.services.hardware.power_source().await.ok().flatten();
+        if let Some(saving) = battery::saver_body(upstream_path, json, Some(&mode), source) {
+            tracing::debug!(%mode, "on battery: running the request in the battery saver mode");
+            body = saving;
+        }
     }
 
     let model = json.get("model").and_then(Value::as_str).map(str::to_owned);
