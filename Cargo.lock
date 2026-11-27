@@ -580,7 +580,7 @@ dependencies = [
 
 [[package]]
 name = "calcine"
-version = "1.1.3"
+version = "1.2.0"
 dependencies = [
  "base64 0.23.1",
  "calcine-core",
@@ -615,7 +615,7 @@ dependencies = [
 
 [[package]]
 name = "calcine-core"
-version = "1.1.3"
+version = "1.2.0"
 dependencies = [
  "async-trait",
  "serde",
@@ -628,7 +628,7 @@ dependencies = [
 
 [[package]]
 name = "calcine-docs"
-version = "1.1.3"
+version = "1.2.0"
 dependencies = [
  "encoding_rs",
  "getrandom 0.4.3",
@@ -647,7 +647,7 @@ dependencies = [
 
 [[package]]
 name = "calcine-gateway"
-version = "1.1.3"
+version = "1.2.0"
 dependencies = [
  "async-trait",
  "axum",
@@ -674,7 +674,7 @@ dependencies = [
 
 [[package]]
 name = "calcine-geniex"
-version = "1.1.3"
+version = "1.2.0"
 dependencies = [
  "async-trait",
  "calcine-core",
@@ -693,7 +693,7 @@ dependencies = [
 
 [[package]]
 name = "calcine-hub"
-version = "1.1.3"
+version = "1.2.0"
 dependencies = [
  "async-trait",
  "calcine-core",
@@ -706,7 +706,7 @@ dependencies = [
 
 [[package]]
 name = "calcine-hw"
-version = "1.1.3"
+version = "1.2.0"
 dependencies = [
  "async-trait",
  "calcine-core",
@@ -720,7 +720,7 @@ dependencies = [
 
 [[package]]
 name = "calcine-mock"
-version = "1.1.3"
+version = "1.2.0"
 dependencies = [
  "async-trait",
  "axum",
