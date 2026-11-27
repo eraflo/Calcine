@@ -51,15 +51,7 @@ export function UsageChart({ summary, metric }: { summary: UsageSummary; metric:
             </span>
           ))}
         </div>
-        <div
-          className="relative flex-1"
-          role="group"
-          aria-label={t("chartLabel", {
-            metric: t(`metric_${metric}`),
-            period: t(`period_${period}`),
-          })}
-          onMouseLeave={() => setActive(null)}
-        >
+        <div className="relative flex-1">
           {[0, 50, 100].map((top) => (
             <span
               key={top}
@@ -151,6 +143,7 @@ function Column({
       type="button"
       aria-label={label}
       onMouseEnter={onActive}
+      onMouseLeave={onInactive}
       onFocus={onActive}
       onBlur={onInactive}
       className="group flex h-full flex-1 items-end justify-center rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
