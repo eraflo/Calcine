@@ -26,7 +26,10 @@ manager.
    This sets the version in `Cargo.toml` and `package.json`, refreshes
    `Cargo.lock`, adds the `## 1.0.0` section to `CHANGELOG.md` from the
    Conventional Commits since the last release, and commits
-   `chore(release): v1.0.0`. Edit the changelog wording if needed (amend).
+   `chore(release): v1.0.0`. The entries come from the commits' first body
+   paragraph (see CONTRIBUTING.md, "The changelog is written from commits"):
+   a wrong entry is better fixed in how commits are written next time, but the
+   section can still be edited (amend).
 
 2. Push `dev`, open a pull request `dev → main`, and run the manual checklist
    below on a Snapdragon PC (with a beta from that commit, run on demand, or a

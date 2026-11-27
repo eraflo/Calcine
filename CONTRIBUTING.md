@@ -28,7 +28,24 @@ chore(runtime): bump GenieX to v0.8.1
 ```
 
 Common scopes: `app`, `ui`, `chat`, `models`, `discover`, `server`, `gateway`,
-`hardware`, `settings`, `runtime`, `core`, `ci`, `deps`, `docs`.
+`api`, `activity`, `hardware`, `settings`, `runtime`, `core`, `ci`, `deps`, `docs`.
+
+### The changelog is written from commits
+
+`bun scripts/release.ts` writes the release's changelog section from the
+commits since the last release, and it's published as is. So:
+
+- **The first paragraph of the body is for users**: what changes for them, in
+  plain words. It becomes the changelog entry, after the title. Details for
+  developers go in later paragraphs. With no body, the title alone is the entry.
+  When squash-merging, put that paragraph first in the commit message.
+- Features (`feat`) are grouped by scope (`chat` → Chat, `api` → Local API…;
+  no scope → New), then come fixes, performance, security, and GenieX pins and
+  dependency updates (`chore(runtime)`, `chore(deps)`). Other types are left out.
+- A fix for a feature not released yet takes the feature's scope (or, when the
+  feature has none, a word of its title): it's folded into the feature's entry
+  instead of being listed as a fix.
+- A list in the first paragraph stays a list under the entry.
 
 ## Local setup
 

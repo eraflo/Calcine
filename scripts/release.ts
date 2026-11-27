@@ -34,13 +34,16 @@ if (import.meta.main) {
         .text()
     ).trim();
   const range = lastTag ? `${lastTag}..HEAD` : "HEAD";
-  const log = await $`git log ${range} --format=%H%x09%s --no-merges`.text();
+  // Hash, subject and body, separated by unit separators, one commit per
+  // record separator: bodies span lines.
+  const log = await $`git log ${range} --format=%H%x1f%s%x1f%b%x1e --no-merges`.text();
   const commits = log
-    .split("\n")
+    .split("\x1e")
+    .map((record) => record.trim())
     .filter(Boolean)
-    .map((line) => {
-      const [hash = "", subject = ""] = line.split("\t");
-      return { hash, subject };
+    .map((record) => {
+      const [hash = "", subject = "", body = ""] = record.split("\x1f");
+      return { hash, subject, body };
     });
 
   await stamp(version);
