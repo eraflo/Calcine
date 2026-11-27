@@ -33,6 +33,25 @@ outside request goes through the gateway.
 Errors use the OpenAI shape (`{"error": {"message", "type"}}`) so client
 libraries show the reason.
 
+## What the gateway changes in requests
+
+Before a request reaches GenieX, the gateway may change two things, both set by
+you in Settings:
+
+- **Model aliases** (Settings › Model aliases): a name an app asks for
+  (`gpt-4o-mini`) is replaced by the local model you chose, before its context
+  window is looked up. Aliases can't point to another alias. `/v1/models` and
+  `/api/tags` list an alias only while its model is installed. The request log
+  shows the model that answered.
+- **Battery saver**: on battery, a chat request that doesn't choose a
+  `power_mode` gets the one you picked. A request that chooses one keeps it.
+
+## `/metrics`
+
+Usage counters in Prometheus' format, for Grafana and the like. Same checks as
+the rest of the API (a key is needed unless *Require an API key* is off). They
+hold app and model names, counts and energy, never prompts or replies.
+
 ## API keys
 
 - One key per app, created in **Server → API keys**, with a name and scopes.
@@ -84,11 +103,27 @@ Windows asks the first time whether Calcine may use the network: allow
 private networks only. On Linux, open the port in your firewall (ufw,
 firewalld) for your local network only. Request bodies are checked as on the main port.
 
+## Calcine's windows
+
+Calcine's webview loads only Calcine's own pages, in two windows: the main one
+and the quick question window (opened by a global shortcut, Ctrl+Shift+Space by
+default, or from the tray). Both get the same permissions
+(`src-tauri/capabilities/default.json`: core features, theme, window effects
+and dragging; no shell, no generic file access), and only the main window may
+use the microphone. The quick question window reads the clipboard through a
+Calcine command when it opens (at most 20,000 characters); the text goes to a
+model on this PC only if you include it. The shortcut is registered with the
+OS while it's on: another app holding it is reported in Settings, never taken
+over.
+
 ## Privacy
 
 The request log records who called which model, the status, duration, token
 counts and speed. Prompts and replies are never recorded or sent anywhere.
 Chat conversations are stored in the app's local storage on this PC only.
+Documents attached in the chat are read on this PC, in a child process; only
+their text is kept, next to the conversation, and it's deleted with it.
+Activity keeps hourly counts per app and model for 90 days, never content.
 Dictation and `/v1/audio/transcriptions` keep the audio in memory only, for
 the time of the request: it's never written to disk or logged.
 
@@ -103,9 +138,10 @@ process asks the kernel for `SIGKILL` when Calcine exits (`PR_SET_PDEATHSIG`).
 
 - **GenieX**: Calcine reads Qualcomm's release index over HTTPS, downloads the
   installer, and refuses it unless its SHA-256 matches the official manifest.
-  An Authenticode signature, when present, must be valid and from Qualcomm
-  (GenieX installers aren't signed yet; `windows-signed.txt` is reported in
-  the UI). `geniex serve` is stopped before the installer runs.
+  Its Authenticode signature, when present, must be valid and from Qualcomm
+  (organization `QUALCOMM Inc.`, which signs GenieX installers since 0.12;
+  older, unsigned installers pass on their SHA-256 alone). `geniex serve` is
+  stopped before the installer runs.
 - **Calcine**: updates are signed with Calcine's updater key (minisign) and
   verified by the app before installing; the public key ships in the app.
   Release installers also carry SHA-256 checksums, a CycloneDX SBOM and a

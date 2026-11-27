@@ -30,10 +30,10 @@ Security of the gateway is described in [security-model.md](security-model.md).
 |---|---|---|
 | `crates/calcine-core` | Domain types, model references (pasted names and links), service traits (`ModelStore`, `ModelCatalog`, `RuntimeManager`, `HardwareProbe`), the `JobManager` for long-running work, errors, `Services` | No |
 | `crates/calcine-geniex` | GenieX CLI adapter: discovery, command runner (`platform.rs`: what differs on Linux, `LD_LIBRARY_PATH`, parent-death signal, archive install), `pull` with live progress, `geniex serve` supervisor, output parsers tested on real captures (`tests/fixtures/`), installing and updating GenieX (`update/`: release index, verified download, signature, silent installer, cache for rolling back), context windows and token counts with each model's `tokenizer.json` (`context.rs`) | No |
-| `crates/calcine-gateway` | Local HTTP API (axum): Host/Origin/API-key checks, optional local network port (`network/`: HTTPS with rustls and a self-signed certificate, allowed address ranges, key-guessing limiter), body sanitizing, OpenAI-compatible proxy with streaming and a one-at-a-time queue, request log, usage over time (`usage/`: hourly counts per app and model with the energy meter read around each request, saved for 90 days, summaries for the Activity page, `/metrics` in Prometheus' format), `/calcine/v1` management API | No |
+| `crates/calcine-gateway` | Local HTTP API (axum): Host/Origin/API-key checks, optional local network port (`network/`: HTTPS with rustls and a self-signed certificate, allowed address ranges, key-guessing limiter), body sanitizing, OpenAI-compatible proxy with streaming and a one-at-a-time queue (requests rewritten for model aliases and, on battery, the battery saver's power mode), Ollama's API translated, structured output and tools enforced (`structured/`), context fitting, transcription, request log, usage over time (`usage/`: hourly counts per app and model with the energy meter read around each request, saved for 90 days, summaries for the Activity page, `/metrics` in Prometheus' format), `/calcine/v1` management API | No |
 | `crates/calcine-docs` | Documents attached in the chat: text of PDF (`pdf-extract`, `lopdf` as a fallback), Word, PowerPoint, OpenDocument, HTML and text files; passages with their page; keyword ranking (BM25, French and English); what fits in a token budget (whole documents or matching passages); the text kept on disk. The app reads files in a child process (`src-tauri/src/documents/`), as PDF readers can panic | No |
 | `crates/calcine-hub` | Hub lookups over HTTPS: Hugging Face search, precisions with sizes (named like GenieX), AI Hub chipsets (`ModelDirectory`) | No |
-| `crates/calcine-hw` | Hardware probe: CPU, memory and disk (sysinfo), NPU/GPU and drivers (Windows WMI; on Linux the FastRPC device, the `msm`/KGSL GPU and the device tree's SoC), live NPU/GPU load (performance counters), power and energy from the SoC's energy metering (`Energy Meter` counters, found by their English names through PerfLib) | No |
+| `crates/calcine-hw` | Hardware probe: CPU, memory and disk (sysinfo), NPU/GPU and drivers (Windows WMI; on Linux the FastRPC device, the `msm`/KGSL GPU and the device tree's SoC), live NPU/GPU load (performance counters), power and energy from the SoC's energy metering (`Energy Meter` counters, found by their English names through PerfLib), battery or mains (WMI `Win32_Battery`, `/sys/class/power_supply`, read at most every 10 s) | No |
 | `crates/calcine-mock` | In-memory backend with simulated downloads, for UI work and tests | No |
 | `src-tauri/src/cli.rs`, `src-tauri/src/bin/calcine-cli.rs` | `calcine-cli`: a console program (the app is a windowed one) built from the same crate: `serve` runs the same services and gateway as the window (`setup::build`), `keys` manages API keys | Tauri runtime only |
 | `src-tauri` | Desktop shell: builds `Services`, exposes commands, exports TypeScript bindings | Yes |
@@ -46,7 +46,7 @@ Backend selection: `CALCINE_BACKEND=mock` uses the mock, anything else uses Geni
 calcine-core/src/
 ├─ models/     types.rs · reference.rs (pasted names/links) · store.rs (ModelStore, ModelCatalog)
 ├─ runtime/    types.rs · manager.rs (RuntimeManager) · server.rs (InferenceServer)
-├─ hardware/   types.rs · probe.rs (HardwareProbe)
+├─ hardware/   types.rs (incl. PowerSource) · probe.rs (HardwareProbe)
 ├─ jobs/       types.rs · manager.rs (JobManager, JobCtx)
 ├─ services.rs Services: the set of trait objects every front door uses
 └─ error.rs
@@ -58,8 +58,12 @@ calcine-geniex/src/
 
 calcine-gateway/src/
 ├─ security/   mod.rs (Host, Origin, auth middleware) · sanitize.rs (file paths, URLs)
-├─ routes/     openai.rs (/v1) · manage.rs (/calcine/v1)
-├─ proxy.rs    forwarding and streaming to geniex serve
+├─ routes/     openai.rs (/v1) · ollama.rs (/api) · manage.rs (/calcine/v1) · metrics.rs
+├─ proxy.rs    forwarding and streaming to geniex serve, the request rewritten first
+├─ aliases.rs  model aliases · battery.rs (battery saver's power mode)
+├─ ollama.rs   Ollama ⇄ OpenAI translation · structured/ (response_format, tools)
+├─ context.rs  forget what doesn't fit · transcribe.rs · audio.rs (speech to text)
+├─ network/    HTTPS port: tls.rs · allow.rs (address ranges) · limiter.rs
 ├─ keys.rs     API keys (hashed, scoped) · caller.rs (who is calling)
 ├─ usage/      bucket.rs · store.rs · recorder.rs · summary.rs · prometheus.rs
 └─ log.rs · settings.rs · state.rs · error.rs
@@ -74,13 +78,15 @@ calcine-docs/src/   kind.rs (extensions) · error.rs
 calcine-hub/src/    hf.rs (Hugging Face payloads) · quant.rs (precision names) · aihub.rs (chipsets)
 
 calcine-hw/src/     snapshot.rs · usage.rs (live load) · power.rs (power, energy) · system.rs (sysinfo)
-                    windows/ devices.rs (WMI) · gpu_engines.rs (PDH, the only `unsafe` code)
+                    battery.rs (cached) · linux.rs
+                    windows/ devices.rs (WMI) · battery.rs (WMI) · energy.rs · gpu_engines.rs · pdh.rs (PDH, the only `unsafe` code)
 calcine-mock/src/   data.rs (sample data) · models.rs · directory.rs · runtime.rs · hardware.rs · server.rs
 
 src-tauri/
 ├─ src/ipc/      mod.rs (bindings builder) · commands/ (one file per domain) · events.rs · error.rs
 ├─ src/setup/    services.rs (pick the backend) · gateway.rs · start and shutdown
-├─ src/desktop/  tray.rs · window behaviour · notifications.rs · locale.rs · process.rs (Job Object)
+├─ src/desktop/  tray.rs · window behaviour · quick_ask.rs (global shortcut, quick question window)
+│                notifications.rs · locale.rs · process.rs (Job Object)
 ├─ windows/      license-and-privacy.txt (installer license page) · test-manifest.xml
 └─ tests/        tests that link Tauri (bindings export)
 ```
@@ -104,11 +110,20 @@ TanStack Query cache (`src/features/tasks/api.ts`).
 - A finished download or import shows a system notification when Calcine
   isn't in front.
 - The tray menu and notifications follow the UI language (`set_language`).
+- A global shortcut (Ctrl+Shift+Space by default, Settings › Quick question)
+  or the tray menu opens the quick question window, label `quick`: built the
+  first time, then shown and hidden; it hides when it loses focus. It loads the
+  same page as the main window: `src/main.tsx` renders `QuickAskApp` for that
+  label. It reads the chat's settings from local storage but never writes the
+  chat's store (two windows writing it would overwrite each other); "Continue
+  in Calcine" sends the exchange to the main window as an event
+  (`quick-ask:continue`).
 
 ## Frontend
 
 ```
 src/
+├─ main.tsx        picks the root: the app, or the quick question window
 ├─ app/            router, navigation, shell (sidebar, topbar, ⌘K palette, task drawer)
 ├─ features/<x>/   one folder per feature:
 │    ├─ <x>-page.tsx      the route's page

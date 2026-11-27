@@ -98,8 +98,18 @@ a {
 }
 
 code,
-pre {
+pre,
+kbd {
   font-family: "Geist Mono", ui-monospace, "Cascadia Code", monospace;
+}
+
+kbd {
+  font-size: 0.82em;
+  padding: 0.05em 0.4em;
+  border-radius: 5px;
+  background: var(--card-2);
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
 }
 
 :not(pre) > code {
